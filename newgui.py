@@ -133,7 +133,7 @@ def salespage(page):
         DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE", height=20, width=5, corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
         DeleteButtonRequest.grid(row=3,column=0, sticky='nsew', pady = 9, padx=20)
         
-        #SearchRequestContentItems
+        #SearchRequestContentItemsg
         
         SearchLabel = CTkLabel(SearchRequestContent, text="SALES", font=EditFont)
         SearchLabel.grid(row=0, column=0, sticky='nsew', pady = 5, padx=10)
