@@ -74,8 +74,11 @@ def show_page(page, loginaccess):
 TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
 EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 BTNFont = CTkFont(family="Oswald", size=13)
-
+SalesPagePost = 0
 def salespage(page):
+    global SalesPagePost
+    if SalesPagePost==0:
+        
         #START MASTER 
         PageMargin = CTkFrame(page)
         PageMargin.pack(expand=True)
@@ -143,9 +146,11 @@ def salespage(page):
         
         SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0, text_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#0051ff')
         SearchButton.grid(row=2,column=0, sticky='nsew', pady = 5, padx=20)
+        SalesPagePost=1
+    else:
+        print("printed!")
         
         
-        #OutputScrollbar
         
 
 SearchAddButton = False
