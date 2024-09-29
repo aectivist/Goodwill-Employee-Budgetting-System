@@ -75,15 +75,15 @@ TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
 EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 BTNFont = CTkFont(family="Oswald", size=13)
 SalesPagePost = 0
-def salespage(page):
+def salespage(page): #TO BE UPDATED
     global SalesPagePost
     if SalesPagePost==0:
         
         #START MASTER 
         PageMargin = CTkFrame(page)
         PageMargin.pack(expand=True)
-        RequestPadding = CTkFrame(PageMargin, width=215, height=299, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1)
-        OutputPadding = CTkFrame(PageMargin, width=365, height=300, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1)
+        RequestPadding = CTkFrame(PageMargin, width=170, height=330, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1)
+        OutputPadding = CTkFrame(PageMargin, width=410, height=330, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1)
         RequestPadding.grid_propagate(0)
         OutputPadding.grid_propagate(0)
         
@@ -91,61 +91,68 @@ def salespage(page):
         OutputPadding.grid(row=0, column=1) 
 
         #Requested Content
-        SearchRequestContent = CTkFrame(RequestPadding, width=400, height=149, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
+        SearchRequestContent = CTkFrame(RequestPadding, width=170, height=165, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
         SearchRequestContent.grid_propagate(0)
         
-        EditsRequestContent = CTkFrame(RequestPadding, width=400, height=151, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
+        EditsRequestContent = CTkFrame(RequestPadding, width=170, height=165, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
         EditsRequestContent.grid_propagate(0)
         
         SearchRequestContent.grid(row=0, column=0)
         EditsRequestContent.grid(row=1, column=0) 
         
         #Fixes all Buttons
-        for i in range(2):
+        for i in range(1):
             EditsRequestContent.grid_columnconfigure(i, weight=1, uniform="column")
             EditsRequestContent.grid_rowconfigure(0, minsize=51)
         
-        for i in range(2):
+        for i in range(1):
             SearchRequestContent.grid_columnconfigure(i, weight=1, uniform="column")
             SearchRequestContent.grid_rowconfigure(0, minsize=51)
         
         
 
         #Output Content
-        OutputEditContent = CTkFrame(OutputPadding, width=365, height=133, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
-        OutputEditContent.grid_propagate(0)
-        OutputTableContent = CTkFrame(OutputPadding, width=365, height=167, fg_color="#a6a6a6", corner_radius=0, border_color='#000000', border_width=1)
-        OutputTableContent.grid_propagate(0)
-        OutputEditContent.grid(row=0)
-        OutputTableContent.grid(row=1) 
-        for i in range(2):
-            OutputEditContent.grid_columnconfigure(i, weight=1, uniform="column")
-            OutputEditContent.grid_rowconfigure(0, minsize=51)
+        OutputEditContent = CTkFrame(OutputPadding, width=410, height=115, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
+        OutputEditContent.grid(row = 0, column = 0)
         
-        #EditRequestContentItems
+
+        OutputTableContent = CTkFrame(OutputPadding, width=410, height=215, fg_color="#a6a6a6", corner_radius=0, border_color='#000000', border_width=1)
+        OutputTableContent.grid(row = 1, column = 0) 
+        OutputEditContent.grid_propagate(0)
+        
+        
+        #Okay for the redundant code part: **only for the table "thats supposed to have meaning"
+        OutputTableScrollbarContent = CTkFrame(OutputTableContent, width=410, height=215)
+        OutputTableScrollbarContent.pack(fill="both", expand=True)
+        
+        canvas = CTkCanvas(OutputTableScrollbarContent, width=410, height=215, highlightthickness=0)
+        canvas.pack(side="left", fill="both", expand=True)
+
+        scrollbar = CTkScrollableFrame(canvas, width =387)
+        scrollbar.grid(rowspan=100, row = 0, column = 0, sticky='nsew')
 
         EditLabelRequest = CTkLabel(EditsRequestContent, text="EDITS", font=EditFont)
-        EditLabelRequest.grid(row=0, column=0, sticky='nsew', pady = 4, padx=10)
+        EditLabelRequest.grid(row=0, column=0, )
         
-        AddButtonRequest = CTkButton(EditsRequestContent, text="ADD", height=20, width=5,corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6')
-        AddButtonRequest.grid(row=1,column=0, sticky='nsew', pady = 9, padx=20)
+        AddButtonRequest = CTkButton(EditsRequestContent, text="ADD",corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        AddButtonRequest.grid(row=1,column=0,padx = 10, pady = 5, sticky='nsew')
         
-        EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT", height=20, width=5,corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
-        EditButtonRequest.grid(row=2,column=0, sticky='nsew', pady = 0, padx=20)
+        EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT",corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        EditButtonRequest.grid(row=2,column=0,padx = 10, pady = 5, sticky='nsew')
         
-        DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE", height=20, width=5, corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
-        DeleteButtonRequest.grid(row=3,column=0, sticky='nsew', pady = 9, padx=20)
+        DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE",  corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        DeleteButtonRequest.grid(row=3,column=0,padx = 10, pady = 5, sticky='nsew')
         
         #SearchRequestContentItemsg
         
         SearchLabel = CTkLabel(SearchRequestContent, text="SALES", font=EditFont)
-        SearchLabel.grid(row=0, column=0, sticky='nsew', pady = 5, padx=10)
+        SearchLabel.grid(row=0, column=0, padx = 10, pady = 5,)
         
         SearchEntry = CTkEntry(SearchRequestContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Search")
-        SearchEntry.grid(row=1, column=0, sticky='nsew', pady = 5, padx=10)
+        SearchEntry.grid(row=1, column=0, padx = 10, pady = 5,)
         
         SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0, text_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#0051ff')
-        SearchButton.grid(row=2,column=0, sticky='nsew', pady = 5, padx=20)
+        SearchButton.grid(row=2,column=0, padx = 10, pady = 5,)
         SalesPagePost=1
     else:
         print("printed!")

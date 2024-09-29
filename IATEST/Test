@@ -66,15 +66,25 @@ BTNFont = CTkFont(family="Oswald", size=13)
 
 
 def salespage(page):
-    #START MASTER
-    CalculatorMargin = CTkFrame(page)
-    CalculatorMargin.pack(expand=True)
-    FormulaSideBar = CTkFrame(CalculatorMargin, border_color="#000000", border_width=1)
-    FormulaSideBar.grid(row=0,column=0)
+    combobox_var = StringVar(value="option 2")
+    combobox = CTkComboBox(page, values=["option 1", "option 2"], command=combobox_callback, variable=combobox_var)
+    combobox.set("option 2")
+    combobox.pack()
+    combobox.configure(state="readonly")
+
+def combobox_callback(choice):
+    if choice == "option 1":
+        print("combobox dropdown clicked:", choice)
+    else:
+        print("googoo")
+
+
    
-    CalculatorSide = CTkFrame(CalculatorMargin, border_color="#000000", border_width=1)
-    CalculatorSide.grid(row=0,column=1)
+def outputContentGivenButtons():  
+    print("Hello world!")
    
+
+
 
 
 
