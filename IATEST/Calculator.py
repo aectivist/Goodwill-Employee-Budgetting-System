@@ -3,6 +3,8 @@ from pywinstyles import *
 import psycopg2
 from CTkTable import *
 #https://github.com/Akascape/CTkTable
+
+import math
 import math
 
 
@@ -83,10 +85,18 @@ def salespage(page):
     OutputCalculations.grid(row=0,column=0)
     OutputCalculations.configure(state="readonly")
 
+    OutputCalculations.ans = 0
+    OutputCalculations.radians = True
+    OutputCalculations.trig_input = ""
+
+    OutputCalculations.degrees_button = None
+    OutputCalculations.radians_button = None
+
 
     ButtonsForCalculationsFrame = CTkFrame(CalculatorSide, width=410, height=200, border_color="#000000", border_width=1)
     ButtonsForCalculationsFrame.grid(row=1, column=0)
     ButtonsForCalculationsFrame.grid_propagate(0)
+    
     for i in range(6):
         ButtonsForCalculationsFrame.grid_columnconfigure(i, weight=1, uniform="column")
         ButtonsForCalculationsFrame.grid_rowconfigure(0, minsize=40)
@@ -105,12 +115,14 @@ def salespage(page):
 
     button6 = CTkButton(ButtonsForCalculationsFrame, text="Deg",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button6.grid(row=0, column=1)
-    button7 = CTkButton(ButtonsForCalculationsFrame, text="sin",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button7.grid(row=1, column=1)
-    button8 = CTkButton(ButtonsForCalculationsFrame, text="cos",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button8.grid(row=2, column=1)
-    button9 = CTkButton(ButtonsForCalculationsFrame, text="tan",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button9.grid(row=3, column=1)
+    button_sin = CTkButton(ButtonsForCalculationsFrame, text="sin", height=40, width=60,command=lambda: appendtoentry("sin", OutputCalculations, "trig"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_sin.grid(row=1, column=1)
+
+    button_cos = CTkButton(ButtonsForCalculationsFrame, text="cos", height=40, width=60,command=lambda: appendtoentry("cos", OutputCalculations, "trig"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_cos.grid(row=2, column=1)
+
+    button_tan = CTkButton(ButtonsForCalculationsFrame, text="tan", height=40, width=60,command=lambda: appendtoentry("tan", OutputCalculations, "trig"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_tan.grid(row=3, column=1)
     button0 = CTkButton(ButtonsForCalculationsFrame, text="EXP",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button0.grid(row=4, column=1)
     #fun fact, barely most of these can be rewritten in a simple string
@@ -118,7 +130,7 @@ def salespage(page):
     button6.grid(row=0, column=2)
     button7 = CTkButton(ButtonsForCalculationsFrame, text="ln",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button7.grid(row=1, column=2)
-    button8 = CTkButton(ButtonsForCalculationsFrame, text="log",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button8 = CTkButton(ButtonsForCalculationsFrame, text="log",height=40, width=60,command=lambda: appendtoentry("log(", OutputCalculations, "logarithm"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button8.grid(row=2, column=2)
     button9 = CTkButton(ButtonsForCalculationsFrame, text="√",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button9.grid(row=3, column=2)
@@ -147,7 +159,7 @@ def salespage(page):
     button0 = CTkButton(ButtonsForCalculationsFrame, text=".",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button0.grid(row=4, column=4)
 
-    button6 = CTkButton(ButtonsForCalculationsFrame, text=")",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button6 = CTkButton(ButtonsForCalculationsFrame,command=lambda: appendtoentry(")",OutputCalculations, "bracket"), text=")",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button6.grid(row=0, column=5)
     button7 = CTkButton(ButtonsForCalculationsFrame,command=lambda: appendtoentry("9",OutputCalculations, "integer"), text="9",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button7.grid(row=1, column=5)
@@ -155,10 +167,10 @@ def salespage(page):
     button8.grid(row=2, column=5)
     button9 = CTkButton(ButtonsForCalculationsFrame,command=lambda: appendtoentry("3",OutputCalculations, "integer"), text="3",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button9.grid(row=3, column=5)
-    button0 = CTkButton(ButtonsForCalculationsFrame, text="=",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button0 = CTkButton(ButtonsForCalculationsFrame, text="=", command=lambda: calculate(OutputCalculations), height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button0.grid(row=4, column=5)
 
-    button6 = CTkButton(ButtonsForCalculationsFrame, text="CE", height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button6 = CTkButton(ButtonsForCalculationsFrame, text="CE", height=40, width=60,command=lambda: clear(OutputCalculations), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button6.grid(row=0, column=6)
     button7 = CTkButton(ButtonsForCalculationsFrame, text="÷",height=40, width=60 ,command=lambda: appendtoentry("÷",OutputCalculations, "operation"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button7.grid(row=1, column=6)
@@ -174,40 +186,59 @@ def salespage(page):
     
 #It's morbilations time...
 
-def appendtoentry(value, OutputCalculations, datatype):
+def appendtoentry(value, OutputCalculations, type):
     print(value)
-    global expression
-    if datatype == "integer":
-        current_value = OutputCalculations.get()
-        OutputCalculations.configure(state="normal")
-        OutputCalculations.delete(0, END)
-        OutputCalculations.insert(0, current_value + str(value))
-        OutputCalculations.configure(state="readonly")
 
-    elif datatype != "integer" :
-        current_value = OutputCalculations.get()
+    current_value = OutputCalculations.get()
+    OutputCalculations.configure(state="normal")
+
+    if type == "integer":
+        OutputCalculations.insert(END, str(value))
+    elif type == "operation":
+        OutputCalculations.insert(END, str(value))
+    elif type == "trig":
+        OutputCalculations.insert(END, value + "(")
+    elif type == "bracket":
+        OutputCalculations.insert(END, value)
+    elif type == "logarithm":
+        OutputCalculations.insert(END, value)
+
+    OutputCalculations.configure(state="readonly")
+
+def clear(OutputCalculations):
+    OutputCalculations.configure(state="normal")
+    OutputCalculations.delete(0, END)
+    OutputCalculations.configure(state="readonly")
+
+def calculate(OutputCalculations):
+    print("Calculate function called")
+    try:
+        expression = OutputCalculations.get()
+        print("Expression:", expression)
+        expression = expression.replace("sin(", "math.sin(")
+        expression = expression.replace("cos(", "math.cos(")
+        expression = expression.replace("tan(", "math.tan(")
+        expression = expression.replace("x", "*")
+        expression = expression.replace("÷", "/")
+        expression = expression.replace("log(", "math.log(")
+        print("Modified Expression:", expression)
+        result = eval(expression)
+        print("Result:", result)
         OutputCalculations.configure(state="normal")
         OutputCalculations.delete(0, END)
-        OutputCalculations.insert(0, current_value + str(value))
+        OutputCalculations.insert(0, str(result))
         OutputCalculations.configure(state="readonly")
         
-
-def HolderFunction():
-    number = []
-    operation = []
-
-
-
-
-
+        print("OutputCalculations:", OutputCalculations.get())
+    except Exception as e:
+        print(f"Error: {e}")
+        OutputCalculations.configure(state="normal")
+        OutputCalculations.delete(0, END)
+        OutputCalculations.insert(0, "Error")
+        OutputCalculations.configure(state="readonly")
 
 
-
-
-
-
-
-
+    
 #++++++++++++++++++++++++++++++ {TAB FUNCTIONS} ++++++++++++++++++++++++++++++++++++++
 
 
