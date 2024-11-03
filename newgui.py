@@ -127,7 +127,7 @@ def salespage(page): #TO BE UPDATED
         
         canvas = CTkCanvas(OutputTableScrollbarContent, width=410, height=215, highlightthickness=0)
         canvas.pack(side="left", fill="both", expand=True)
-
+        
         scrollbar = CTkScrollableFrame(canvas, width =387)
         scrollbar.grid(rowspan=100, row = 0, column = 0, sticky='nsew')
 

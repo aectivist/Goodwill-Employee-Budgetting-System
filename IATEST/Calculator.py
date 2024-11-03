@@ -112,9 +112,10 @@ def set_radians():
 OutputCalculatorFont = CTkFont(family="Oswald", size=30, weight='bold')
 EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 
+History = False
 
 def salespage(page):
-    global button_degrees, button_radians, button_EXP
+    global button_degrees, button_radians, button_EXP, HistoryToggleButton, HistoryScrollBar
     #START MASTER
     CalculatorMargin = CTkFrame(page)
     CalculatorMargin.pack(expand=True)
@@ -122,7 +123,7 @@ def salespage(page):
     HistorySideBar = CTkFrame(CalculatorMargin, width=150, height=320, border_color="#000000", border_width=1,fg_color="#FFFFFF")
     HistorySideBar.grid(row=0,column=0)
     HistorySideBar.grid_propagate(0)
-    HistoryToggleButton = CTkButton(HistorySideBar,text="EQUATION HISTORY", height=45, width=160, border_color="#000000", border_width=1,corner_radius=0, fg_color="#FFFFFF",text_color='#000000')
+    HistoryToggleButton = CTkButton(HistorySideBar,text="EQUATION HISTORY",command=set_History,height=45, width=160, border_color="#000000", border_width=1,corner_radius=0, fg_color="#FFFFFF",text_color='#000000')
     HistoryToggleButton.grid(row=0,column=0)
     HistoryToggleButton.grid_propagate(0)
     HistoryScrollBar = CTkScrollableFrame(HistorySideBar, width=140, height=270, border_width=1, fg_color="#FFFFFF",corner_radius=0)
@@ -240,12 +241,43 @@ def salespage(page):
     button0.grid(row=4, column=6)
 
  
+def set_History():
     
+    global History, HistoryToggleButton, EquationStack, ResultsStack
+    if History == True:
+        HistoryScrollBar.grid_forget()
+        HistoryToggleButton.configure(text="EQUATION HISTORY")
+        print("Now set to Equation.")
+        
+    elif History== False:
+        HistoryScrollBar.grid_forget()
+        HistoryToggleButton.configure(text="RESULTS HISTORY")   
+        print("Now set to Results")
+    History = not History
+
+NewEquationArray=[]
+NewEquationArray[0:100]
+
+def UpdateHistory():
+    global History, HistoryToggleButton, EquationStack, ResultsStack, NewEquationArray
     
-
-
-
-    
+    if History == False:
+        print("DanDa")
+        RowNum = 0
+        ArrayIndex = 0
+        for I in EquationStack: #From the equation stack, pops the equation into 
+            EquationPop = str(EquationStack.pop())
+            print(EquationPop)
+            NewEquationArray.append(EquationPop)
+            
+        for I in NewEquationArray:
+                EquationButton = CTkButton(HistoryScrollBar, text=I, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000", corner_radius=0)
+                EquationButton.grid(row=RowNum,column=0)
+                RowNum = RowNum + 1
+            
+    elif History== True:   
+        
+        print("Dan")
     
 
 def appendtoentry(value, OutputCalculations, type):
@@ -304,12 +336,15 @@ def delete(OutputCalculations):
 
 
 def calculate(OutputCalculations):
+    global EquationStack, ResultsStack
     print("Calculate function called")
-
-    startchecker = OutputCalculations.get()
+    EquationStack=[]
+    ResultsStack = []
+    
     
     try:
         expression = OutputCalculations.get()
+        EquationStack.append(expression)
         print("Expression:", expression)
 
         is_degrees = mode_var.get() == "Degrees"
@@ -360,7 +395,7 @@ def calculate(OutputCalculations):
             finalresult = result
 
         print("Result:", finalresult)
-        
+        ResultsStack.append(finalresult)
         OutputCalculations.configure(state="normal")
         OutputCalculations.delete(0, END)
         OutputCalculations.insert(0, str(finalresult))
@@ -372,10 +407,10 @@ def calculate(OutputCalculations):
         OutputCalculations.delete(0, END)
         OutputCalculations.insert(0, "Error")
         OutputCalculations.configure(state="readonly")
-
+    UpdateHistory()
 #HISTORY
-def EquationHistory():
- print("hello world")
+
+ 
 
     
 #++++++++++++++++++++++++++++++ {TAB FUNCTIONS} ++++++++++++++++++++++++++++++++++++++

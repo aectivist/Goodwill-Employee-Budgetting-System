@@ -162,6 +162,7 @@ def outputContentGivenButtons(OutputEditContent, OutputTableContent, value):
         SearchAddButton = True
         SearchEditButton = False
         SearchDeleteButton = False
+        searchAddButtonFunction(OutputEditContent,OutputTableContent)
     elif value == 2:
         SearchAddButton = False
         SearchEditButton = True
