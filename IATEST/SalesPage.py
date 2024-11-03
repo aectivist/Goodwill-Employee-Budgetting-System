@@ -1,7 +1,5 @@
 from customtkinter import *
-from pywinstyles import *
 import psycopg2
-from tkinter import ttk
 from CTkTable import *
 #https://github.com/Akascape/CTkTable
 
@@ -126,13 +124,13 @@ def salespage(page):
         EditLabelRequest = CTkLabel(EditsRequestContent, text="EDITS", font=EditFont)
         EditLabelRequest.grid(row=0, column=0, )
         
-        AddButtonRequest = CTkButton(EditsRequestContent, text="ADD",corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        AddButtonRequest = CTkButton(EditsRequestContent, text="ADD", command=lambda: outputContentGivenButtons(OutputEditContent, OutputTableContent, 1),corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6')
         AddButtonRequest.grid(row=1,column=0,padx = 10, pady = 5, sticky='nsew')
         
-        EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT",corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT",command=lambda: outputContentGivenButtons(OutputEditContent, OutputTableContent, 2),corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
         EditButtonRequest.grid(row=2,column=0,padx = 10, pady = 5, sticky='nsew')
         
-        DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE",  corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE", command=lambda: outputContentGivenButtons(OutputEditContent, OutputTableContent, 3), corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
         DeleteButtonRequest.grid(row=3,column=0,padx = 10, pady = 5, sticky='nsew')
         
         #SearchRequestContentItemsg
@@ -156,8 +154,25 @@ SearchAddButton = False
 SearchEditButton = False
 SearchDeleteButton = False
    
-def outputContentGivenButtons():  
-    print("Hello world!")
+def outputContentGivenButtons(OutputEditContent, OutputTableContent, value): 
+    global SearchAddButton
+    global SearchEditButton
+    global SearchDeleteButton 
+    if value == 1:
+        SearchAddButton = True
+        SearchEditButton = False
+        SearchDeleteButton = False
+    elif value == 2:
+        SearchAddButton = False
+        SearchEditButton = True
+        SearchDeleteButton = False
+    elif value == 3:
+        SearchAddButton = False
+        SearchEditButton = False
+        SearchDeleteButton = True
+
+def searchAddButtonFunction(OutputEditContent,OutputTableContent):
+    
    
 
 

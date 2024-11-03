@@ -1,7 +1,5 @@
 from customtkinter import *
-from pywinstyles import *
 import psycopg2
-from CTkTable import *
 #https://github.com/Akascape/CTkTable
 
 
