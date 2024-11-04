@@ -3,7 +3,7 @@ import psycopg2
 #https://github.com/Akascape/CTkTable
 
 
-import math
+from math import *
 import re
 import pygame
 import random
@@ -112,10 +112,10 @@ def set_radians():
 OutputCalculatorFont = CTkFont(family="Oswald", size=30, weight='bold')
 EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 
-History = False
+
 
 def salespage(page):
-    global button_degrees, button_radians, button_EXP, HistoryToggleButton, HistoryScrollBar
+    global button_degrees, button_radians, button_EXP, HistoryToggleButton, HistorySideBar, HistoryScrollbar
     #START MASTER
     CalculatorMargin = CTkFrame(page)
     CalculatorMargin.pack(expand=True)
@@ -123,11 +123,12 @@ def salespage(page):
     HistorySideBar = CTkFrame(CalculatorMargin, width=150, height=320, border_color="#000000", border_width=1,fg_color="#FFFFFF")
     HistorySideBar.grid(row=0,column=0)
     HistorySideBar.grid_propagate(0)
+    HistoryScrollbar = CTkScrollableFrame(HistorySideBar, width=140, height=270, border_width=1, fg_color="#FFFFFF",corner_radius=0)
+    HistoryScrollbar.grid(row=1,column=0)
     HistoryToggleButton = CTkButton(HistorySideBar,text="EQUATION HISTORY",command=set_History,height=45, width=160, border_color="#000000", border_width=1,corner_radius=0, fg_color="#FFFFFF",text_color='#000000')
     HistoryToggleButton.grid(row=0,column=0)
     HistoryToggleButton.grid_propagate(0)
-    HistoryScrollBar = CTkScrollableFrame(HistorySideBar, width=140, height=270, border_width=1, fg_color="#FFFFFF",corner_radius=0)
-    HistoryScrollBar.grid(row=1,column=0)
+    
 
     #RIGHT BAR
     CalculatorSide = CTkFrame(CalculatorMargin, width=410, height=320, border_color="#000000", border_width=1)
@@ -196,90 +197,53 @@ def salespage(page):
     button_exponent = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="x^2",height=40, width=60, command=lambda: appendtoentry("^2",OutputCalculations, "exponent"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
     button_exponent.grid(row=4, column=2)
     #I do this because it's funny
-    button6 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="%",command=lambda: appendtoentry("%",OutputCalculations, "percentage"),height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button6.grid(row=0, column=3)
-    button7 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("7",OutputCalculations, "integer"), text="7",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button7.grid(row=1, column=3)
-    button8 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("4",OutputCalculations, "integer"), text="4",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button8.grid(row=2, column=3)
-    button9 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("1",OutputCalculations, "integer"), text="1",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button9.grid(row=3, column=3)
-    button0 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("0",OutputCalculations, "integer"), text="0",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button0.grid(row=4, column=3)
+    button_perc = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="%",command=lambda: appendtoentry("%",OutputCalculations, "percentage"),height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_perc.grid(row=0, column=3)
+    button_7 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("7",OutputCalculations, "integer"), text="7",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_7.grid(row=1, column=3)
+    button_4 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("4",OutputCalculations, "integer"), text="4",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_4.grid(row=2, column=3)
+    button_1 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("1",OutputCalculations, "integer"), text="1",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_1.grid(row=3, column=3)
+    button_0 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("0",OutputCalculations, "integer"), text="0",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_0.grid(row=4, column=3)
     #the long slope of redundancy and idiocracy
-    button6 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="(",height=40, width=60,command=lambda: appendtoentry("(", OutputCalculations, "openbracket"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button6.grid(row=0, column=4)
-    button7 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("8",OutputCalculations, "integer"), text="8",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button7.grid(row=1, column=4)
-    button8 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("5",OutputCalculations, "integer"), text="5",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button8.grid(row=2, column=4)
-    button9 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("2",OutputCalculations, "integer"), text="2",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button9.grid(row=3, column=4)
-    button0 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text=".",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button0.grid(row=4, column=4)
+    button_opb = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="(",height=40, width=60,command=lambda: appendtoentry("(", OutputCalculations, "openbracket"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_opb.grid(row=0, column=4)
+    button_8 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("8",OutputCalculations, "integer"), text="8",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_8.grid(row=1, column=4)
+    button_5 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("5",OutputCalculations, "integer"), text="5",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_5.grid(row=2, column=4)
+    button_2 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("2",OutputCalculations, "integer"), text="2",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_2.grid(row=3, column=4)
+    button_dot = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text=".",height=40, width=60, command=lambda: appendtoentry(".", OutputCalculations, "integer"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_dot.grid(row=4, column=4)
 
-    button6 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry(")",OutputCalculations, "bracket"), text=")",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button6.grid(row=0, column=5)
-    button7 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("9",OutputCalculations, "integer"), text="9",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button7.grid(row=1, column=5)
-    button8 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("6",OutputCalculations, "integer"), text="6",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button8.grid(row=2, column=5)
-    button9 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("3",OutputCalculations, "integer"), text="3",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button9.grid(row=3, column=5)
-    button0 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="=", command=lambda: calculate(OutputCalculations), height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button0.grid(row=4, column=5)
+    button_clob = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry(")",OutputCalculations, "bracket"), text=")",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_clob.grid(row=0, column=5)
+    button_9 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("9",OutputCalculations, "integer"), text="9",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_9.grid(row=1, column=5)
+    button_6 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("6",OutputCalculations, "integer"), text="6",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_6.grid(row=2, column=5)
+    button_3 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0,command=lambda: appendtoentry("3",OutputCalculations, "integer"), text="3",height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_3.grid(row=3, column=5)
+    button_equal = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="=", command=lambda: calculate(OutputCalculations), height=40, width=60, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_equal.grid(row=4, column=5)
 
-    button6 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="CE", height=40, width=60,command=lambda: clear(OutputCalculations), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button6.grid(row=0, column=6)
-    button7 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="÷",height=40, width=60 ,command=lambda: appendtoentry("÷",OutputCalculations, "operation"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button7.grid(row=1, column=6)
-    button8 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="x",height=40, width=60,command=lambda: appendtoentry("x",OutputCalculations, "operation"),  border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button8.grid(row=2, column=6)
-    button9 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="-",height=40, width=60,command=lambda: appendtoentry("-",OutputCalculations, "operation"),  border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button9.grid(row=3, column=6)
-    button0 = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="+",height=40, width=60,command=lambda: appendtoentry("+",OutputCalculations, "operation"),  border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
-    button0.grid(row=4, column=6)
+    button_clearN = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="CE", height=40, width=60,command=lambda: clear(OutputCalculations), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_clearN.grid(row=0, column=6)
+    button_div = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="÷",height=40, width=60 ,command=lambda: appendtoentry("÷",OutputCalculations, "operation"), border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_div.grid(row=1, column=6)
+    button_mult = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="x",height=40, width=60,command=lambda: appendtoentry("x",OutputCalculations, "operation"),  border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_mult.grid(row=2, column=6)
+    button_min = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="-",height=40, width=60,command=lambda: appendtoentry("-",OutputCalculations, "operation"),  border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_min.grid(row=3, column=6)
+    button_plus = CTkButton(ButtonsForCalculationsFrame,corner_radius=0, text="+",height=40, width=60,command=lambda: appendtoentry("+",OutputCalculations, "operation"),  border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000")
+    button_plus.grid(row=4, column=6)
 
  
-def set_History():
-    
-    global History, HistoryToggleButton, EquationStack, ResultsStack
-    if History == True:
-        HistoryScrollBar.grid_forget()
-        HistoryToggleButton.configure(text="EQUATION HISTORY")
-        print("Now set to Equation.")
-        
-    elif History== False:
-        HistoryScrollBar.grid_forget()
-        HistoryToggleButton.configure(text="RESULTS HISTORY")   
-        print("Now set to Results")
-    History = not History
 
-NewEquationArray=[]
-NewEquationArray[0:100]
-
-def UpdateHistory():
-    global History, HistoryToggleButton, EquationStack, ResultsStack, NewEquationArray
-    
-    if History == False:
-        print("DanDa")
-        RowNum = 0
-        ArrayIndex = 0
-        for I in EquationStack: #From the equation stack, pops the equation into 
-            EquationPop = str(EquationStack.pop())
-            print(EquationPop)
-            NewEquationArray.append(EquationPop)
-            
-        for I in NewEquationArray:
-                EquationButton = CTkButton(HistoryScrollBar, text=I, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000", corner_radius=0)
-                EquationButton.grid(row=RowNum,column=0)
-                RowNum = RowNum + 1
-            
-    elif History== True:   
-        
-        print("Dan")
-    
-
+                
 def appendtoentry(value, OutputCalculations, type):
     print(value)
     currentvalue = OutputCalculations.get()
@@ -303,6 +267,8 @@ def appendtoentry(value, OutputCalculations, type):
         OutputCalculations.insert(END, value+ "(")
     elif type == "pi":
         OutputCalculations.insert(END, value)
+        currentvalue = currentvalue.replace("π", "3.14159265359")
+        
     elif type == "natlog":
         OutputCalculations.insert(END, value+"(")
     elif type == "exponent":
@@ -333,15 +299,15 @@ def delete(OutputCalculations):
     OutputCalculations.delete(len(current_value)-1, END)
     OutputCalculations.configure(state="readonly")
 
+History = False
 
 
 def calculate(OutputCalculations):
-    global EquationStack, ResultsStack
+    global EquationStack, ResultsStack, History, HistoryScrollbar
     print("Calculate function called")
-    EquationStack=[]
+    EquationStack = []
     ResultsStack = []
-    
-    
+
     try:
         expression = OutputCalculations.get()
         EquationStack.append(expression)
@@ -349,68 +315,136 @@ def calculate(OutputCalculations):
 
         is_degrees = mode_var.get() == "Degrees"
 
-
-        #replace symbols
+        # Replace symbols
         expression = expression.replace("x", "*")
         expression = expression.replace("÷", "/")
+        expression = expression.replace("--", "+")
         expression = expression.replace("%", "/100")
 
-        
-        #for trig
+        # For trig functions, replace with math. prefix
         if is_degrees:
-            expression = re.sub(r'sin\(([\d\.]+)\)', lambda m: f'math.sin(math.radians({m.group(1)}))', expression)
+            expression = re.sub(r'sin\(([\d\.]+)\)', lambda m: f'math.sin(math.radians({m.group(1)}))', expression)#11/04/2024: Teacher Melvin was not here, so I utilized AI to help debug my RE expressions.
             expression = re.sub(r'cos\(([\d\.]+)\)', lambda m: f'math.cos(math.radians({m.group(1)}))', expression)
             expression = re.sub(r'tan\(([\d\.]+)\)', lambda m: f'math.tan(math.radians({m.group(1)}))', expression)
         else:
-            expression = re.sub(r'sin\(([\d\.]+)\)', lambda m: f'math.sin(math.degrees({m.group(1)}))', expression)
-            expression = re.sub(r'cos\(([\d\.]+)\)', lambda m: f'math.cos(math.degrees({m.group(1)}))', expression)
-            expression = re.sub(r'tan\(([\d\.]+)\)', lambda m: f'math.tan(math.degrees({m.group(1)}))', expression)
-        
-        #exponents
+            expression = re.sub(r'sin\(([\d\.]+)\)', lambda m: f'math.sin({m.group(1)})', expression)
+            expression = re.sub(r'cos\(([\d\.]+)\)', lambda m: f'math.cos({m.group(1)})', expression)
+            expression = re.sub(r'tan\(([\d\.]+)\)', lambda m: f'math.tan({m.group(1)})', expression)
+
+
+        # Exponents
         expression = expression.replace("log(", "math.log10(")
         expression = expression.replace("ln(", "math.log(")
         expression = expression.replace("^", "**")
         expression = expression.replace("√(", "math.sqrt(")
 
-        #replace with nums
-        expression = expression.replace("π", "(3.14159265359)")
-        expression = expression.replace("e", "(2.71828182846)")
+        # Replace with numerical constants
+        expression = expression.replace("π", "3.141592653589793")
+        expression = expression.replace("e", "math.e")
 
-        #bracket
-        expression = expression.replace(")(", ")*(")  #)(60+24)
-        expression = expression.replace(") ", ")*")  # 6( 
-        expression = expression.replace(")(", ")*(")  #2(5)
+        # Handle multiplication signs and spacing
+        expression = expression.replace(")(", ")*(")
+        expression = expression.replace(") ", ")*")
+        expression = expression.replace(")(", ")*(")
         
-        expression = re.sub(r'(\d+)([a-zA-Z]+)(\()', r'\1*\2\(', expression) #glazin that * in between nums and funcs
-        expression = re.sub(r'(?<!\w)(\d)(\()', r'\1*\2', expression)  #glazin that * in between
-        expression = re.sub(r'(?<!\w)(\))(\d)', r'\1*\2', expression) #glazin that log() so * aint touched
-        
-        expression = re.sub(r'(\d)([a-zA-Z]+)', r'\1*\2', expression) #glaze confirmer for 3*math.sin(monkey)
+
+        # Insert multiplication where necessary
+        expression = re.sub(r'(\d+)([a-zA-Z]+)(\()', r'\1*\2\(', expression) 
+        expression = re.sub(r'(?<!\w)(\d)(\()', r'\1*\2', expression)
+        expression = re.sub(r'(?<!\w)(\))(\d)', r'\1*\2', expression)
+        expression = re.sub(r'(\d)([a-zA-Z]+)', r'\1*\2', expression)
 
         print("Modified Expression:", expression)
-        result = eval(expression)
-        if math.isclose(result, 0.5, rel_tol=1e-9):
-            finalresult = 0.5
-        else:
-            finalresult = result
 
+        if expression.strip() == "":
+            raise ValueError("Empty expression after modifications")
+
+        result = eval(expression)  # Ensure eval is used safely
+        finalresult = round(result, 5)
+        
+            
         print("Result:", finalresult)
         ResultsStack.append(finalresult)
         OutputCalculations.configure(state="normal")
         OutputCalculations.delete(0, END)
         OutputCalculations.insert(0, str(finalresult))
         OutputCalculations.configure(state="readonly")
-        
+
     except Exception as e:
         print(f"Error: {e}")
         OutputCalculations.configure(state="normal")
         OutputCalculations.delete(0, END)
         OutputCalculations.insert(0, "Error")
         OutputCalculations.configure(state="readonly")
-    UpdateHistory()
-#HISTORY
+
+    for I in EquationStack:
+        EquationPop = str(EquationStack.pop())
+        print(EquationPop)
+        NewEquationArray.append(EquationPop)
+        
+    for I in ResultsStack:
+        ResultsPop = str(ResultsStack.pop())
+        print(ResultsPop)
+        NewResultsArray.append(ResultsPop)
+        
+    UpdateHistory(NewEquationArray, History, HistoryScrollbar, NewResultsArray)
 
  
+def set_History(): #sets whether or not its results or equations
+    global History, HistoryToggleButton, EquationStack, ResultsStack,NewEquationArray,HistoryScrollbar
+    
+    if History == True:
+        History = not History
+        HistoryToggleButton.configure(text="EQUATION HISTORY")
+        UpdateHistory(NewEquationArray, History,HistoryScrollbar, NewResultsArray)
+        print("Now set to Equation.")
+        DeleteButton()
+        
+    elif History== False:
+        History = not History
+        HistoryToggleButton.configure(text="RESULTS HISTORY")   
+        UpdateHistory(NewEquationArray, History,HistoryScrollbar, NewResultsArray)
+        print("Now set to Results")
+        DeleteButton()
+    
+
+NewEquationArray=[]
+NewResultsArray=[]
+
+NewEquationArray[0:100]
+NewResultsArray[0:100]
+
+
+def UpdateHistory(NewEquationArray, History, HistoryScrollbar,NewResultsArray): #Updates the History by pasting everything within the New Equation Array
+    global HistoryToggleButton, EquationStack, ResultsStack, EquationButton, ResultsButton
+    print(History)
+    
+    if History == False:
+        RowNum = 0
+        for I in NewEquationArray:
+                EquationButton = CTkButton(HistoryScrollbar, text=I, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000",hover_color="#FFFFFF", corner_radius=0)
+                EquationButton.grid(row=RowNum,column=0)
+                RowNum = RowNum + 1   
+        
+    elif History== True:  
+        RowNum = 0
+        for I in NewResultsArray:
+                ResultsButton = CTkButton(HistoryScrollbar, text=I, border_color="#000000", border_width=1, fg_color="#FFFFFF", text_color="#000000",hover_color="#FFFFFF", corner_radius=0)
+                ResultsButton.grid(row=RowNum,column=0)
+                RowNum = RowNum + 1 
+        
+def DeleteButton():
+    global EquationButton, ResultsButton
+    if History == False:
+        print("YOUR")
+        for I in NewResultsArray:
+            ResultsButton.destroy()
+    else:
+        print("MOM!")
+        for I in NewEquationArray:
+            EquationButton.destroy()
+        
+
 
     
 #++++++++++++++++++++++++++++++ {TAB FUNCTIONS} ++++++++++++++++++++++++++++++++++++++

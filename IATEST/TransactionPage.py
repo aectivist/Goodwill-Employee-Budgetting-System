@@ -28,22 +28,22 @@ TABFRAME.pack(anchor=CENTER, fill=X)
 
 
 #These are the individual pages, or rather, the frames
-SalesPage = CTkFrame(window)
-SalesPage.pack(fill=BOTH, expand=True)
+TransactionsPage = CTkFrame(window)
+TransactionsPage.pack(fill=BOTH, expand=True)
 
 
 
 
 # Create a list to hold all the pages
-pages = [SalesPage]
+pages = [TransactionsPage]
 
 
 # Function to show a page
 def show_page(page):
     page.pack(fill=BOTH, expand=True)
     window.update_idletasks()  # Update the UI
-    if page == SalesPage:
-        salespage(SalesPage)
+    if page == TransactionsPage:
+        transactionpage(TransactionsPage)
        
 
 
@@ -63,11 +63,16 @@ TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
 EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 BTNFont = CTkFont(family="Oswald", size=13)
 
-SalesPagePost = 0
+TransactionsPagePost = 0
 
-def salespage(page):
-    global SalesPagePost
-    if SalesPagePost==0:
+
+TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
+EditFont = CTkFont(family="Oswald", size=15, weight='bold')
+BTNFont = CTkFont(family="Oswald", size=13)
+TransactionsPagePost = 0
+def transactionpage(page): #TO BE UPDATED
+    global TransactionsPagePost
+    if TransactionsPagePost==0:
         
         #START MASTER 
         PageMargin = CTkFrame(page)
@@ -117,25 +122,25 @@ def salespage(page):
         
         canvas = CTkCanvas(OutputTableScrollbarContent, width=410, height=215, highlightthickness=0)
         canvas.pack(side="left", fill="both", expand=True)
-
+        
         scrollbar = CTkScrollableFrame(canvas, width =387)
         scrollbar.grid(rowspan=100, row = 0, column = 0, sticky='nsew')
 
         EditLabelRequest = CTkLabel(EditsRequestContent, text="EDITS", font=EditFont)
         EditLabelRequest.grid(row=0, column=0, )
         
-        AddButtonRequest = CTkButton(EditsRequestContent, text="ADD", command=lambda: outputContentGivenButtons(OutputEditContent, OutputTableContent, 1),corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        AddButtonRequest = CTkButton(EditsRequestContent, text="ADD",corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6')
         AddButtonRequest.grid(row=1,column=0,padx = 10, pady = 5, sticky='nsew')
         
-        EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT",command=lambda: outputContentGivenButtons(OutputEditContent, OutputTableContent, 2),corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT",corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
         EditButtonRequest.grid(row=2,column=0,padx = 10, pady = 5, sticky='nsew')
         
-        DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE", command=lambda: outputContentGivenButtons(OutputEditContent, OutputTableContent, 3), corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE",  corner_radius=0, font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
         DeleteButtonRequest.grid(row=3,column=0,padx = 10, pady = 5, sticky='nsew')
         
         #SearchRequestContentItemsg
         
-        SearchLabel = CTkLabel(SearchRequestContent, text="SALES", font=EditFont)
+        SearchLabel = CTkLabel(SearchRequestContent, text="TRANSACTIONS", font=EditFont)
         SearchLabel.grid(row=0, column=0, padx = 10, pady = 5,)
         
         SearchEntry = CTkEntry(SearchRequestContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Search")
@@ -143,11 +148,10 @@ def salespage(page):
         
         SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0, text_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#0051ff')
         SearchButton.grid(row=2,column=0, padx = 10, pady = 5,)
-        SalesPagePost=1
+        TransactionsPagePost=1
     else:
         print("printed!")
         
-
 
 
 SearchAddButton = False
@@ -173,6 +177,7 @@ def outputContentGivenButtons(OutputEditContent, OutputTableContent, value):
         SearchDeleteButton = True
 
 def searchAddButtonFunction(OutputEditContent,OutputTableContent):
+    print("WOW!")
     
    
 
@@ -207,11 +212,11 @@ SalesTab = CTkButton(TABFRAME, text="Sales", width=20)
 SalesTab.grid(row=0, column=1, pady=10, padx=10, sticky="nsew")
 
 
-SalesTab.configure(command=lambda: button_event(SalesPage))
+SalesTab.configure(command=lambda: button_event(TransactionsPage))
 
 
 # Show the first page by default
-show_page(SalesPage)
+show_page(TransactionsPage)
 
 
 window.mainloop()
