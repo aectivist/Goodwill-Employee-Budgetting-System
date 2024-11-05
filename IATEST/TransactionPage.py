@@ -1,15 +1,10 @@
 from customtkinter import *
-import psycopg2
+
 from CTkTable import *
 #https://github.com/Akascape/CTkTable
 
 
-conn=psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
 
-
-
-
-cur = conn.cursor()
 window = CTk()
 window.title("BUDGET")
 window.geometry("600x400") #fml
@@ -63,9 +58,10 @@ def show_page(page):
 TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
 EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 BTNFont = CTkFont(family="Oswald", size=13)
-TransactionsPagePost = 0
+ErrorFont = CTkFont( size=10)
+TransactionsPagePost = 0 #so the page only posts once and not multiple times
 def transactionpage(page): #TO BE UPDATED
-    global TransactionsPagePost, OutputEditContent
+    global TransactionsPagePost, OutputEditContent, addbuttonrequestchecker, editbuttonrequestchecker, deletebuttonrequestchecker
     if TransactionsPagePost==0:
         
         #START MASTER 
@@ -104,6 +100,8 @@ def transactionpage(page): #TO BE UPDATED
         #Output Content
         OutputEditContent = CTkFrame(OutputPadding, width=410, height=115, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
         OutputEditContent.grid(row = 0, column = 0)
+        LabelTransactionAdd = CTkLabel(OutputEditContent, text="TRANSACTIONS",font = EditFont)
+        LabelTransactionAdd.place(x=5, y=1)
         
 
         OutputTableContent = CTkFrame(OutputPadding, width=410, height=215, fg_color="#a6a6a6", corner_radius=0, border_color='#000000', border_width=1)
@@ -111,7 +109,6 @@ def transactionpage(page): #TO BE UPDATED
         OutputEditContent.grid_propagate(0)
         
         
-        #Okay for the redundant code part: **only for the table "thats supposed to have meaning"
         OutputTableScrollbarContent = CTkFrame(OutputTableContent, width=410, height=215)
         OutputTableScrollbarContent.pack(fill="both", expand=True)
         
@@ -124,139 +121,227 @@ def transactionpage(page): #TO BE UPDATED
         EditLabelRequest = CTkLabel(EditsRequestContent, text="EDITS", font=EditFont)
         EditLabelRequest.grid(row=0, column=0, )
         
+        
+        #important buttons for requesting
         AddButtonRequest = CTkButton(EditsRequestContent, text="ADD",corner_radius=0, command=lambda: outputContentGivenButtons(OutputEditContent, OutputTableContent, 1),font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6')
-        AddButtonRequest.grid(row=1,column=0,padx = 10, pady = 5, sticky='nsew')
+        AddButtonRequest.grid(row=1,column=0,padx = 10, pady = 4, sticky='nsew')
         
         EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT",corner_radius=0, command=lambda: outputContentGivenButtons(OutputEditContent, OutputTableContent, 2), font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
-        EditButtonRequest.grid(row=2,column=0,padx = 10, pady = 5, sticky='nsew')
+        EditButtonRequest.grid(row=2,column=0,padx = 10, pady = 1, sticky='nsew')
         
         DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE",  corner_radius=0,command=lambda: outputContentGivenButtons(OutputEditContent, OutputTableContent, 3), font=BTNFont, fg_color='#FFFFFF', text_color='#000000', border_color='#000000', border_width=1, hover_color='#e6e6e6')
-        DeleteButtonRequest.grid(row=3,column=0,padx = 10, pady = 5, sticky='nsew')
+        DeleteButtonRequest.grid(row=3,column=0,padx = 10, pady = 2, sticky='nsew')
         
         #SearchRequestContentItemsg
         
         SearchLabel = CTkLabel(SearchRequestContent, text="TRANSACTIONS", font=EditFont)
-        SearchLabel.grid(row=0, column=0, padx = 10, pady = 5,)
+        SearchLabel.grid(row=0, column=0, padx = 10, pady = 0,)
         
         SearchEntry = CTkEntry(SearchRequestContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Search")
-        SearchEntry.grid(row=1, column=0, padx = 10, pady = 5,)
+        SearchEntry.grid(row=1, column=0, padx = 10, pady = 4,)
         
         SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0, text_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#0051ff')
-        SearchButton.grid(row=2,column=0, padx = 10, pady = 5,)
+        SearchButton.grid(row=2,column=0, padx = 10, pady = 1,)
+
+        comboVal = StringVar(value="Select")
+        SearchComboChoices = CTkComboBox(SearchRequestContent, values=["Items", "Cash", "Date"], command=callback, variable=comboVal, corner_radius=1)
+        SearchComboChoices.set("Select")
+        SearchComboChoices.grid(row = 3, column=0, padx=10,pady=2)
+        SearchComboChoices.configure(state="readonly")
         TransactionsPagePost=1
     else:
         print("printed!")
-        
-
-
-SearchAddButton = False
-SearchEditButton = False
-SearchDeleteButton = False
+    
+    addbuttonrequestchecker = False
+    editbuttonrequestchecker = False
+    deletebuttonrequestchecker = False
+    
    
 def outputContentGivenButtons(OutputEditContent, OutputTableContent, value): 
-    global SearchAddBoolean, SearchEditBoolean, SearchDeleteBoolean
+    global addbuttonrequestchecker, editbuttonrequestchecker, deletebuttonrequestchecker
     if value == 1:
-        SearchAddBoolean = True
-        SearchEditBoolean = False
-        SearchDeleteBoolean = False
-        searchAddButtonFunction(OutputEditContent,OutputTableContent)
+        addbuttonrequestchecker = not addbuttonrequestchecker
+        editbuttonrequestchecker = False
+        deletebuttonrequestchecker = False
     elif value == 2:
-        SearchAddBoolean = False
-        SearchEditBoolean = True
-        SearchDeleteBoolean = False
-        searchEditButtonFunction(OutputEditContent,OutputTableContent)
+        editbuttonrequestchecker=not editbuttonrequestchecker
+        addbuttonrequestchecker = False
+        deletebuttonrequestchecker = False
+        
     elif value == 3:
-        SearchAddBoolean = False
-        SearchEditBoolean = False
-        SearchDeleteBoolean = True
-        searchDeleteButtonFunction(OutputEditContent,OutputTableContent)
+        deletebuttonrequestchecker = not deletebuttonrequestchecker 
+        editbuttonrequestchecker = False
+        addbuttonrequestchecker = False
 
-def searchAddButtonFunction(OutputEditContent,OutputTableContent):
+    searchAddButtonFunction(OutputEditContent)
+    searchEditButtonFunction(OutputEditContent,OutputTableContent)
+    searchDeleteButtonFunction(OutputEditContent,OutputTableContent)
+
+
+#ADD FUNCTION =======================================================================
+def searchAddButtonFunction(OutputEditContent):
         print("WOW!")
-        global InputNameFlag, InputGoodsFlag, InputTypeFlag, InputBranchFlag, NameHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker
+        global diffvalue,AddSearchBoxEnter, enteronceforcombo, combobox, addinputbutton, InputDateFlag, InputGoodsFlag, InputTypeFlag, InputBranchFlag, TransactorFrom, TransactorTo, TransactionNameBoxFrom, TransactionNameBoxTo, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameForFlag, TransactionNameToFlag, enteronce
 
-        TypeChecker = True
-        InputNameFlag=False
-        InputGoodsFlag=False
-        InputTypeFlag=False
-        InputBranchFlag=False
-        NameHolder=str() 
-        GoodsHolder=str()
-        BranchHolder=str()
-        TypeHolder="Item"
-        
-        LabelTransactionAdd = CTkLabel(OutputEditContent, text="TRANSACTIONS",font = EditFont)
-        LabelTransactionAdd.place(x=5, y=1)
-        
-        SearchButtonAdd = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction ID", width=390, height = 25)
-        SearchButtonAdd.place(x=5,y=25)
-        
-        comboVal = StringVar(value="Select")
-        combobox = CTkComboBox(OutputEditContent, values=["Name", "Goods", "Type", "Branch"], command=callback, variable=comboVal, height = 25, corner_radius=1, width=110)
-        combobox.set("Select")
-        combobox.place(x=5, y = 53)
-        combobox.configure(state="readonly")
+        if addbuttonrequestchecker == True:
+            TypeChecker = True #whether item or cash
+            typewaschecked = False #checks whether or not type in combo box was checked or not
 
-        AddButton = CTkButton(OutputEditContent, text = "Add", command = lambda: AddingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
-        AddButton.place (x=295, y = 82)
-        
-        
-        
-def searchEditButtonFunction(OutputEditContent,OutputTableContent):
-        print("YOU'RE!")
-         
-def searchDeleteButtonFunction(OutputEditContent,OutputTableContent):
-        print("FEIN!")
-   
+            enteronce = 0
+            diffvalue = 0 #to findout which combo is working orn ot
+            enteronceforcombo = 0 
+
+            TransactionNameForFlag = False
+            TransactionNameToFlag = False
+            InputDateFlag=False
+            InputGoodsFlag=False
+            InputTypeFlag=False
+            InputBranchFlag=False   
+
+            TransactorFrom = ""
+            TransactorTo = ""
+            DateHolder=""
+            GoodsHolder=""
+            BranchHolder=""
+            TypeHolder="Item"
+            amountholder = 0
+            
+            
+            TransactionNameBoxFrom = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction From", width=190, height = 25)
+            TransactionNameBoxFrom.place(x=5,y=25)
+
+            TransactionNameBoxTo = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction To", width=190, height = 25)
+            TransactionNameBoxTo.place(x=205,y=25)
+            
+            comboVal = StringVar(value="Select")
+            combobox = CTkComboBox(OutputEditContent, values=["Date", "Goods", "Type", "Branch ID"], command=callback, variable=comboVal, height = 25, corner_radius=1, width=110)
+            combobox.set("Select")
+            combobox.place(x=5, y = 53)
+            combobox.configure(state="readonly")
+
+            addinputbutton = CTkButton(OutputEditContent, text = "Add", command = lambda: AddingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
+            addinputbutton.place (x=295, y = 82)
+
+        elif addbuttonrequestchecker == False:
+            TransactionNameBoxFrom.destroy()
+            TransactionNameBoxTo.destroy()
+            combobox.destroy()
+            addinputbutton.destroy()
+            if diffvalue == 1:
+                AddDateEntryBox.destroy()
+                AddSearchBoxEnter.destroy()
+            elif diffvalue == 2:
+                AddGoodsEntryBox.destroy()
+                AddSearchBoxEnter.destroy()
+            elif diffvalue == 3:
+                typebox.destroy()
+                amtinput.destroy()
+                AddSearchBoxEnter.destroy()
+            elif diffvalue == 4:
+                AddBranchEntryBox.destroy()
+                AddSearchBoxEnter.destroy()
+
+
+
 def callback(choice): #COMBO BOX FUNCTIONALITIES
-    global AddNameSearchBox, AddGoodsSearchBox, AddBranchSearchBox,typebox, NameHolder, GoodsHolder, BranchHolder, TypeHolder
+    global diffvalue, enteronceforcombo, AddDateEntryBox, AddGoodsEntryBox, AddBranchEntryBox,typebox, amtinput, DateHolder, GoodsHolder, BranchHolder, TypeHolder, amountholder, AddSearchBoxEnter, typewaschecked, enteronce
     
+    enteronce = enteronce + 1
+    enteronceforcombo = enteronceforcombo + 1
     
-    if choice == "Name": #When Name is clicked in combo box
-        AddNameSearchBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transactor Name", width=275, height = 25)
-        AddNameSearchBox.place(x=120, y = 53)
-        AddNameSearchBox.insert(0,NameHolder)
+    print (enteronce)
+    if enteronce > 1:
+        AddSearchBoxEnter.destroy()
+        enteronce = 1
+        print (enteronce)
         
+
+    if enteronce == 1:
+        AddSearchBoxEnter = CTkButton(OutputEditContent, text = "Confirm", corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27, command=lambda: confirmyourchoice(choice, AddSearchBoxEnter))
+        AddSearchBoxEnter.place(x=190,y=82)
+
+    if enteronceforcombo>1:
+        if diffvalue == 1:
+            AddDateEntryBox.destroy()
+        elif diffvalue == 2:
+            AddGoodsEntryBox.destroy()
+        elif diffvalue == 3:
+            typebox.destroy()
+            amtinput.destroy()
+        elif diffvalue == 4:
+            AddBranchEntryBox.destroy()
+
+        enteronceforcombo = 1
+        print (enteronceforcombo)
+
+    if enteronceforcombo == 1:
+        if choice == "Date": #For DATE
+            diffvalue = 1
+            AddDateEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Date of Transaction", width=275, height = 25)
+            AddDateEntryBox.place(x=120, y = 53)
+            AddDateEntryBox.configure(state="normal")
+            AddDateEntryBox.insert(0,DateHolder)
+            
+            
+        elif choice == "Goods": #for GOODS
+            diffvalue = 2
+            AddGoodsEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction Goods", width=275, height = 25)
+            AddGoodsEntryBox.place(x=120, y = 53)
+            AddGoodsEntryBox.configure(state="normal")
+            AddGoodsEntryBox.insert(0,GoodsHolder)
+            
+            
+        elif choice == "Type": #for TYPE
+            diffvalue = 3
+            typewaschecked = True
+            comboVal = StringVar(value="Item")
+            typebox = CTkComboBox(OutputEditContent, values=["Item", "Cash"], command=boolfortypecheck, variable=comboVal, height = 25, corner_radius=1, width=275)
+            typebox.place(x=120, y = 53)
+            
+            amtinput = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Enter Amount", width=120, height = 27)
+            amtinput.place(x=5, y = 82)
+            amtinput.insert(0, amountholder)
+
+            typebox.set(TypeHolder)
+            typebox.configure(state="readonly")
+            
+        elif choice == "Branch ID": #certain BRANCH
+            diffvalue = 4
+            AddBranchEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Branch Id", width=275, height = 25)
+            AddBranchEntryBox.place(x=120, y = 53)
+            AddBranchEntryBox.insert(0,BranchHolder)
+
+    if typewaschecked == True and choice != "Type":
+        amtinput.destroy()
+        typewaschecked = False
+    
+    print ("diffvalue: " + str(diffvalue))
+    
         
-    elif choice == "Goods":
-        AddGoodsSearchBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction Goods", width=275, height = 25)
-        AddGoodsSearchBox.place(x=120, y = 53)
-        AddGoodsSearchBox.insert(0,GoodsHolder)
-        
-    elif choice == "Type":
-        comboVal = StringVar(value="Item")
-        typebox = CTkComboBox(OutputEditContent, values=["Item", "Cash"], command=boolfortypecheck, variable=comboVal, height = 25, corner_radius=1, width=275)
-        typebox.place(x=120, y = 53)
-        typebox.set(TypeHolder)
-        typebox.configure(state="readonly")
-        
-    elif choice == "Branch":
-        AddBranchSearchBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Existing Branch", width=275, height = 25)
-        AddBranchSearchBox.place(x=120, y = 53)
-        AddBranchSearchBox.insert(0,BranchHolder)
-        
-    AddSearchBoxEnter = CTkButton(OutputEditContent, text = "Confirm", corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27, command=lambda: confirmyourchoice(choice, AddSearchBoxEnter))
-    AddSearchBoxEnter.place(x=190,y=82)
+    
     
 def confirmyourchoice(choice, AddSearchBoxEnter): #CONFIRMS THE CHOICE
-    global Item, Cash, NameHolder, GoodsHolder, BranchHolder, TypeChecker, TypeHolder, InputNameFlag, InputGoodsFlag, InputBranchFlag, InputTypeFlag, typebox
-    if choice == "Name" and AddNameSearchBox.get() != "":
-        NameHolder = AddNameSearchBox.get()
-        print (NameHolder)
-        InputNameFlag = True
-        AddSearchBoxEnter.destroy()
+
+    global DateHolder, GoodsHolder, BranchHolder, TypeChecker, TypeHolder, InputDateFlag, InputGoodsFlag, InputBranchFlag, InputTypeFlag, typebox, amountholder
+    AddSearchBoxEnter.destroy()
+    if choice == "Date" and AddDateEntryBox.get() != "":
+        DateHolder = AddDateEntryBox.get()
+        print (DateHolder)
+        InputDateFlag = True
+        AddDateEntryBox.configure(state="readonly")
         
-    elif choice == "Goods" and AddGoodsSearchBox.get() != "":
-        GoodsHolder = AddGoodsSearchBox.get()
+    elif choice == "Goods" and AddGoodsEntryBox.get() != "":
+        GoodsHolder = AddGoodsEntryBox.get()
         print (GoodsHolder)
         InputGoodsFlag = True
-        AddSearchBoxEnter.destroy()
+        AddGoodsEntryBox.configure(state="readonly")
         
-    elif choice == "Branch" and AddBranchSearchBox.get() != "":
-        BranchHolder = AddBranchSearchBox.get()
+    elif choice == "Branch ID" and AddBranchEntryBox.get() != "":
+        BranchHolder = AddBranchEntryBox.get()
         print (BranchHolder)
         InputBranchFlag = True
-        AddSearchBoxEnter.destroy()
+        AddBranchEntryBox.configure(state="readonly")
+
     elif choice == "Type" and TypeHolder != "":
         if TypeChecker == True:
             TypeHolder = "Item"
@@ -264,7 +349,9 @@ def confirmyourchoice(choice, AddSearchBoxEnter): #CONFIRMS THE CHOICE
             TypeHolder = "Cash"
         print (TypeHolder)
         InputTypeFlag = True
-        AddSearchBoxEnter.destroy()
+        amountholder = amtinput.get()
+        amtinput.configure(state="readonly")
+        
             
 def boolfortypecheck(choice):
     global TypeChecker, InputTypeFlag
@@ -275,19 +362,64 @@ def boolfortypecheck(choice):
         TypeChecker=False
         print("Cash")
 
+
 def AddingTheItems():
-    global InputNameFlag, InputGoodsFlag, InputTypeFlag, InputBranchFlag, NameHolder, GoodsHolder, BranchHolder, TypeHolder
-    print ("Name= " + str(InputNameFlag) + ", Goods= " + str(InputGoodsFlag) + ", Type= " + str(InputTypeFlag) + ", Branch= " + str(InputBranchFlag))
-    if InputNameFlag and InputGoodsFlag and InputTypeFlag and InputBranchFlag == True:
+    global addbuttonrequestchecker
+    TransactorTo =  TransactionNameBoxTo.get()
+    TransactorFrom = TransactionNameBoxFrom.get()
+    ErrorBoolean=False
+
+    if TransactorTo and TransactorFrom != "": #if the transactor to and transactor from is NOT empty, then it'll post as true.
+        TransactionNameForFlag = True
+        TransactionNameToFlag = True
+    print ("Name= " + str(InputDateFlag) + ", Goods= " + str(InputGoodsFlag) + ", Type= " + str(InputTypeFlag) + ", Branch= " + str(InputBranchFlag)) 
+    if InputDateFlag and InputGoodsFlag and InputTypeFlag and InputBranchFlag and  TransactionNameToFlag and TransactionNameForFlag == True and amountholder.isnumeric(): #CHECKS IF ALL ARE TRUE AND CORRECTLY INPUTTED!!
         print("Sucessfully Submitted.")
-        print("Name: " + NameHolder)
+        print("Transactor From: " + TransactorFrom)
+        print("Transactor To: " + TransactorTo)
+        print("Date: " + DateHolder)
         print("Goods: " + GoodsHolder)
-        print("Branch: " + BranchHolder) 
+        print("Branch ID: " + BranchHolder) 
         print("Type: " + TypeHolder)
+        print("amount of type: " + amountholder)
         
+        TransactionNameBoxTo.destroy()
+        TransactionNameBoxFrom.destroy()
+        combobox.destroy()
+        addinputbutton.destroy()
         
-            
+        AddBranchEntryBox.destroy()
+        AddDateEntryBox.destroy()
+        AddGoodsEntryBox.destroy()
+        typebox.destroy()
+        amtinput.destroy()
+
+        if ErrorBoolean==True:
+            Error.destroy()
+        addbuttonrequestchecker = False
+    else: #prints an error
+        print("Please Input ALL entries.")
+        ErrorBoolean = True
+        Error = CTkLabel(OutputEditContent, text="Please Input ALL entries correctly.", text_color="red", height=13)
+        Error.place(x=200, y=3)
         
+    
+    
+#EDIT FUNCTION==================================================================================
+def searchEditButtonFunction(OutputEditContent,OutputTableContent):
+        if editbuttonrequestchecker == True:
+            print("You're")
+        else:
+            print("he's")
+         
+#DELETE FUNCTION==================================================================================
+def searchDeleteButtonFunction(OutputEditContent,OutputTableContent):
+        if deletebuttonrequestchecker == True:
+            print("gay...")
+        else:
+            print("him!")
+
+
 
 
 
