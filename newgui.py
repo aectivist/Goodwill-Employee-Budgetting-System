@@ -4,6 +4,7 @@ import threading
 from CTkTable import *
 #https://github.com/Akascape/CTkTable
 
+import math
 from math import *
 import re
 import pygame
@@ -350,6 +351,9 @@ def calculate(OutputCalculations):
             expression = re.sub(r'cos\(([\d\.]+)\)', lambda m: f'math.cos({m.group(1)})', expression)
             expression = re.sub(r'tan\(([\d\.]+)\)', lambda m: f'math.tan({m.group(1)})', expression)
 
+        #Factorial
+        expression = re.sub(r'(\d+)!', r'math.factorial(\1)', expression)
+
 
         # Exponents
         expression = expression.replace("log(", "math.log10(")
@@ -379,7 +383,7 @@ def calculate(OutputCalculations):
             raise ValueError("Empty expression after modifications")
 
         result = eval(expression)  # Ensure eval is used SAFELY
-        finalresult = round(result, 5)
+        finalresult = round(result, 9)
         
             
         print("Result:", finalresult)

@@ -126,3 +126,114 @@ window.mainloop()
 
 
 #am cooked
+
+from customtkinter import *
+import psycopg2
+from CTkTable import *
+#https://github.com/Akascape/CTkTable
+
+
+conn=psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
+
+
+
+
+cur = conn.cursor()
+window = CTk()
+window.title("BUDGET")
+window.geometry("600x400") #fml
+window.resizable(0,0) #disable resize
+set_appearance_mode("light")
+
+
+
+
+#++++++++++++++++++++++++++++++ {PAGES} ++++++++++++++++++++++++++++++++++++++
+
+
+# Create frames for each page
+TABFRAME = CTkFrame(window, height=51, width=600, fg_color="#1E1E1E", corner_radius=0)
+TABFRAME.pack(anchor=CENTER, fill=X)
+
+
+#These are the individual pages, or rather, the frames
+TransactionsPage = CTkFrame(window)
+TransactionsPage.pack(fill=BOTH, expand=True)
+
+
+
+
+# Create a list to hold all the pages
+pages = [TransactionsPage]
+
+
+# Function to show a page
+def show_page(page):
+    page.pack(fill=BOTH, expand=True)
+    window.update_idletasks()  # Update the UI
+    if page == TransactionsPage:
+        transactionpage(TransactionsPage)
+       
+
+
+         
+#++++++++++++++++++++++++++++++ {PAGE FUNCTIONS} ++++++++++++++++++++++++++++++++++++++
+#DO NOT EDIT SPACE, WILL USE SPACE FOR THE OTHER PAGES
+
+
+#def clientpage(page):
+#def assetpage(page):
+#def calculator(page):
+
+
+
+TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
+EditFont = CTkFont(family="Oswald", size=15, weight='bold')
+BTNFont = CTkFont(family="Oswald", size=13)
+TransactionsPagePost = 0
+def transactionpage(page): #TO BE UPDATED
+    print("hello")
+   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#++++++++++++++++++++++++++++++ {TAB FUNCTIONS} ++++++++++++++++++++++++++++++++++++++
+
+
+# Function to handle button clicks
+def button_event(page):
+    salespage(page)
+
+
+
+
+
+
+SalesTab = CTkButton(TABFRAME, text="Sales", width=20)
+SalesTab.grid(row=0, column=1, pady=10, padx=10, sticky="nsew")
+
+
+SalesTab.configure(command=lambda: button_event(TransactionsPage))
+
+
+# Show the first page by default
+show_page(TransactionsPage)
+
+
+window.mainloop()
+
+
+#am cooked
