@@ -177,8 +177,7 @@ def outputContentGivenButtons(OutputEditContent, OutputTableContent, value):
 #EDIT FUNCTION==================================================================================
 def searchEditButtonFunction(OutputEditContent,OutputTableContent):
     print("WOW!")
-    global diffvalue,EditSearchBoxEnter, PartyForHolder, PartyToHolder, amountedit, enteronceforcombo, comboboxedit, editinputbutton, EditDateFlag, EditGoodsFlag, EditTypeFlag, EditBranchFlag, TransactorFrom, TransactionIDEdit, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameIDFlag, enteronce
-
+    global ErrorBoolean, Error, diffvalue,EditSearchBoxEnter, PartyForHolder, PartyToHolder, amountedit, enteronceforcombo, comboboxedit, editinputbutton, EditDateFlag, EditGoodsFlag, EditTypeFlag, EditBranchFlag, TransactorFrom, TransactionIDEdit, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameIDFlag, enteronce
     if editbuttonrequestchecker == True: #checks if the button request is true
         TypeChecker = True #whether item or cash
         typewaschecked = False #checks whether or not type in combo box was checked or not
@@ -217,7 +216,7 @@ def searchEditButtonFunction(OutputEditContent,OutputTableContent):
 
         editinputbutton = CTkButton(OutputEditContent, text = "Add", command = lambda: EdittingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
         editinputbutton.place (x=295, y = 82)
-
+        
     elif editbuttonrequestchecker == False:
         TransactionIDEdit.destroy()
         comboboxedit.destroy()
@@ -226,6 +225,7 @@ def searchEditButtonFunction(OutputEditContent,OutputTableContent):
             EditDateEntryBox.destroy()
             EditSearchBoxEnter.destroy()
         elif diffvalue == 2:
+            print(str(diffvalue) + " is set")
             EditGoodsEntryBox.destroy()
             EditSearchBoxEnter.destroy()
         elif diffvalue == 3:
@@ -239,6 +239,9 @@ def searchEditButtonFunction(OutputEditContent,OutputTableContent):
             PartyToEntryBox.destroy()
             PartyForEntryBox.destroy()
             EditSearchBoxEnter.destroy()
+        if ErrorBoolean==True:
+            Error.destroy()
+            ErrorBoolean = False
 
 
 
@@ -403,7 +406,7 @@ def confirmyourchoiceForEdit(choice, EditSearchBoxEnter): #CONFIRMS THE CHOICE
 
 
 def EdittingTheItems():
-    global addbuttonrequestchecker, amountedit
+    global addbuttonrequestchecker, amountedit, ErrorBoolean, Error
     TransactorFrom = TransactionIDEdit.get()
     ErrorBoolean=False
 
@@ -442,6 +445,7 @@ def EdittingTheItems():
 
         if ErrorBoolean==True:
             Error.destroy()
+            ErrorBoolean = False
         addbuttonrequestchecker = False
         
     else: #prints an error
@@ -449,8 +453,6 @@ def EdittingTheItems():
         ErrorBoolean = True
         Error = CTkLabel(OutputEditContent, text="Please Input an entry.", text_color="red", height=13)
         Error.place(x=200, y=3)
-
-
 
 #ADD FUNCTION =======================================================================
 def searchAddButtonFunction(OutputEditContent):

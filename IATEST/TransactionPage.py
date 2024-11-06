@@ -156,35 +156,40 @@ def transactionpage(page): #TO BE UPDATED
     addbuttonrequestchecker = False
     editbuttonrequestchecker = False
     deletebuttonrequestchecker = False
-
+    
+vieweditemaddflag = 0
+vieweditemeditflag = 0
    
 def outputContentGivenButtons(OutputEditContent, OutputTableContent, value): 
-    global addbuttonrequestchecker, editbuttonrequestchecker, deletebuttonrequestchecker
+    global addbuttonrequestchecker, editbuttonrequestchecker, deletebuttonrequestchecker,vieweditemaddflag , vieweditemeditflag
     if value == 1:
-        addbuttonrequestchecker = not addbuttonrequestchecker
+        vieweditemaddflag = vieweditemaddflag+1
+        addbuttonrequestchecker = True
         editbuttonrequestchecker = False
         deletebuttonrequestchecker = False
+        searchAddButtonFunction(OutputEditContent)
     elif value == 2:
-        editbuttonrequestchecker=not editbuttonrequestchecker
+        vieweditemeditflag = vieweditemeditflag+1
+        editbuttonrequestchecker=True
         addbuttonrequestchecker = False
         deletebuttonrequestchecker = False
-        
+        searchEditButtonFunction(OutputEditContent,OutputTableContent)
     elif value == 3:
-        deletebuttonrequestchecker = not deletebuttonrequestchecker 
+        deletebuttonrequestchecker = True
         editbuttonrequestchecker = False
         addbuttonrequestchecker = False
-
-    searchAddButtonFunction(OutputEditContent)
-    searchEditButtonFunction(OutputEditContent,OutputTableContent)
+    
+    
+    
     searchDeleteButtonFunction(OutputEditContent,OutputTableContent)
 
 
 #ADD FUNCTION =======================================================================
 def searchAddButtonFunction(OutputEditContent):
-        print("WOW!")
-        global diffvalue,AddSearchBoxEnter, ErrorBoolean, Error, enteronceforcombo, combobox, addinputbutton, InputDateFlag, InputGoodsFlag, InputTypeFlag, InputBranchFlag, TransactorFrom, TransactorTo, TransactionNameBoxFrom, TransactionNameBoxTo, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameForFlag, TransactionNameToFlag, enteronce
-
-        if addbuttonrequestchecker == True:
+        global diffvalue,AddSearchBoxEnter, vieweditemaddflag, ErrorBoolean, Error, enteronceforcombo, combobox, addinputbutton, InputDateFlag, InputGoodsFlag, InputTypeFlag, InputBranchFlag, TransactorFrom, TransactorTo, TransactionNameBoxFromAdd, TransactionNameBoxTo, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameForFlag, TransactionNameToFlag, enteronce
+        
+        print('viewed item add: ' + str(vieweditemaddflag))
+        if addbuttonrequestchecker == True and vieweditemaddflag == 1:
             TypeChecker = True #whether item or cash
             typewaschecked = False #checks whether or not type in combo box was checked or not
 
@@ -208,8 +213,8 @@ def searchAddButtonFunction(OutputEditContent):
             amountholder = ""
             
             
-            TransactionNameBoxFrom = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction From", width=190, height = 25)
-            TransactionNameBoxFrom.place(x=5,y=25)
+            TransactionNameBoxFromAdd = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction From", width=190, height = 25)
+            TransactionNameBoxFromAdd.place(x=5,y=25)
 
             TransactionNameBoxTo = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction To", width=190, height = 25)
             TransactionNameBoxTo.place(x=205,y=25)
@@ -223,28 +228,30 @@ def searchAddButtonFunction(OutputEditContent):
             addinputbutton = CTkButton(OutputEditContent, text = "Add", command = lambda: AddingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
             addinputbutton.place (x=295, y = 82)
 
-        elif addbuttonrequestchecker == False:
-            TransactionNameBoxFrom.destroy()
-            TransactionNameBoxTo.destroy()
-            combobox.destroy()
-            addinputbutton.destroy()
-            if diffvalue == 1:
-                AddDateEntryBox.destroy()
-                AddSearchBoxEnter.destroy()
-            elif diffvalue == 2:
-                AddGoodsEntryBox.destroy()
-                AddSearchBoxEnter.destroy()
-            elif diffvalue == 3:
-                typebox.destroy()
-                amtinput.destroy()
-                AddSearchBoxEnter.destroy()
-            elif diffvalue == 4:
-                AddBranchEntryBox.destroy()
-                AddSearchBoxEnter.destroy()
-            if ErrorBoolean==True:
-                Error.destroy()
-                ErrorBoolean = False
-
+        elif addbuttonrequestchecker == False or vieweditemaddflag == 2:
+                vieweditemaddflag = 0
+                print("viewed add")
+                TransactionNameBoxFromAdd.destroy()
+                TransactionNameBoxTo.destroy()
+                combobox.destroy()
+                addinputbutton.destroy()
+                if diffvalue == 1:
+                    AddDateEntryBox.destroy()
+                    AddSearchBoxEnter.destroy()
+                elif diffvalue == 2:
+                    AddGoodsEntryBox.destroy()
+                    AddSearchBoxEnter.destroy()
+                elif diffvalue == 3:
+                    typebox.destroy()
+                    amtinput.destroy()
+                    AddSearchBoxEnter.destroy()
+                elif diffvalue == 4:
+                    AddBranchEntryBox.destroy()
+                    AddSearchBoxEnter.destroy()
+                if ErrorBoolean==True:
+                    Error.destroy()
+                    ErrorBoolean = False
+                
 
 
 def callback(choice): #COMBO BOX FUNCTIONALITIES
@@ -287,7 +294,7 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
             AddDateEntryBox.insert(0,DateHolder)
             
             
-        elif choice == "Inventory ID": #for GOODS
+        elif choice == "Inventory ID": #for Inventory
             diffvalue = 2
             AddGoodsEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Inventory Id", width=275, height = 25)
             AddGoodsEntryBox.place(x=120, y = 53)
@@ -383,21 +390,13 @@ def confirmyourchoice(choice, AddSearchBoxEnter): #CONFIRMS THE CHOICE
    
        
         
-            
-def boolfortypecheck(choice):
-    global TypeChecker, InputTypeFlag
-    if choice == "Item":
-        TypeChecker=True
-        print("Item")
-    elif choice == "Cash":
-        TypeChecker=False
-        print("Cash")
+
 
 
 def AddingTheItems():
     global addbuttonrequestchecker, ErrorBoolean, Error
     TransactorTo =  TransactionNameBoxTo.get()
-    TransactorFrom = TransactionNameBoxFrom.get()
+    TransactorFrom = TransactionNameBoxFromAdd.get()
     ErrorBoolean=False
 
     if TransactorTo and TransactorFrom != "": #if the transactor to and transactor from is NOT empty, then it'll post as true.
@@ -415,7 +414,7 @@ def AddingTheItems():
         print("amount of type: " + amountholder)
         
         TransactionNameBoxTo.destroy()
-        TransactionNameBoxFrom.destroy()
+        TransactionNameBoxFromAdd.destroy()
         combobox.destroy()
         addinputbutton.destroy()
         
@@ -439,14 +438,14 @@ def AddingTheItems():
     
 #EDIT FUNCTION==================================================================================
 def searchEditButtonFunction(OutputEditContent,OutputTableContent):
-    print("WOW!")
-    global ErrorBoolean, Error, diffvalue,EditSearchBoxEnter, PartyForHolder, PartyToHolder, amountedit, enteronceforcombo, comboboxedit, editinputbutton, EditDateFlag, EditGoodsFlag, EditTypeFlag, EditBranchFlag, TransactorFrom, TransactionIDEdit, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameIDFlag, enteronce
-    if editbuttonrequestchecker == True: #checks if the button request is true
+    global ErrorBoolean, Error, editdiffvalue, vieweditemeditflag, editbuttonrequestchecker, EditSearchBoxEnter, PartyForHolder, PartyToHolder, amountedit, enteronceforcombo, comboboxedit, editinputbutton, EditDateFlag, EditGoodsFlag, EditTypeFlag, EditBranchFlag, TransactorFrom, TransactionIDEdit, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameIDFlag, enteronce
+    print ('viewed edit: '+ str(vieweditemeditflag))
+    if editbuttonrequestchecker == True and vieweditemeditflag == 1: #checks if the button request is true
         TypeChecker = True #whether item or cash
         typewaschecked = False #checks whether or not type in combo box was checked or not
 
         enteronce = 0
-        diffvalue = 0 #to findout which combo is working orn ot
+        editdiffvalue = 0 #to findout which combo is working orn ot
         enteronceforcombo = 0 
 
         TransactionNameIDFlag = False
@@ -480,35 +479,39 @@ def searchEditButtonFunction(OutputEditContent,OutputTableContent):
         editinputbutton = CTkButton(OutputEditContent, text = "Add", command = lambda: EdittingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
         editinputbutton.place (x=295, y = 82)
         
-    elif editbuttonrequestchecker == False:
-        TransactionIDEdit.destroy()
-        comboboxedit.destroy()
-        editinputbutton.destroy()
-        if diffvalue == 1:
-            EditDateEntryBox.destroy()
-            EditSearchBoxEnter.destroy()
-        elif diffvalue == 2:
-            EditGoodsEntryBox.destroy()
-            EditSearchBoxEnter.destroy()
-        elif diffvalue == 3:
-            typebox.destroy()
-            amtinputEdit.destroy()
-            EditSearchBoxEnter.destroy()
-        elif diffvalue == 4:
-            EditBranchEntryBox.destroy()
-            EditSearchBoxEnter.destroy()
-        elif diffvalue == 5:
-            PartyToEntryBox.destroy()
-            PartyForEntryBox.destroy()
-            EditSearchBoxEnter.destroy()
-        if ErrorBoolean==True:
-            Error.destroy()
-            ErrorBoolean = False
+    elif editbuttonrequestchecker == False or vieweditemeditflag ==2 :
+                
+                vieweditemeditflag =0
+                TransactionIDEdit.destroy()
+                comboboxedit.destroy()
+                editinputbutton.destroy()
+                if editdiffvalue == 1:
+                    EditDateEntryBox.destroy()
+                    EditSearchBoxEnter.destroy()
+                elif editdiffvalue == 2:
+                    print(str(diffvalue) + " is set")
+                    EditGoodsEntryBox.destroy()
+                    EditSearchBoxEnter.destroy()
+                elif editdiffvalue == 3:
+                    typebox.destroy()
+                    amtinputEdit.destroy()
+                    EditSearchBoxEnter.destroy()
+                elif editdiffvalue == 4:
+                    EditBranchEntryBox.destroy()
+                    EditSearchBoxEnter.destroy()
+                elif editdiffvalue == 5:
+                    PartyToEntryBox.destroy()
+                    PartyForEntryBox.destroy()
+                    EditSearchBoxEnter.destroy()
+                if ErrorBoolean==True:
+                    Error.destroy()
+                    ErrorBoolean = False
+                    
 
 
 
 def callbackedit(choice): #COMBO BOX FUNCTIONALITIES
-    global diffvalue, PartyForEntryBox, PartyToEntryBox, enteronceforcombo, EditDateEntryBox, EditGoodsEntryBox, EditBranchEntryBox,typebox, amtinputEdit, DateHolder, GoodsHolder, BranchHolder, TypeHolder, amountholder, PartyForHolder, PartyToHolder,  EditSearchBoxEnter, typewaschecked, enteronce
+    global editdiffvalue, PartyForEntryBox, PartyToEntryBox, enteronceforcombo, EditDateEntryBox, EditGoodsEntryBox, EditBranchEntryBox,typebox, amtinputEdit, DateHolder, GoodsHolder, BranchHolder, TypeHolder, amountholder, PartyForHolder, PartyToHolder,  EditSearchBoxEnter, typewaschecked, enteronce
     
     enteronce = enteronce + 1
     enteronceforcombo = enteronceforcombo + 1
@@ -525,16 +528,16 @@ def callbackedit(choice): #COMBO BOX FUNCTIONALITIES
         EditSearchBoxEnter.place(x=190,y=82)
 
     if enteronceforcombo>1:
-        if diffvalue == 1:
+        if editdiffvalue == 1:
             EditDateEntryBox.destroy()
-        elif diffvalue == 2:
+        elif editdiffvalue == 2:
             EditGoodsEntryBox.destroy()
-        elif diffvalue == 3:
+        elif editdiffvalue == 3:
             typebox.destroy()
             amtinputEdit.destroy()
-        elif diffvalue == 4:
+        elif editdiffvalue == 4:
             EditBranchEntryBox.destroy()
-        elif diffvalue == 5:
+        elif editdiffvalue == 5:
             PartyToEntryBox.destroy()
             PartyForEntryBox.destroy()
 
@@ -543,7 +546,7 @@ def callbackedit(choice): #COMBO BOX FUNCTIONALITIES
 
     if enteronceforcombo == 1:
         if choice == "Date": #For DATE
-            diffvalue = 1
+            editdiffvalue = 1
             EditDateEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Date of Transaction", width=275, height = 25)
             EditDateEntryBox.place(x=120, y = 53)
             EditDateEntryBox.configure(state="normal")
@@ -551,7 +554,7 @@ def callbackedit(choice): #COMBO BOX FUNCTIONALITIES
             
             
         elif choice == "Inventory ID": #for GOODS
-            diffvalue = 2
+            editdiffvalue = 2
             EditGoodsEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Inventory Id", width=275, height = 25)
             EditGoodsEntryBox.place(x=120, y = 53)
             EditGoodsEntryBox.configure(state="normal")
@@ -559,7 +562,7 @@ def callbackedit(choice): #COMBO BOX FUNCTIONALITIES
             
             
         elif choice == "Type": #for TYPE
-            diffvalue = 3
+            editdiffvalue = 3
             typewaschecked = True
             comboVal = StringVar(value="Item")
             typebox = CTkComboBox(OutputEditContent, values=["Item", "Cash"], command=boolfortypecheck, variable=comboVal, height = 25, corner_radius=1, width=275)
@@ -573,12 +576,12 @@ def callbackedit(choice): #COMBO BOX FUNCTIONALITIES
             typebox.configure(state="readonly")
             
         elif choice == "Branch ID": #certain BRANCH
-            diffvalue = 4
+            editdiffvalue = 4
             EditBranchEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Branch Id", width=275, height = 25)
             EditBranchEntryBox.place(x=120, y = 53)
             EditBranchEntryBox.insert(0,BranchHolder)
         elif choice == "Parties":
-            diffvalue = 5
+            editdiffvalue = 5
             PartyForEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction For", width=132, height = 25)
             PartyForEntryBox.place(x=120, y = 53)
             
@@ -591,42 +594,42 @@ def callbackedit(choice): #COMBO BOX FUNCTIONALITIES
     
         
     if BranchHolder or DateHolder or GoodsHolder or amountholder or PartyToHolder or PartyForHolder == "":
-        if DateHolder ==""and diffvalue == 1:
+        if DateHolder ==""and editdiffvalue == 1:
             EditDateEntryBox.delete(0, END)
             EditDateEntryBox.configure(placeholder_text="Date of Transaction")
-        elif GoodsHolder ==""and diffvalue == 2:
+        elif GoodsHolder ==""and editdiffvalue == 2:
             EditGoodsEntryBox.delete(0, END)
             EditGoodsEntryBox.configure(placeholder_text="Inventory Id")
-        elif TypeHolder == ""and diffvalue == 3:
+        elif TypeHolder == ""and editdiffvalue == 3:
             typebox.delete(0, END)
             amtinputEdit.delete(0, END)
             amtinputEdit.configure(placeholder_text="Enter Amount")
-        elif BranchHolder == "" and diffvalue == 4:
+        elif BranchHolder == "" and editdiffvalue == 4:
             EditBranchEntryBox.delete(0, END)
             EditBranchEntryBox.configure(placeholder_text="Branch Id")
-        elif PartyToHolder == ""and diffvalue == 5:
+        elif PartyToHolder == ""and editdiffvalue == 5:
             PartyToEntryBox.delete(0, END)
             PartyToEntryBox.configure(placeholder_text="Transaction To")
-        elif PartyForHolder == ""and diffvalue == 5:
+        elif PartyForHolder == ""and editdiffvalue == 5:
             PartyForEntryBox.delete(0, END)
             PartyForEntryBox.configure(placeholder_text="Transaction From")
     else:
-        if BranchHolder != "" and diffvalue==4:
+        if BranchHolder != "" and editdiffvalue==4:
             EditBranchEntryBox.insert(0,BranchHolder)
-        elif DateHolder !="" and diffvalue ==1:
+        elif DateHolder !="" and editdiffvalue ==1:
             EditDateEntryBox.insert(0,DateHolder)
-        elif GoodsHolder !=""and diffvalue == 2:
+        elif GoodsHolder !=""and editdiffvalue == 2:
             EditGoodsEntryBox.insert(0, GoodsHolder)
-        elif TypeHolder != "" and diffvalue==3:
+        elif TypeHolder != "" and editdiffvalue==3:
             typebox.insert(0, TypeHolder)
             amtinputEdit.insert(0, amountholder)
-        elif PartyToHolder != "" and diffvalue == 5:
+        elif PartyToHolder != "" and editdiffvalue == 5:
             PartyToEntryBox.insert(0,PartyToHolder)
-        elif PartyForHolder != "" and diffvalue == 5:
+        elif PartyForHolder != "" and editdiffvalue == 5:
             PartyForEntryBox.insert(0,PartyForHolder)
         
     
-    print ("diffvalue: " + str(diffvalue))
+    print ("diffvalue: " + str(editdiffvalue))
     
         
     
@@ -692,16 +695,16 @@ def EdittingTheItems():
         comboboxedit.destroy()
         editinputbutton.destroy()
         
-        if diffvalue == 1:
+        if editdiffvalue == 1:
             EditDateEntryBox.destroy()
-        elif diffvalue == 2:
+        elif editdiffvalue == 2:
             EditGoodsEntryBox.destroy()
-        elif diffvalue == 3:
+        elif editdiffvalue == 3:
             typebox.destroy()
             amtinputEdit.destroy()
-        elif diffvalue == 4:
+        elif editdiffvalue == 4:
             EditBranchEntryBox.destroy()
-        elif diffvalue == 5:
+        elif editdiffvalue == 5:
             PartyToEntryBox.destroy()
             PartyForEntryBox.destroy()
 
@@ -728,7 +731,15 @@ def searchDeleteButtonFunction(OutputEditContent,OutputTableContent):
 
 
 
-
+            
+def boolfortypecheck(choice):
+    global TypeChecker, InputTypeFlag
+    if choice == "Item":
+        TypeChecker=True
+        print("Item")
+    elif choice == "Cash":
+        TypeChecker=False
+        print("Cash")
 
 
 
