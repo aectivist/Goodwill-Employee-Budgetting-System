@@ -1,1 +1,33 @@
-0.01,New Changes To The System.
+CREATE TABLE transactionTable(
+transactionId int not null, 
+transactorFrom varchar(30) not null,
+transactionTo varchar(30) not null, 
+
+InventoryId int,
+branchId int,
+transactionType varchar (30) not null, --Cash/Item
+PRIMARY KEY (transactionId),
+FOREIGN KEY (InventoryId) REFERENCES Inventory(InventoryId),
+FOREIGN KEY (branchId) REFERENCES goodwillBranch(branchId)
+)
+DROP TABLE transactionTable
+
+CREATE TABLE Inventory(
+InventoryId int not null,
+InventoryName varchar(200),
+InventoryValue float not null,
+InventoryType varchar(10) not null,
+BranchId int not null,
+GoodsStatus varchar(7) not null,
+PRIMARY KEY(InventoryId),
+FOREIGN KEY(BranchId) REFERENCES goodwillbranch(branchId)
+)
+
+CREATE TABLE goodwillBranch(
+branchId int not null,
+branchName varchar (200) not null,
+branchAddress varchar(200) not null,
+branchPhoneNumber int,
+PRIMARY KEY (branchId)
+)
+
