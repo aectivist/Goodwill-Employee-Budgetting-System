@@ -168,45 +168,51 @@ ErrorBooleanEdit = False
 addbuttonrequestchecker = False
 editbuttonrequestchecker = False
 deletebuttonrequestchecker = False
+
+pastpostforoutput = ""
+currentpostforoutput = ""
    
 def outputContentGivenButtons(OutputEditContent, OutputTableContent, value): 
-    global addbuttonrequestchecker, editbuttonrequestchecker, deletebuttonrequestchecker,vieweditemaddflag , vieweditemeditflag, vieweditemdeleteflag
-    if value == 1:
+    
+    global addbuttonrequestchecker, editbuttonrequestchecker, deletebuttonrequestchecker
+    global vieweditemaddflag , vieweditemeditflag, vieweditemdeleteflag, pastpostforoutput, currentpostforoutput
+    pastpostforoutput = currentpostforoutput
+    if value == 1:#Add
         vieweditemaddflag = vieweditemaddflag+1
         addbuttonrequestchecker = not addbuttonrequestchecker
         editbuttonrequestchecker = False
         deletebuttonrequestchecker = False
-        searchAddButtonFunction(OutputEditContent)
-    elif value == 2:
+        searchAddButtonFunction(OutputEditContent, value)
+        currentpostforoutput = "ADD"
+    elif value == 2: #Edit
         vieweditemeditflag = vieweditemeditflag+1
         editbuttonrequestchecker=not editbuttonrequestchecker
         addbuttonrequestchecker = False
         deletebuttonrequestchecker = False
-        searchEditButtonFunction(OutputEditContent,OutputTableContent)
-    elif value == 3:
-        vieweditemdeleteflag = vieweditemdeleteflag + 1
+        searchEditButtonFunction(OutputEditContent,value)
+        currentpostforoutput = "EDIT"
+    elif value == 3: #Delete
+        vieweditemdeleteflag = vieweditemdeleteflag+1
         deletebuttonrequestchecker = not deletebuttonrequestchecker
         editbuttonrequestchecker = False
         addbuttonrequestchecker = False
-        searchDeleteButtonFunction(OutputEditContent)
-        
-    if addbuttonrequestchecker == True:
-        DeleteEditPrompt(value)
-        DeleteDeletePrompt(value)
-    elif editbuttonrequestchecker == True:
-        DeleteAddPrompt(value)
-        DeleteDeletePrompt(value)
-        
-    elif deletebuttonrequestchecker == True:
-        DeleteAddPrompt(value)
-        DeleteEditPrompt(value)
+        searchDeleteButtonFunction(OutputEditContent, value)
+        currentpostforoutput = "DELETE"
+    print ("ACTIVE:")
+    print("edit checker: " + str(editbuttonrequestchecker))
+    print("add checker: " + str(addbuttonrequestchecker))
+    print("delete checker: " + str(deletebuttonrequestchecker))
+    print("value: " + str(value))
     
     
-        
-def DeleteEditPrompt(value):
-    global vieweditemeditflag,ErrorBooleanEdit,ErrorEdit,viewederroredit
-    if vieweditemeditflag >=2 or value != 2:
-        print('edit is now false')
+    
+def TrueDeleter(value):
+    global vieweditemeditflag,ErrorBooleanEdit,ErrorEdit,viewederroredit,vieweditemaddflag, ErrorBoolean, Error , viewederror ,deleteinputbutton,vieweditemdeleteflag
+    global pastpostforoutput
+    #deletes edit
+    
+    
+    if pastpostforoutput == "EDIT" and (vieweditemaddflag >= 1 or vieweditemdeleteflag >=1):
         vieweditemeditflag =0
         if TransactionIDEdit.winfo_exists():
             TransactionIDEdit.destroy()
@@ -236,12 +242,9 @@ def DeleteEditPrompt(value):
                 ErrorEdit.destroy()
                 viewederroredit = 0
                 print("error is destroyed" + str(viewederroredit))
-                
-def DeleteAddPrompt(value):
-    global vieweditemaddflag, ErrorBoolean, Error , viewederror
-    print("viewed deleter")
-    if vieweditemaddflag >=2 or value != 1:
-        print("add is now false")
+    #deletes add 
+   
+    if pastpostforoutput == "ADD" and (vieweditemeditflag >= 1 or vieweditemdeleteflag >=1):
         vieweditemaddflag = 0
         if TransactionNameBoxFromAdd.winfo_exists():
             TransactionNameBoxFromAdd.destroy()
@@ -269,22 +272,21 @@ def DeleteAddPrompt(value):
             Error.destroy()
             print("error is destroyed" + str(viewederror))
             viewederror = viewederror - 1
-                
             ErrorBoolean = False
+    #deletes delete 
     
-def DeleteDeletePrompt(value):
-    global deleteinputbutton,vieweditemdeleteflag
-    if vieweditemdeleteflag >= 2 or value != 3:
+    if pastpostforoutput == "DELETE" and (vieweditemaddflag >=1 or vieweditemeditflag >=1):
+        print("viewed the delete, deleting delete. :" + str(vieweditemdeleteflag))
         vieweditemdeleteflag = 0
-        print("delete is now false.")
         if TransactionIDDelete.winfo_exists():
             TransactionIDDelete.destroy()
             deleteinputbutton.destroy()
+        
                 
                 
 
 #ADD FUNCTION =======================================================================
-def searchAddButtonFunction(OutputEditContent):
+def searchAddButtonFunction(OutputEditContent, valuereader):
         global diffvalue,AddSearchBoxEnter, vieweditemaddflag, enteronceforcombo, combobox, addinputbutton, InputDateFlag, InputGoodsFlag, InputTypeFlag, InputBranchFlag, TransactorFrom, TransactorTo, TransactionNameBoxFromAdd, TransactionNameBoxTo, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameForFlag, TransactionNameToFlag, enteronce
         print('viewed item add: ' + str(vieweditemaddflag))
         if addbuttonrequestchecker == True and vieweditemaddflag == 1:
@@ -325,11 +327,41 @@ def searchAddButtonFunction(OutputEditContent):
 
             addinputbutton = CTkButton(OutputEditContent, text = "Add", command = lambda: AddingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
             addinputbutton.place (x=295, y = 82)
-                
+        elif vieweditemaddflag > 1 or (vieweditemeditflag >= 1 or vieweditemdeleteflag >=1):
+            vieweditemaddflag = 0
+            if TransactionNameBoxFromAdd.winfo_exists():
+                TransactionNameBoxFromAdd.destroy()
+            if TransactionNameBoxTo.winfo_exists():
+                TransactionNameBoxTo.destroy()
+            if combobox.winfo_exists():
+                combobox.destroy()
+            if addinputbutton.winfo_exists():
+                addinputbutton.destroy()
+            if diffvalue == 1:
+                AddDateEntryBox.destroy()
+                AddSearchBoxEnter.destroy()
+            elif diffvalue == 2:
+                AddGoodsEntryBox.destroy()
+                AddSearchBoxEnter.destroy()
+            elif diffvalue == 3:
+                typebox.destroy()
+                amtinput.destroy()
+                AddSearchBoxEnter.destroy()
+            elif diffvalue == 4:
+                AddBranchEntryBox.destroy()
+                AddSearchBoxEnter.destroy()
+            if ErrorBoolean==True or viewederror >0:
+                print (viewederror)
+                Error.destroy()
+                print("error is destroyed" + str(viewederror))
+                viewederror = viewederror - 1
+                ErrorBoolean = False
+        else:
+            TrueDeleter(valuereader)  
 
 
 def callback(choice): #COMBO BOX FUNCTIONALITIES
-    global diffvalue, enteronceforcombo, AddDateEntryBox, AddGoodsEntryBox, AddBranchEntryBox,typebox, amtinput, DateHolder, GoodsHolder, BranchHolder, TypeHolder, amountholder, AddSearchBoxEnter, typewaschecked, enteronce
+    global diffvalue, enteronceforcombo, AddDateEntryBox, AddGoodsEntryBox, AddBranchEntryBox,typebox, amtinput, DateHolder, GoodsHolder, BranchHolder, TypeHolder, amountholder, AddSearchBoxEnter, typewaschecked, enteronce, ErrorBoolean, Error
     
     enteronce = enteronce + 1
     enteronceforcombo = enteronceforcombo + 1
@@ -499,7 +531,7 @@ def AddingTheItems():
             viewederror=0
             ErrorBoolean = False
             
-        addbuttonrequestchecker = False
+
     else: #prints an error
         if viewederror == 0 and not viewederror > 1:
             print("Please Input ALL entries.")
@@ -513,8 +545,8 @@ def AddingTheItems():
     
     
 #EDIT FUNCTION==================================================================================
-def searchEditButtonFunction(OutputEditContent,OutputTableContent):
-    global ErrorBooleanEdit, ErrorEdit, editdiffvalue, vieweditemeditflag, editbuttonrequestchecker, EditSearchBoxEnter, PartyForHolder, PartyToHolder, amountedit, enteronceforcombo, comboboxedit, editinputbutton, EditDateFlag, EditGoodsFlag, EditTypeFlag, EditBranchFlag, TransactorFrom, TransactionIDEdit, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameIDFlag, enteronce
+def searchEditButtonFunction(OutputEditContent,valuereader):
+    global ErrorBooleanEdit, ErrorEdit, editdiffvalue, vieweditemeditflag, editbuttonrequestchecker, EditSearchBoxEnter, PartyForHolder, PartyToHolder, amountedit, enteronceforcombo, comboboxedit, editinputbutton, EditDateFlag, EditGoodsFlag, EditTypeFlag, EditBranchFlag, TransactorFrom, TransactionIDEdit, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameIDFlag, enteronce, ErrorBooleanEdit, ErrorEdit
     print ('viewed edit: '+ str(vieweditemeditflag))
     if editbuttonrequestchecker == True and vieweditemeditflag == 1: #checks if the button request is true
         TypeChecker = True #whether item or cash
@@ -554,7 +586,38 @@ def searchEditButtonFunction(OutputEditContent,OutputTableContent):
 
         editinputbutton = CTkButton(OutputEditContent, text = "Edit", command = lambda: EdittingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
         editinputbutton.place (x=295, y = 82)
-        
+    elif vieweditemeditflag > 1 or (vieweditemaddflag >= 1 or vieweditemdeleteflag >=1):
+        vieweditemeditflag =0
+        if TransactionIDEdit.winfo_exists():
+            TransactionIDEdit.destroy()
+        if comboboxedit.winfo_exists():
+            comboboxedit.destroy()
+        if editinputbutton.winfo_exists():
+            editinputbutton.destroy()
+        if editdiffvalue == 1:
+            EditDateEntryBox.destroy()
+            EditSearchBoxEnter.destroy()
+        elif editdiffvalue == 2:
+            print(str(diffvalue) + " is set")
+            EditGoodsEntryBox.destroy()
+            EditSearchBoxEnter.destroy()
+        elif editdiffvalue == 3:
+            typebox.destroy()
+            amtinputEdit.destroy()
+            EditSearchBoxEnter.destroy()
+        elif editdiffvalue == 4:
+            EditBranchEntryBox.destroy()
+            EditSearchBoxEnter.destroy()
+        elif editdiffvalue == 5:
+            PartyToEntryBox.destroy()
+            PartyForEntryBox.destroy()
+            EditSearchBoxEnter.destroy()
+        if ErrorBooleanEdit==True or viewederroredit >0:
+                ErrorEdit.destroy()
+                viewederroredit = 0
+                print("error is destroyed" + str(viewederroredit))
+    else:
+        TrueDeleter(valuereader)
 
                     
 
@@ -721,7 +784,7 @@ def confirmyourchoiceForEdit(choice, EditSearchBoxEnter): #CONFIRMS THE CHOICE
 
 
 def EdittingTheItems():
-    global addbuttonrequestchecker, amountedit, ErrorBooleanEdit, ErrorEdit, viewederroredit
+    global editbuttonrequestchecker, amountedit, ErrorBooleanEdit, ErrorEdit, viewederroredit
     TransactorFrom = TransactionIDEdit.get()
 
     if TransactorFrom != "": #if the transactor to and transactor from is NOT empty, then it'll post as true.
@@ -761,7 +824,7 @@ def EdittingTheItems():
             ErrorEdit.destroy()
             viewederroredit=0
             ErrorBooleanEdit = False
-        addbuttonrequestchecker = False
+        
         
     else: #prints an error
         if viewederroredit == 0 and not viewederroredit > 1:
@@ -773,15 +836,25 @@ def EdittingTheItems():
             print(viewederroredit)
          
 #DELETE FUNCTION==================================================================================
-def searchDeleteButtonFunction(OutputEditContent):
-        global deleteinputbutton, TransactionIDDelete, vieweditemdeleteflag, deleteinputbutton,deletebuttonrequestchecker
-        print('viewed item delete: ' + str(vieweditemdeleteflag))
+def searchDeleteButtonFunction(OutputEditContent,valuereader):
+        global deleteinputbutton, TransactionIDDelete, vieweditemdeleteflag, deleteinputbutton,editbuttonrequestchecker
+        print('viewed delete: ' + str(vieweditemdeleteflag))
         if deletebuttonrequestchecker == True and vieweditemdeleteflag == 1:
             TransactionIDDelete = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="enter Transaction ID to delete", width=390, height = 25)
             TransactionIDDelete.place(x=5,y=25)
         
             deleteinputbutton = CTkButton(OutputEditContent, text = "Delete", command = lambda: DeleteTheItems(TransactionIDDelete, deleteinputbutton), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
             deleteinputbutton.place (x=295, y = 82)
+        elif vieweditemdeleteflag > 1 or (vieweditemeditflag >= 1 or vieweditemaddflag >=1):
+            print("viewed the delete, deleting delete. :" + str(vieweditemdeleteflag))
+            vieweditemdeleteflag = 0
+            if TransactionIDDelete.winfo_exists():
+                TransactionIDDelete.destroy()
+                deleteinputbutton.destroy()
+        else:
+            TrueDeleter(valuereader)
+            
+            
 
 def DeleteTheItems(TransactionIDDelete, deleteinputbutton):
     global deletebuttonrequestchecker
@@ -790,7 +863,7 @@ def DeleteTheItems(TransactionIDDelete, deleteinputbutton):
         print("Item is deleted. Transaction =" + str(ItemToDelete))
         TransactionIDDelete.destroy()
         deleteinputbutton.destroy()
-        deletebuttonrequestchecker = False
+        editbuttonrequestchecker = False
         
     else:
         print("Please enter correct field properly.")
