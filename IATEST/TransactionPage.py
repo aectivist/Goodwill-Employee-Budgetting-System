@@ -157,7 +157,11 @@ def transactionpage(page): #TO BE UPDATED
     
 vieweditemaddflag = 0
 vieweditemeditflag = 0
+vieweditemdeleteflag = 0
+
 viewederror = 0
+viewederroredit = 0
+
 ErrorBoolean = False
 ErrorBooleanEdit = False
 
@@ -166,7 +170,7 @@ editbuttonrequestchecker = False
 deletebuttonrequestchecker = False
    
 def outputContentGivenButtons(OutputEditContent, OutputTableContent, value): 
-    global addbuttonrequestchecker, editbuttonrequestchecker, deletebuttonrequestchecker,vieweditemaddflag , vieweditemeditflag
+    global addbuttonrequestchecker, editbuttonrequestchecker, deletebuttonrequestchecker,vieweditemaddflag , vieweditemeditflag, vieweditemdeleteflag
     if value == 1:
         vieweditemaddflag = vieweditemaddflag+1
         addbuttonrequestchecker = not addbuttonrequestchecker
@@ -180,49 +184,36 @@ def outputContentGivenButtons(OutputEditContent, OutputTableContent, value):
         deletebuttonrequestchecker = False
         searchEditButtonFunction(OutputEditContent,OutputTableContent)
     elif value == 3:
+        vieweditemdeleteflag = vieweditemdeleteflag + 1
         deletebuttonrequestchecker = not deletebuttonrequestchecker
         editbuttonrequestchecker = False
         addbuttonrequestchecker = False
-    TrueDeleter(addbuttonrequestchecker, editbuttonrequestchecker, value)
+        searchDeleteButtonFunction(OutputEditContent)
+        
+    if addbuttonrequestchecker == True:
+        DeleteEditPrompt(value)
+        DeleteDeletePrompt(value)
+    elif editbuttonrequestchecker == True:
+        DeleteAddPrompt(value)
+        DeleteDeletePrompt(value)
+        
+    elif deletebuttonrequestchecker == True:
+        DeleteAddPrompt(value)
+        DeleteEditPrompt(value)
     
     
-    searchDeleteButtonFunction(OutputEditContent,OutputTableContent, value)
-
-def TrueDeleter(addreqchecker, editreqchecker, value):
-    global vieweditemaddflag, vieweditemeditflag,ErrorBooleanEdit, ErrorBoolean, Error, ErrorEdit, viewederror
-    print("viewed deleter")
-    if addreqchecker == False or vieweditemaddflag >=2 or value != 1:
-        print("add is now false")
-        vieweditemaddflag = 0
-        TransactionNameBoxFromAdd.destroy()
-        TransactionNameBoxTo.destroy()
-        combobox.destroy()
-        addinputbutton.destroy()
-        if diffvalue == 1:
-            AddDateEntryBox.destroy()
-            AddSearchBoxEnter.destroy()
-        elif diffvalue == 2:
-            AddGoodsEntryBox.destroy()
-            AddSearchBoxEnter.destroy()
-        elif diffvalue == 3:
-            typebox.destroy()
-            amtinput.destroy()
-            AddSearchBoxEnter.destroy()
-        elif diffvalue == 4:
-            AddBranchEntryBox.destroy()
-            AddSearchBoxEnter.destroy()
-        if ErrorBoolean==True or viewederror >0:
-            print (viewederror)
-            Error.destroy()
-            print("error is destroyed" + str(viewederror))
-                
-            ErrorBoolean = False
-    if editreqchecker == False or vieweditemeditflag >=2 or value != 2:
+        
+def DeleteEditPrompt(value):
+    global vieweditemeditflag,ErrorBooleanEdit,ErrorEdit,viewederroredit
+    if vieweditemeditflag >=2 or value != 2:
         print('edit is now false')
         vieweditemeditflag =0
-        TransactionIDEdit.destroy()
-        comboboxedit.destroy()
-        editinputbutton.destroy()
+        if TransactionIDEdit.winfo_exists():
+            TransactionIDEdit.destroy()
+        if comboboxedit.winfo_exists():
+            comboboxedit.destroy()
+        if editinputbutton.winfo_exists():
+            editinputbutton.destroy()
         if editdiffvalue == 1:
             EditDateEntryBox.destroy()
             EditSearchBoxEnter.destroy()
@@ -241,15 +232,59 @@ def TrueDeleter(addreqchecker, editreqchecker, value):
             PartyToEntryBox.destroy()
             PartyForEntryBox.destroy()
             EditSearchBoxEnter.destroy()
-        if ErrorBooleanEdit==True or viewederror >0:
+        if ErrorBooleanEdit==True or viewederroredit >0:
                 ErrorEdit.destroy()
-                print("error is destroyed" + str(viewederror))
+                viewederroredit = 0
+                print("error is destroyed" + str(viewederroredit))
+                
+def DeleteAddPrompt(value):
+    global vieweditemaddflag, ErrorBoolean, Error , viewederror
+    print("viewed deleter")
+    if vieweditemaddflag >=2 or value != 1:
+        print("add is now false")
+        vieweditemaddflag = 0
+        if TransactionNameBoxFromAdd.winfo_exists():
+            TransactionNameBoxFromAdd.destroy()
+        if TransactionNameBoxTo.winfo_exists():
+            TransactionNameBoxTo.destroy()
+        if combobox.winfo_exists():
+            combobox.destroy()
+        if addinputbutton.winfo_exists():
+            addinputbutton.destroy()
+        if diffvalue == 1:
+            AddDateEntryBox.destroy()
+            AddSearchBoxEnter.destroy()
+        elif diffvalue == 2:
+            AddGoodsEntryBox.destroy()
+            AddSearchBoxEnter.destroy()
+        elif diffvalue == 3:
+            typebox.destroy()
+            amtinput.destroy()
+            AddSearchBoxEnter.destroy()
+        elif diffvalue == 4:
+            AddBranchEntryBox.destroy()
+            AddSearchBoxEnter.destroy()
+        if ErrorBoolean==True or viewederror >0:
+            print (viewederror)
+            Error.destroy()
+            print("error is destroyed" + str(viewederror))
+            viewederror = viewederror - 1
+                
+            ErrorBoolean = False
+    
+def DeleteDeletePrompt(value):
+    global deleteinputbutton,vieweditemdeleteflag
+    if vieweditemdeleteflag >= 2 or value != 3:
+        vieweditemdeleteflag = 0
+        print("delete is now false.")
+        if TransactionIDDelete.winfo_exists():
+            TransactionIDDelete.destroy()
+            deleteinputbutton.destroy()
                 
                 
 
 #ADD FUNCTION =======================================================================
 def searchAddButtonFunction(OutputEditContent):
-    
         global diffvalue,AddSearchBoxEnter, vieweditemaddflag, enteronceforcombo, combobox, addinputbutton, InputDateFlag, InputGoodsFlag, InputTypeFlag, InputBranchFlag, TransactorFrom, TransactorTo, TransactionNameBoxFromAdd, TransactionNameBoxTo, DateHolder, GoodsHolder, BranchHolder, TypeHolder, TypeChecker, amountholder, typewaschecked, TransactionNameForFlag, TransactionNameToFlag, enteronce
         print('viewed item add: ' + str(vieweditemaddflag))
         if addbuttonrequestchecker == True and vieweditemaddflag == 1:
@@ -367,7 +402,7 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
     
     print ("diffvalue: " + str(diffvalue))
      
-    if BranchHolder or DateHolder or GoodsHolder or amountholder == "":
+    if BranchHolder == "" or DateHolder == "" or GoodsHolder == "" or amountholder == "":
         if DateHolder ==""and diffvalue == 1:
             AddDateEntryBox.delete(0, END)
             AddDateEntryBox.configure(placeholder_text="Date of Transaction")
@@ -437,7 +472,8 @@ def AddingTheItems():
         TransactionNameForFlag = True
         TransactionNameToFlag = True
     print ("Name= " + str(InputDateFlag) + ", Goods= " + str(InputGoodsFlag) + ", Type= " + str(InputTypeFlag) + ", Branch= " + str(InputBranchFlag)) 
-    if InputDateFlag and InputGoodsFlag and InputTypeFlag and InputBranchFlag and  TransactionNameToFlag and TransactionNameForFlag == True and amountholder.isnumeric(): #CHECKS IF ALL ARE TRUE AND CORRECTLY INPUTTED!!
+    if (InputDateFlag == True and InputGoodsFlag== True and InputTypeFlag == True and InputBranchFlag == True and 
+    TransactionNameToFlag == True and TransactionNameForFlag == True and amountholder.isnumeric()): #CHECKS IF ALL ARE TRUE AND CORRECTLY INPUTTED!!
         print("Sucessfully Submitted.")
         print("Transactor From: " + TransactorFrom)
         print("Transactor To: " + TransactorTo)
@@ -457,10 +493,10 @@ def AddingTheItems():
         AddGoodsEntryBox.destroy()
         typebox.destroy()
         amtinput.destroy()
-
-        if ErrorBoolean==True and viewederror >= 1:
+ 
+        if ErrorBoolean==True:
             Error.destroy()
-            viewederror=viewederror-1
+            viewederror=0
             ErrorBoolean = False
             
         addbuttonrequestchecker = False
@@ -470,8 +506,7 @@ def AddingTheItems():
             ErrorBoolean = True
             Error = CTkLabel(OutputEditContent, text="Please Input ALL entries correctly.", text_color="red", height=13)
             Error.place(x=200, y=3)
-            viewederror = viewederror + 1
-        
+            viewederror = 1
 
         
 
@@ -517,7 +552,7 @@ def searchEditButtonFunction(OutputEditContent,OutputTableContent):
         comboboxedit.place(x=5, y = 53)
         comboboxedit.configure(state="readonly")
 
-        editinputbutton = CTkButton(OutputEditContent, text = "Add", command = lambda: EdittingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
+        editinputbutton = CTkButton(OutputEditContent, text = "Edit", command = lambda: EdittingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
         editinputbutton.place (x=295, y = 82)
         
 
@@ -608,7 +643,7 @@ def callbackedit(choice): #COMBO BOX FUNCTIONALITIES
         typewaschecked = False
     
         
-    if BranchHolder or DateHolder or GoodsHolder or amountholder or PartyToHolder or PartyForHolder == "":
+    if BranchHolder == "" or DateHolder == "" or GoodsHolder == "" or amountholder == "" or PartyForHolder == "" or PartyToHolder == "":
         if DateHolder ==""and editdiffvalue == 1:
             EditDateEntryBox.delete(0, END)
             EditDateEntryBox.configure(placeholder_text="Date of Transaction")
@@ -686,7 +721,7 @@ def confirmyourchoiceForEdit(choice, EditSearchBoxEnter): #CONFIRMS THE CHOICE
 
 
 def EdittingTheItems():
-    global addbuttonrequestchecker, amountedit, ErrorBooleanEdit, ErrorEdit, viewederror
+    global addbuttonrequestchecker, amountedit, ErrorBooleanEdit, ErrorEdit, viewederroredit
     TransactorFrom = TransactionIDEdit.get()
 
     if TransactorFrom != "": #if the transactor to and transactor from is NOT empty, then it'll post as true.
@@ -724,32 +759,48 @@ def EdittingTheItems():
 
         if ErrorBooleanEdit==True:
             ErrorEdit.destroy()
-            viewederror=viewederror-1
+            viewederroredit=0
             ErrorBooleanEdit = False
         addbuttonrequestchecker = False
         
     else: #prints an error
-        if viewederror == 0 and not viewederror > 1:
+        if viewederroredit == 0 and not viewederroredit > 1:
             print("Please Input an entry.")
             ErrorBooleanEdit = True
             ErrorEdit = CTkLabel(OutputEditContent, text="Please Input an entry.", text_color="red", height=13)
             ErrorEdit.place(x=200, y=3)
-            viewederror = viewederror + 1
-            print(viewederror)
+            viewederroredit = viewederroredit + 1
+            print(viewederroredit)
          
 #DELETE FUNCTION==================================================================================
-def searchDeleteButtonFunction(OutputEditContent,OutputTableContent):
-        if deletebuttonrequestchecker == True:
-            print("gay...")
-        else:
-            print("him!")
+def searchDeleteButtonFunction(OutputEditContent):
+        global deleteinputbutton, TransactionIDDelete, vieweditemdeleteflag, deleteinputbutton,deletebuttonrequestchecker
+        print('viewed item delete: ' + str(vieweditemdeleteflag))
+        if deletebuttonrequestchecker == True and vieweditemdeleteflag == 1:
+            TransactionIDDelete = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="enter Transaction ID to delete", width=390, height = 25)
+            TransactionIDDelete.place(x=5,y=25)
+        
+            deleteinputbutton = CTkButton(OutputEditContent, text = "Delete", command = lambda: DeleteTheItems(TransactionIDDelete, deleteinputbutton), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
+            deleteinputbutton.place (x=295, y = 82)
+
+def DeleteTheItems(TransactionIDDelete, deleteinputbutton):
+    global deletebuttonrequestchecker
+    ItemToDelete = TransactionIDDelete.get()
+    if ItemToDelete != "":
+        print("Item is deleted. Transaction =" + str(ItemToDelete))
+        TransactionIDDelete.destroy()
+        deleteinputbutton.destroy()
+        deletebuttonrequestchecker = False
+        
+    else:
+        print("Please enter correct field properly.")
+        
 
 
 
 
 
-
-            
+#FOR BOOLEAN
 def boolfortypecheck(choice):
     global TypeChecker, InputTypeFlag
     if choice == "Item":
