@@ -200,12 +200,13 @@ def outputContentGivenButtons(OutputEditContent, value):
     
 
 def clearcurrentmode ():
-    global TransAddExist, TransEditExist, TransDeleteExist, TransactionNameBoxFrom, TransactionNameBoxTo, TransactionIDEdit, Transaction_inputbutton, TransactionIDDelete
+    global TransAddExist, TransEditExist, TransDeleteExist, TransactionNameBoxFrom, TransactionNameBoxTo, TransactionIDEdit, Transaction_inputbutton, TransactionIDDelete, Transaction_combobox
 
     # Destroy Add mode widgets if they exist
     if TransAddExist:
         TransactionNameBoxFrom.destroy()
         TransactionNameBoxTo.destroy()
+        Transaction_combobox.destroy()
         TransAddExist = False
 
     # Destroy Edit mode widgets if they exist
@@ -213,8 +214,10 @@ def clearcurrentmode ():
         TransactionIDEdit.destroy()
         Transaction_combobox.destroy()
         TransEditExist = False
+    
 
-    if TransDeleteExist:    
+
+    if TransDeleteExist:
         TransactionIDDelete.destroy()
         TransDeleteExist = False
 
@@ -230,7 +233,7 @@ def clearcurrentmode ():
 def addmodeui():
     vieweditemflag = 1
     
-    global TransAddExist, TransactionNameBoxFrom, TransactionNameBoxTo, Transaction_inputbutton
+    global TransAddExist, TransactionNameBoxFrom, TransactionNameBoxTo, Transaction_inputbutton, Transaction_combobox
     DateHolder=""
     GoodsHolder=""
     BranchHolder=""
@@ -251,13 +254,15 @@ def addmodeui():
     TransactionNameBoxTo = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction To", width=190, height=25)
     TransactionNameBoxTo.place(x=205, y=25)
 
-    Transaction_inputbutton = CTkButton(OutputEditContent, text="Add", corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1,hover_color='#e6e6e6', width=100, height=27,command=handleaddtrans())
-    Transaction_inputbutton.place(x=295, y=82)
     comboVal = StringVar(value="Select")
     Transaction_combobox = CTkComboBox(OutputEditContent, values=["Date", "Inventory ID", "Type", "Branch ID"], command=callback, variable=comboVal, height = 25, corner_radius=1, width=110)
     Transaction_combobox.set("Select")
     Transaction_combobox.place(x=5, y = 53)
     Transaction_combobox.configure(state="readonly")
+    
+    Transaction_inputbutton = CTkButton(OutputEditContent, text="Add", corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1,hover_color='#e6e6e6', width=100, height=27,command=handleaddtrans())
+    Transaction_inputbutton.place(x=295, y=82)
+    
 
     TransAddExist = True  # Mark Add mode as active
 
@@ -279,23 +284,18 @@ def editmodeui():
     Trans_TypeFlag=False
     Trans_BranchFlag=False
     # Create Edit-specific widgets
-    TransactionIDEdit = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000',
-                                 border_width=1, placeholder_text="Transaction ID", width=390, height=25)
+    TransactionIDEdit = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Transaction ID", width=390, height=25)
     TransactionIDEdit.place(x=5, y=25)
 
-    Transaction_combobox = CTkComboBox(OutputEditContent, values=["Date", "Inventory ID", "Type", "Branch ID"],
-                                       corner_radius=1, width=110, height=25)
-    Transaction_combobox.set("Select")
-    Transaction_combobox.place(x=5, y=53)
-    Transaction_combobox.configure(state="readonly")
-
-    Transaction_inputbutton = CTkButton(OutputEditContent, text="Edit", corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height=27, command=handleedittrans())
-    Transaction_inputbutton.place(x=295, y=82)
     comboVal = StringVar(value="Select")
     Transaction_combobox = CTkComboBox(OutputEditContent, values=["Date", "Inventory ID", "Type", "Branch ID"], command=callback, variable=comboVal, height = 25, corner_radius=1, width=110)
     Transaction_combobox.set("Select")
     Transaction_combobox.place(x=5, y = 53)
     Transaction_combobox.configure(state="readonly")
+
+    Transaction_inputbutton = CTkButton(OutputEditContent, text="Edit", corner_radius=0, font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height=27, command=handleedittrans())
+    Transaction_inputbutton.place(x=295, y=82)
+    
 
 
     TransEditExist = True  # Mark Edit mode as active
@@ -318,9 +318,7 @@ def DeleteTheItems(TransactionIDDelete, deleteinputbutton):
     ItemToDelete = TransactionIDDelete.get()
     if ItemToDelete != "":
         print("Item is deleted. Transaction =" + str(ItemToDelete))
-        TransactionIDDelete.destroy()
-        deleteinputbutton.destroy()
-        editbuttonrequestchecker = False
+        clearcurrentmode()
         
     else:
         print("Please enter correct field properly.")
