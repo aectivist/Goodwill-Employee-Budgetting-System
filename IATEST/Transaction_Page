@@ -321,6 +321,10 @@ def addmodeui():
     Trans_GoodsFlag=False
     Trans_TypeFlag=False
     Trans_BranchFlag=False
+    Trans_StatusFlag=False
+
+    global StatusChecker
+    StatusChecker=False
 
     global TypeChecker, typewaschecked
     TypeChecker = True #whether item or cash
@@ -669,7 +673,7 @@ def confirmyourchoice(choice, AddSearchBoxEnter): #CONFIRMS THE CHOICE
             Trans_GoodsFlag = True
             AddGoodsEntryBox.configure(state="readonly")
             
-        elif choice == "Branch ID" and AddBranchEntryBox.get() != "": #im the new yanderedev
+        elif choice == "Branch ID" and AddBranchEntryBox.get() != "": #im the new yanderedev lulz
             BranchHolder = AddBranchEntryBox.get()
             print (BranchHolder)
             Trans_BranchFlag = True
