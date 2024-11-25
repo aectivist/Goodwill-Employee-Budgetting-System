@@ -166,15 +166,17 @@ D_vieweditemflag = 0
 
 viewederror = 0
 
-ErrorBoolean = False
+ErrorBoolean = False #If error statement has already been set
 
 sucessful_transaction = False
 
 currentmode = ""
 
-TransAddExist = False
+TransAddExist = False #Allows us to know the existence
 TransEditExist = False
 TransDeleteExist = False
+
+TrueInventoryIDFlag = False #Checks for EDIT PANEL if the GOODS and TYPE are interdependent amongst each other. You can find it most notably on handleedittrans
 
 def outputContentGivenButtons(OutputEditContent, value): 
     global vieweditemflag, A_vieweditemflag, E_vieweditemflag, D_vieweditemflag, currentmode, mode
@@ -234,9 +236,11 @@ def clearcurrentmode ():
                 AddDateEntryBox.place_forget()
             elif diffvalue == 2:
                 AddGoodsEntryBox.place_forget()
+                inventorytypebox.place_forget()
             elif diffvalue == 3:
                 typebox.place_forget()
                 amtinput.place_forget()
+                statusbox.place_forget()
             elif diffvalue == 4:
                 AddBranchEntryBox.place_forget()
             if diffvalue > 0:
@@ -270,9 +274,11 @@ def clearcurrentmode ():
             elif diffvalue == 2:
                 print(str(diffvalue) + " is set")
                 EditGoodsEntryBox.place_forget()
+                inventorytypebox.place_forget()
             elif diffvalue == 3:
                 typebox.place_forget()
                 amtinputEdit.place_forget()
+                statusbox.place_forget()
             elif diffvalue == 4:
                 EditBranchEntryBox.place_forget()
             elif diffvalue == 5:
@@ -304,15 +310,17 @@ def addmodeui():
     vieweditemflag = 1
     
     global TransAddExist, TransactionNameBoxFrom, TransactionNameBoxTo, Transaction_inputbutton, Transaction_combobox, sucessful_transaction 
-    global DateHolder, GoodsHolder, BranchHolder, TypeHolder, AmountHolder, PartyToHolder, PartyForHolder, StatusHolder
+    global DateHolder, GoodsHolder, BranchHolder, TypeHolder, AmountHolder, PartyToHolder, PartyForHolder, StatusHolder, InvTypHolder,TransIDHolder
     DateHolder=""
     GoodsHolder=""
     BranchHolder=""
     TypeHolder="Item"
     AmountHolder = ""
-    StatusHolder = ""
+    StatusHolder = "Bought"
     PartyToHolder=""
     PartyForHolder=""
+    InvTypHolder=""
+
     sucessful_transaction = False
     
     #All Flags
@@ -321,10 +329,8 @@ def addmodeui():
     Trans_GoodsFlag=False
     Trans_TypeFlag=False
     Trans_BranchFlag=False
-    Trans_StatusFlag=False
 
-    global StatusChecker
-    StatusChecker=False
+   
 
     global TypeChecker, typewaschecked
     TypeChecker = True #whether item or cash
@@ -347,7 +353,7 @@ def addmodeui():
     TransactionNameBoxTo.place(x=205, y=25)
 
     comboVal = StringVar(value="Select")
-    Transaction_combobox = CTkComboBox(OutputEditContent, values=["Date", "Inventory ID", "Type", "Branch ID"], command=callback, variable=comboVal, height = 25, corner_radius=1, width=110)
+    Transaction_combobox = CTkComboBox(OutputEditContent, values=["Date", "Inventory Name", "Type", "Branch ID"], command=callback, variable=comboVal, height = 25, corner_radius=1, width=110)
     Transaction_combobox.set("Select")
     Transaction_combobox.place(x=5, y = 53)
     Transaction_combobox.configure(state="readonly")
@@ -362,7 +368,8 @@ def editmodeui():
     
     vieweditemflag = 1
     global TransEditExist, TransactionIDEdit, Transaction_combobox, Transaction_inputbutton, sucessful_transaction
-    global DateHolder, GoodsHolder, BranchHolder, TypeHolder, AmountHolder, PartyToHolder, PartyForHolder, StatusHolder
+    global DateHolder, GoodsHolder, BranchHolder, TypeHolder, AmountHolder, PartyToHolder, PartyForHolder, StatusHolder, InvTypHolder,TransIDHolder
+    TransIDHolder=""
     DateHolder=""
     GoodsHolder=""
     BranchHolder=""
@@ -370,7 +377,9 @@ def editmodeui():
     AmountHolder = ""
     PartyToHolder=""
     PartyForHolder=""
-    StatusHolder =""
+    StatusHolder ="Bought"
+    InvTypHolder=""
+
     sucessful_transaction = False
 
     #All Flags
@@ -381,6 +390,9 @@ def editmodeui():
     Trans_BranchFlag=False
     Trans_IDFlag = False
     Trans_PartyFlag = False
+    
+    global StatusChecker
+    StatusChecker=1 #Whether sold or bought ONLY IF the item is selected
     
     global TypeChecker, typewaschecked
     TypeChecker = True #whether item or cash
@@ -432,12 +444,20 @@ def handledeletetrans(TransactionIDDelete, deleteinputbutton):
         print("Please enter correct field properly.")
         
 def callback(choice): #COMBO BOX FUNCTIONALITIES
-    global enteronce, enteronceforcombo, diffvalue, typebox,  DateHolder, GoodsHolder, BranchHolder, TypeHolder, AmountHolder, typewaschecked
+    global enteronce, enteronceforcombo, inventorytypebox, diffvalue, typebox,  DateHolder, GoodsHolder,TransIDHolder, BranchHolder, TypeHolder, AmountHolder,InvTypHolder, typewaschecked
     enteronce = enteronce + 1
     enteronceforcombo = enteronceforcombo + 1
-    
+
+    global ErrorBoolean, Error, viewederror
+    try:
+            if ErrorBoolean==True:
+                Error.destroy()
+                viewederror=0
+                ErrorBoolean = False
+    except Exception as e:
+        print(f"Deletion Error not working. Error: {e}" )
     if mode == "add": #ADD============================COMBO
-        global AddDateEntryBox, AddGoodsEntryBox, AddBranchEntryBox, amtinput, AddSearchBoxEnter, ErrorBoolean, Error
+        global AddDateEntryBox, AddGoodsEntryBox, AddBranchEntryBox, amtinput, statusbox, AddSearchBoxEnter
     
         
         print (enteronce)
@@ -456,9 +476,11 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 AddDateEntryBox.place_forget()
             elif diffvalue == 2:
                 AddGoodsEntryBox.place_forget()
+                inventorytypebox.place_forget()
             elif diffvalue == 3:
                 typebox.place_forget()
                 amtinput.place_forget()
+                statusbox.place_forget()
             elif diffvalue == 4:
                 AddBranchEntryBox.place_forget()
 
@@ -474,13 +496,20 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 AddDateEntryBox.insert(0,DateHolder)
                 
                 
-            elif choice == "Inventory ID": #for Inventory
+            elif choice == "Inventory Name": #for Inventory
                 diffvalue = 2
                 AddGoodsEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Inventory Id", width=275, height = 25)
                 AddGoodsEntryBox.place(x=120, y = 53)
                 AddGoodsEntryBox.configure(state="normal")
                 AddGoodsEntryBox.insert(0,GoodsHolder)
-                
+
+                inventorytypeVal = StringVar(value="None")
+                inventorytypebox = CTkComboBox(OutputEditContent, values=["None", "Liability","Asset"], command=boolforinvtypcheck, variable=inventorytypeVal, height = 27, corner_radius=1, width=180) #whether none asset or liability 
+                inventorytypebox.place(x=5, y = 82)
+                inventorytypebox.set(InvTypHolder)
+                inventorytypebox.configure(state="readonly")
+
+
                 
             elif choice == "Type": #for TYPE
                 diffvalue = 3
@@ -489,12 +518,19 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 typebox = CTkComboBox(OutputEditContent, values=["Item", "Cash"], command=boolfortypecheck, variable=comboVal, height = 25, corner_radius=1, width=275) #whether item or cash 
                 typebox.place(x=120, y = 53)
                 
-                amtinput = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Enter Amount", width=110, height = 27)
+                amtinput = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Enter Amount", width=80, height = 27)
                 amtinput.place(x=5, y = 82)
+                amtinput.configure(state="normal")
                 amtinput.insert(0, AmountHolder)
 
-                typebox.set(TypeHolder)
-                typebox.configure(state="readonly")
+                if TypeChecker == True:
+                    comboStatusVal = StringVar(value="Bought")
+                    statusbox = CTkComboBox(OutputEditContent, values=["Bought", "Sold","Donation"], command=boolforstatuscheck, variable=comboStatusVal, height = 27, corner_radius=1, width=80) #whether item or cash 
+                    statusbox.place(x=95, y = 82)
+
+                    statusbox.set(StatusHolder)
+                    statusbox.configure(state="readonly")
+
                 
             elif choice == "Branch ID": #certain BRANCH
                 diffvalue = 4
@@ -502,9 +538,8 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 AddBranchEntryBox.place(x=120, y = 53)
                 AddBranchEntryBox.insert(0,BranchHolder)
 
-        if typewaschecked == True and choice != "Type": 
-            amtinput.destroy()
-            typewaschecked = False
+            
+        
         
         print ("diffvalue: " + str(diffvalue))
         
@@ -514,10 +549,11 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 AddDateEntryBox.configure(placeholder_text="Date of Transaction")
             elif GoodsHolder ==""and diffvalue == 2:
                 AddGoodsEntryBox.delete(0, END)
-                AddGoodsEntryBox.configure(placeholder_text="Inventory Id")
+                AddGoodsEntryBox.configure(placeholder_text="Inventory Name")
             elif TypeHolder == ""and diffvalue == 3:
                 typebox.delete(0, END)
                 amtinput.delete(0, END)
+                statusbox.delete(0, END)
                 amtinput.configure(placeholder_text="Enter Amount")
             elif BranchHolder == "" and diffvalue == 4:
                 AddBranchEntryBox.delete(0, END)
@@ -530,9 +566,11 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 AddDateEntryBox.insert(0,DateHolder)
             elif GoodsHolder !=""and diffvalue == 2:
                 AddGoodsEntryBox.insert(0, GoodsHolder)
+                
             elif TypeHolder != "" and diffvalue==3:
                 typebox.insert(0, TypeHolder)
                 amtinput.insert(0, AmountHolder)
+                statusbox.insert(0,StatusHolder)
     else: #EDIT============================COMBO
         global PartyForEntryBox, PartyToEntryBox, EditDateEntryBox, EditGoodsEntryBox, EditBranchEntryBox, amtinputEdit, PartyForHolder, PartyToHolder,  EditSearchBoxEnter
         
@@ -553,9 +591,11 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 EditDateEntryBox.destroy()
             elif diffvalue == 2:
                 EditGoodsEntryBox.destroy()
+                inventorytypebox.destroy()
             elif diffvalue == 3:
                 typebox.destroy()
                 amtinputEdit.destroy()
+                statusbox.destroy()
             elif diffvalue == 4:
                 EditBranchEntryBox.destroy()
             elif diffvalue == 5:
@@ -581,6 +621,11 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 EditGoodsEntryBox.configure(state="normal")
                 EditGoodsEntryBox.insert(0,GoodsHolder)
                 
+                inventorytypeVal = StringVar(value="None")
+                inventorytypebox = CTkComboBox(OutputEditContent, values=["None", "Liability","Asset"], command=boolforinvtypcheck, variable=inventorytypeVal, height = 27, corner_radius=1, width=180) #whether none asset or liability 
+                inventorytypebox.place(x=5, y = 82)
+                inventorytypebox.set(InvTypHolder)
+                inventorytypebox.configure(state="readonly")
                 
             elif choice == "Type": #for TYPE
                 diffvalue = 3
@@ -588,12 +633,23 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 typebox = CTkComboBox(OutputEditContent, values=["Item", "Cash"], command=boolfortypecheck, variable=comboVal, height = 25, corner_radius=1, width=275)
                 typebox.place(x=120, y = 53)
                 
-                amtinputEdit = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Enter Amount", width=120, height = 27)
+                if TypeChecker == True:
+                    comboStatusVal = StringVar(value="Bought")
+                    statusbox = CTkComboBox(OutputEditContent, values=["Bought", "Sold","Donation"], command=boolforstatuscheck, variable=comboStatusVal, height = 27, corner_radius=1, width=80) #whether item or cash 
+                    statusbox.place(x=95, y = 82)
+
+                    statusbox.set(StatusHolder)
+                    statusbox.configure(state="readonly")
+
+                amtinputEdit = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Enter Amount", width=80, height = 27)
                 amtinputEdit.place(x=5, y = 82)
                 amtinputEdit.insert(0, AmountHolder)
 
+
                 typebox.set(TypeHolder)
                 typebox.configure(state="readonly")
+                
+                statusbox.configure(state="readonly")
                 
             elif choice == "Branch ID": #certain BRANCH
                 diffvalue = 4
@@ -613,6 +669,7 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
             amtinputEdit.destroy()
             typewaschecked = False
         
+        
             
         if BranchHolder == "" or DateHolder == "" or GoodsHolder == "" or AmountHolder == "" or PartyForHolder == "" or PartyToHolder == "": #if blank is empty, then delete items in it
             if DateHolder ==""and diffvalue == 1:
@@ -623,7 +680,7 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 EditGoodsEntryBox.configure(placeholder_text="Inventory Id")
             elif TypeHolder == ""and diffvalue == 3:
                 amtinputEdit.delete(0, END)
-                amtinputEdit.configure(placeholder_text="Enter Amount")
+                amtinputEdit.configure(placeholder_text="Amount")
             elif BranchHolder == "" and diffvalue == 4:
                 EditBranchEntryBox.delete(0, END)
                 EditBranchEntryBox.configure(placeholder_text="Branch Id")
@@ -640,9 +697,11 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 EditDateEntryBox.insert(0,DateHolder)
             elif GoodsHolder !=""and diffvalue == 2:
                 EditGoodsEntryBox.insert(0, GoodsHolder)
+                inventorytypebox.insert(0, InvTypHolder)
             elif TypeHolder != "" and diffvalue==3:
                 typebox.insert(0, TypeHolder)
                 amtinputEdit.insert(0, AmountHolder)
+                statusbox.insert(0, StatusHolder)
             elif BranchHolder != "" and diffvalue==4: 
                 EditBranchEntryBox.insert(0,BranchHolder)
             elif PartyToHolder != "" and diffvalue == 5:
@@ -656,8 +715,7 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
 
 
 def confirmyourchoice(choice, AddSearchBoxEnter): #CONFIRMS THE CHOICE
-
-    global DateHolder, GoodsHolder, BranchHolder, TypeChecker, TypeHolder, typebox, AmountHolder, PartyForHolder, PartyToHolder, Trans_PartyFlag, StatusHolder
+    global DateHolder, GoodsHolder, BranchHolder, TypeChecker, TypeHolder, typebox, AmountHolder,TransIDHolder, PartyForHolder,InvTypHolder, PartyToHolder, Trans_PartyFlag, StatusHolder, StatusChecker
     global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag, Trans_IDFlag
     if mode == "add":
         AddSearchBoxEnter.destroy()
@@ -667,7 +725,7 @@ def confirmyourchoice(choice, AddSearchBoxEnter): #CONFIRMS THE CHOICE
             Trans_DateFlag = True
             AddDateEntryBox.configure(state="readonly")
             
-        elif choice == "Inventory ID" and AddGoodsEntryBox.get() != "":
+        elif choice == "Inventory Name" and AddGoodsEntryBox.get() != "":
             GoodsHolder = AddGoodsEntryBox.get()
             print (GoodsHolder)
             Trans_GoodsFlag = True
@@ -685,9 +743,21 @@ def confirmyourchoice(choice, AddSearchBoxEnter): #CONFIRMS THE CHOICE
             else:
                 TypeHolder = "Cash"
             print (TypeHolder)
+
+            if StatusChecker == 1: #if its 1 then its bought, else its sold or donated
+                StatusHolder = "Bought"
+            elif StatusChecker == 2:
+                StatusHolder = "Sold"
+            elif StatusChecker == 3:
+                StatusHolder = "Donation"
+            print(StatusHolder)
+            
             Trans_TypeFlag = True
             AmountHolder = amtinput.get()
             amtinput.configure(state="readonly")
+            
+
+
     elif mode=="edit": #CONFIRM EDIT CHOICE
         EditSearchBoxEnter.destroy()
         if choice == "Date" and EditDateEntryBox.get() != "": #DATE
@@ -714,9 +784,18 @@ def confirmyourchoice(choice, AddSearchBoxEnter): #CONFIRMS THE CHOICE
             else:
                 TypeHolder = "Cash"
             print (TypeHolder)
+
+            if StatusChecker == 1: #if its 1 then its bought, else its sold or donated
+                StatusHolder = "Bought"
+            elif StatusChecker == 2:
+                StatusHolder = "Sold"
+            elif StatusChecker == 3:
+                StatusHolder = "Donation"
+            print(StatusHolder)
             Trans_TypeFlag = True #checks if confirmed then flag is true
             AmountHolder = amtinputEdit.get()
             amtinputEdit.configure(state="readonly")
+            
         elif choice == "Parties": #PARTIES
            if PartyForEntryBox.get != "" and PartyToEntryBox.get != "":
                 PartyForHolder = PartyForEntryBox.get() #gets and puts
@@ -746,33 +825,43 @@ def handleaddtrans():
         TransactionNameToFlag = True
     print ("Name= " + str(Trans_DateFlag) + ", Goods= " + str(Trans_GoodsFlag) + ", Type= " + str(Trans_TypeFlag) + ", Branch= " + str(Trans_BranchFlag)) 
 
-    if (Trans_DateFlag == True and Trans_GoodsFlag== True and Trans_TypeFlag == True and Trans_BranchFlag == True and TransactionNameToFlag == True and TransactionNameForFlag == True and AmountHolder.isnumeric()): #CHECKS IF ALL ARE TRUE AND CORRECTLY INPUTTED!!
-        print("Sucessfully Submitted.")
-        print("Transactor From: " + TransactorFrom)
-        print("Transactor To: " + TransactorTo)
-        print("Date: " + DateHolder)
-        print("Goods: " + GoodsHolder)
-        print("Branch ID: " + BranchHolder) 
-        print("Type: " + TypeHolder)
-        print("amount of type: " + AmountHolder)
-        
-        TransactionNameBoxTo.destroy()
-        TransactionNameBoxFrom.destroy()
-        Transaction_combobox.destroy()
-        Transaction_inputbutton.destroy()
-        
-        AddBranchEntryBox.destroy()
-        AddDateEntryBox.destroy()
-        AddGoodsEntryBox.destroy()
-        typebox.destroy()
-        amtinput.destroy()
- 
-        if ErrorBoolean==True:
-            Error.destroy()
-            viewederror=0
-            ErrorBoolean = False
+    if diffvalue>0:
+        if (Trans_DateFlag == True and Trans_GoodsFlag== True and Trans_TypeFlag == True and Trans_BranchFlag == True and TransactionNameToFlag == True and TransactionNameForFlag == True and AmountHolder.isnumeric()): #CHECKS IF ALL ARE TRUE AND CORRECTLY INPUTTED!!
+            print("Sucessfully Submitted.")
+            print("Transactor From: " + TransactorFrom)
+            print("Transactor To: " + TransactorTo)
+            print("Date: " + DateHolder)
+            print("Goods: " + GoodsHolder)
+            print("Branch ID: " + BranchHolder) 
+            print("Type: " + TypeHolder)
+            print("amount of type: " + AmountHolder)
+            print("good status: " + StatusHolder)
             
-
+            TransactionNameBoxTo.destroy()
+            TransactionNameBoxFrom.destroy()
+            Transaction_combobox.destroy()
+            Transaction_inputbutton.destroy()
+            
+            AddBranchEntryBox.destroy()
+            AddDateEntryBox.destroy()
+            AddGoodsEntryBox.destroy()
+            inventorytypebox.destroy()
+            
+            typebox.destroy()
+            amtinput.destroy()
+            statusbox.destroy()
+    
+            if ErrorBoolean==True:
+                Error.destroy()
+                viewederror=0
+                ErrorBoolean = False
+        else: #prints an error
+            if viewederror == 0 and not viewederror > 1:
+                print("Please Input ALL entries.")
+                ErrorBoolean = True
+                Error = CTkLabel(OutputEditContent, text="Please Input ALL entries correctly.", text_color="red", height=13)
+                Error.place(x=200, y=3)
+                viewederror = 1
     else: #prints an error
         if viewederror == 0 and not viewederror > 1:
             print("Please Input ALL entries.")
@@ -783,27 +872,35 @@ def handleaddtrans():
 
 def handleedittrans():
     global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag, Trans_IDFlag, Trans_PartyFlag, amountedit, diffvalue
-    global amountedit, ErrorBoolean, Error, viewederror, sucessful_transaction,Transaction_inputbutton
-    TransactorFrom = TransactionIDEdit.get()
-
+    global amountedit, ErrorBoolean, Error, viewederror, sucessful_transaction,Transaction_inputbutton, TrueInventoryIDFlag 
+    
+    
     if TransactionIDEdit.get() != "": #if the transactor to and transactor from is NOT empty, then it'll post as true.
         Trans_IDFlag = True
+        TransIDHolder = TransactionIDEdit.get()
     
     if diffvalue == 3:
         if AmountHolder.isnumeric() and Trans_TypeFlag == True:
             amountedit = True
 
-    print ("Date= " + str(Trans_DateFlag) + ", Inventory= " + str(Trans_GoodsFlag) + ", Type= " + str(Trans_TypeFlag) + ", Branch= " + str(Trans_BranchFlag)) 
+    if Trans_GoodsFlag == True and Trans_TypeFlag == True:
+        TrueInventoryIDFlag=True
+
+    if PartyForHolder !="" and PartyToHolder != "":
+        Trans_PartyFlag =True
+
+    print ("Date= " + str(Trans_DateFlag) + ", Inventory= " + str(TrueInventoryIDFlag) + ", Type= " + str(Trans_TypeFlag) + ", Branch= " + str(Trans_BranchFlag)+ ", Party= " + str(Trans_PartyFlag))
     
     if diffvalue > 0:
-        if (Trans_DateFlag or Trans_GoodsFlag or Trans_TypeFlag or Trans_BranchFlag or amountedit) and Trans_IDFlag:  # CHECKS IF ALL ARE TRUE AND CORRECTLY INPUTTED!!
+        if (Trans_DateFlag or TrueInventoryIDFlag or Trans_BranchFlag or Trans_PartyFlag) and Trans_IDFlag:  # CHECKS IF ALL ARE TRUE AND CORRECTLY INPUTTED!!
             print("Successfully Submitted.")
-            print("TransactionID : " + TransactorFrom)
+            print("TransactionID : " + TransIDHolder)
             print("Date: " + DateHolder)
             print("Goods: " + GoodsHolder)
             print("Branch ID: " + BranchHolder) 
             print("Type: " + TypeHolder)
             print("Amount of type: " + AmountHolder)
+            print("good status: " + StatusHolder)
             if ErrorBoolean==True:
                 Error.destroy()
                 viewederror=0
@@ -826,9 +923,11 @@ def handleedittrans():
                 elif diffvalue == 2:
                     print(str(diffvalue) + " is set")
                     EditGoodsEntryBox.place_forget()
+                    inventorytypebox.place_forget()
                 elif diffvalue == 3:
                     typebox.place_forget()
                     amtinputEdit.place_forget()
+                    statusbox.place_forget()
                 elif diffvalue == 4:
                     EditBranchEntryBox.place_forget()
                 elif diffvalue == 5:
@@ -840,16 +939,25 @@ def handleedittrans():
                     Error.destroy()
             except Exception as e:
                 print("ERROR")
+                
+        else: #prints an error
+            if viewederror == 0 and not viewederror > 1:
+                print("Please Input the correct entries.")
+                ErrorBoolean = True
+                Error = CTkLabel(OutputEditContent, text="Please Input the correct entries.", text_color="red", height=13)
+                Error.place(x=200, y=3) #Negl atp just say in doccumentation that it'll only be good if either PARTY or INVENTORY GOOD is accomplished and editted alongside Party ID.
+                viewederror = 1
+                print(viewederror)
             
 
             
-            
     else: #prints an error
+            if viewederror == 0 and not viewederror > 1:
                 print("Please Input an entry.")
                 ErrorBoolean = True
                 Error = CTkLabel(OutputEditContent, text="Please Input an entry.", text_color="red", height=13)
                 Error.place(x=200, y=3)
-                viewederror = viewederror + 1
+                viewederror = 1
                 print(viewederror)
 
         
@@ -857,17 +965,47 @@ def handleedittrans():
 
 
 
-#FOR BOOLEAN
+#FOR CHECKING WHETHER DESIRED TRANSACTION ITEM IS CASH OR AN ITEM
 def boolfortypecheck(choice):
-    global TypeChecker, Trans_TypeFlag
+    global TypeChecker, Trans_TypeFlag, statusbox
     if choice == "Item":
         TypeChecker=True
         print("Item")
     elif choice == "Cash":
         TypeChecker=False
         print("Cash")
-
+    
+    if TypeChecker == False:
+        statusbox.destroy()
+    else:
+        comboStatusVal = StringVar(value="Bought")
+        statusbox = CTkComboBox(OutputEditContent, values=["Bought", "Sold","Donation"], command=boolforstatuscheck, variable=comboStatusVal, height = 27, corner_radius=1, width=80) #whether item or cash 
+        statusbox.place(x=95, y = 82)
+        statusbox.place(x=95, y = 82)
         
+
+def boolforstatuscheck(choice):
+    global StatusChecker
+    
+    print (str(choice) + "Status")
+    if choice == "Bought":
+        StatusChecker = 1
+    elif choice == "Sold":
+        StatusChecker = 2
+    elif choice == "Donation":
+        StatusChecker = 3
+    print (str(StatusChecker) + "Status")
+
+def boolforinvtypcheck(choice):
+    global InvTypHolder
+    print (str(choice) + "Type")
+    if choice == "None":
+        InvTypHolder=""
+    elif choice == "Asset":
+        InvTypHolder = str(choice)
+    elif choice == "Liability":
+        InvTypHolder = str(choice)
+    print (str(InvTypHolder) + "Type")
 
 
 
