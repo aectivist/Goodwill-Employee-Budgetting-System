@@ -2,8 +2,8 @@ from customtkinter import *
 import psycopg2
 #https://github.com/Akascape/CTkTable
 
-
-from math import *
+import math
+from math import * #i'd like to complain about this, for some reason it won't load even tho it'scalled so please remember if ever trig or any math func is not working.
 import re
 import pygame
 import random
