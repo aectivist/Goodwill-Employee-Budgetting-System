@@ -327,37 +327,6 @@ def searchAddButtonFunction(OutputEditContent, valuereader):
 
             addinputbutton = CTkButton(OutputEditContent, text = "Add", command = lambda: AddingTheItems(), corner_radius=0,font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height = 27)
             addinputbutton.place (x=295, y = 82)
-        elif vieweditemaddflag > 1 or (vieweditemeditflag >= 1 or vieweditemdeleteflag >=1):
-            vieweditemaddflag = 0
-            if TransactionNameBoxFromAdd.winfo_exists():
-                TransactionNameBoxFromAdd.destroy()
-            if TransactionNameBoxTo.winfo_exists():
-                TransactionNameBoxTo.destroy()
-            if combobox.winfo_exists():
-                combobox.destroy()
-            if addinputbutton.winfo_exists():
-                addinputbutton.destroy()
-            if diffvalue == 1:
-                AddDateEntryBox.destroy()
-                AddSearchBoxEnter.destroy()
-            elif diffvalue == 2:
-                AddGoodsEntryBox.destroy()
-                AddSearchBoxEnter.destroy()
-            elif diffvalue == 3:
-                typebox.destroy()
-                amtinput.destroy()
-                AddSearchBoxEnter.destroy()
-            elif diffvalue == 4:
-                AddBranchEntryBox.destroy()
-                AddSearchBoxEnter.destroy()
-            if ErrorBoolean==True or viewederror >0:
-                print (viewederror)
-                Error.destroy()
-                print("error is destroyed" + str(viewederror))
-                viewederror = viewederror - 1
-                ErrorBoolean = False
-        else:
-            TrueDeleter(valuereader)  
 
 
 def callback(choice): #COMBO BOX FUNCTIONALITIES
