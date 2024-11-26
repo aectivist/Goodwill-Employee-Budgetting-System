@@ -960,12 +960,8 @@ def handleedittrans():
                 viewederror = 1
                 print(viewederror)
 
-        
-        
 
-
-
-#FOR CHECKING WHETHER DESIRED TRANSACTION ITEM IS CASH OR AN ITEM
+#FOR CHECKING WHETHER DESIRED TRANSACTION ITEM IS CASH OR AN ITEM~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def boolfortypecheck(choice):
     global TypeChecker, Trans_TypeFlag, statusbox
     if choice == "Item":
@@ -1006,6 +1002,13 @@ def boolforinvtypcheck(choice):
     elif choice == "Liability":
         InvTypHolder = str(choice)
     print (str(InvTypHolder) + "Type")
+
+
+
+
+
+
+
 
 
 

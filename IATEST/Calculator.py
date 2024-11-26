@@ -2,11 +2,12 @@ from customtkinter import *
 import psycopg2
 #https://github.com/Akascape/CTkTable
 
-
+import math
 from math import *
 import re
 import pygame
 import random
+
 playingbool = False
 def get_random_integer(min_value, max_value):
     return random.randint(min_value, max_value)
