@@ -2,43 +2,32 @@ CREATE TABLE transactionTable(
 transactionId int not null, 
 transactorFrom varchar(30) not null,
 transactionTo varchar(30) not null, 
-
-InventoryId int,
-branchId int,
-transactionType varchar (30) not null, --Cash/Item
-PRIMARY KEY (transactionId),
-FOREIGN KEY (InventoryId) REFERENCES Inventory(InventoryId),
-FOREIGN KEY (branchId) REFERENCES goodwillBranch(branchId)
+PRIMARY KEY (transactionId)
 )
+
 DROP TABLE transactionTable
+
 
 CREATE TABLE Inventory(
 InventoryId int not null,
-InventoryName varchar(200),
+InventoryName varchar(200) not null,
 InventoryValue float not null,
-InventoryType varchar(10) not null,
+InventoryType varchar(10),--Asset, Liability, or empty
 BranchId int not null,
-GoodsStatus varchar(7) not null,
+GoodsStatus varchar(7),--Bought, sold, or donate	
 PRIMARY KEY(InventoryId),
-FOREIGN KEY(BranchId) REFERENCES goodwillbranch(branchId)
+FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 )
 
 CREATE TABLE goodwillBranch(
-branchId int not null,
+BranchId int not null,
 branchName varchar (200) not null,
 branchAddress varchar(200) not null,
 branchPhoneNumber int,
 PRIMARY KEY (branchId)
 )
 
-CREATE TABLE Inventory ( --You can choose whatever tbh if u want opt 1 or 2 
-Inventory_ID int not null, --ID
-Inv_Name varchar (30) not null,
-Inv_Value double, -- value or amount 
-Inv_Type varchar (9), --Asset, Liability, or empty
-Branch_ID int not null, --
-Goods_Type varchar(6), --Bought, sold, or donate	
-PRIMARY KEY (Inventory_ID),
-FOREIGN KEY (Branch_ID) REFERENCES Branches(Branch_ID)
-)
+
+
+
 

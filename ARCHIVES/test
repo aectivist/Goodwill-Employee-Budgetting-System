@@ -1,0 +1,28 @@
+import random
+
+def get_random_integer(min_value, max_value):
+    return random.randint(min_value, max_value)
+
+
+print("TransID")
+global TransIDHolder, GoodsIDHolder
+ID = []
+RID = []
+idCharLimit = 5 #Transaction ID generator
+while idCharLimit >=0: 
+    I= get_random_integer(0, 9)
+    RandInt = str(I)
+    idCharLimit =idCharLimit-1
+    ID.append(RandInt)
+TransIDHolder = ''.join(ID)
+print(int(TransIDHolder))
+
+
+idCharLimit2=5
+while idCharLimit2 >=0: #Goods ID generator
+    N= get_random_integer(0, 9)
+    idCharLimit2 =idCharLimit2-1
+    RandInt = str(N)
+    RID.append(RandInt)
+GoodsIDHolder = ''.join(RID)
+print(int(GoodsIDHolder))
