@@ -2,7 +2,9 @@ CREATE TABLE transactionTable(
 transactionId int not null, 
 transactorFrom varchar(30) not null,
 transactionTo varchar(30) not null, 
-PRIMARY KEY (transactionId)
+InventoryId int not null,
+PRIMARY KEY (transactionId),
+FOREIGN KEY (InventoryId) REFERENCES Inventory(InventoryId)
 )
 
 DROP TABLE transactionTable

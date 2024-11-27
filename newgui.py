@@ -4,7 +4,7 @@ import threading
 from CTkTable import *
 #https://github.com/Akascape/CTkTable
 
-
+import math
 from math import *
 import re
 import pygame

@@ -829,7 +829,7 @@ def handleaddtrans():
     global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag
     
     global TransAddExist, TransactionNameBoxFrom, TransactionNameBoxTo, Transaction_inputbutton, Transaction_combobox, sucessful_transaction 
-    
+    global TransactorFromHolder, TransactorToHolder
     outputFlag=False
     
     TransactorToHolder =  TransactionNameBoxTo.get()
@@ -867,22 +867,22 @@ def handleaddtrans():
                 
                 transactionIDcreator()
                 
-                TransactionNameBoxTo.destroy()
-                TransactionNameBoxFrom.destroy()
-                Transaction_combobox.destroy()
-                Transaction_inputbutton.destroy()
+                TransactionNameBoxTo.place_forget()
+                TransactionNameBoxFrom.place_forget()
+                Transaction_combobox.place_forget()
+                Transaction_inputbutton.place_forget()
                 
-                AddBranchEntryBox.destroy()
-                AddDateEntryBox.destroy()
-                AddGoodsEntryBox.destroy()
-                inventorytypebox.destroy()
+                AddBranchEntryBox.place_forget()
+                AddDateEntryBox.place_forget()
+                AddGoodsEntryBox.place_forget()
+                inventorytypebox.place_forget()
                 
-                typebox.destroy()
-                amtinput.destroy()
-                statusbox.destroy()
+                typebox.place_forget()
+                amtinput.place_forget()
+                statusbox.place_forget()
                 
                 if ErrorBoolean==True:
-                    Error.destroy()
+                    Error.place_forget()
                     viewederror=0
                     ErrorBoolean = False
                     
@@ -1076,23 +1076,39 @@ def transactionIDcreator():
     
 def transactionsql(mode, cur, TransIDHolder, PartyForHolder, PartyToHolder, GoodsIDHolder, 
                    GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder):
+    global TransactorFromHolder, TransactorToHolder
     try:
         if mode == "add":
-            cur.execute("""
-                INSERT INTO transactionTable (transactionId, transactorFrom, transactionTo) 
-                VALUES (%(TransID)s, %(From)s, %(To)s)
-            """, {'TransID': TransIDHolder, 'From': PartyForHolder, 'To': PartyToHolder})
-
             cur.execute("""
                 INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus) 
                 VALUES (%(InvID)s, %(InvName)s, %(Value)s, %(InvTyp)s, %(BranchId)s, %(Status)s)
             """, {'InvID': GoodsIDHolder, 'InvName': GoodsHolder, 'Value': AmountHolder, 
                   'InvTyp': InvTypHolder, 'BranchId': BranchHolder, 'Status': StatusHolder})
+            
+            cur.execute("""
+                INSERT INTO transactionTable (transactionId, transactorFrom, transactionTo, InventoryId) 
+                VALUES (%(TransID)s, %(From)s, %(To)s, %(InvId)s)
+            """, {'TransID': TransIDHolder, 'From': TransactorFromHolder, 'To': TransactorToHolder, 'InvId': GoodsIDHolder})
+            
             conn.commit()
             print("EXECUTED")
         elif mode == "edit":
             print("Edit functionality not yet implemented.")
             # Add edit functionality here
+        elif mode == "delete":
+            cur.execute("""SELECT InventoryId FROM transactionTable""")
+            InvID = cur.fetchone()
+            cur.execute("""
+                DELETE FROM Inventory WHERE InventoryId = %(InvId)s""", {'InvId': InvID})
+            
+            cur.execute("""
+                DELETE FROM transactionTable
+                WHERE transactionId = %(TransID)s;
+                        """, {'TransID': TransIDHolder})
+            
+            conn.commit
+            
+            
 
     except Exception as e:
         print(f"An error occurred: {e}")
