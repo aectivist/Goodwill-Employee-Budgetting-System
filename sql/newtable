@@ -1,0 +1,52 @@
+CREATE TABLE Inventory(
+InventoryId int not null,
+InventoryName varchar(200) not null,
+InventoryValue float not null,
+InventoryType varchar(10) not null,--Asset, Liability, or empty
+BranchId int not null,
+GoodsStatus varchar(7),--Bought, sold, or donate	
+PRIMARY KEY(InventoryId),
+FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
+)
+INSERT INTO goodwillBranch VALUES (0, 'none','none',0)
+
+SELECT * FROM Inventory
+DROP TABLE transactiontable
+CREATE TABLE transactionTable(
+transactionId int not null, 
+transactorFrom varchar(30) not null,
+transactionTo varchar(30) not null, 
+PRIMARY KEY (transactionId)
+)
+CREATE TABLE Inventory(
+InventoryId int not null,
+InventoryName varchar(200) not null,
+InventoryValue float not null,
+InventoryType varchar(10),--Asset, Liability, or empty
+BranchId int not null,
+GoodsStatus varchar(7),--Bought, sold, or donate	
+PRIMARY KEY(InventoryId),
+FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
+)
+
+CREATE TABLE transactionTable(
+transactionId int not null, 
+transactorFrom varchar(30) not null,
+transactionTo varchar(30) not null, 
+InventoryId int not null,
+PRIMARY KEY (transactionId),
+FOREIGN KEY (InventoryId) REFERENCES Inventory(InventoryId)
+)
+SELECT * FROM Inventory
+SELECT * FROM transactionTable
+
+DELETE FROM Inventory WHERE InventoryId = 494876
+
+DROP TABLE TransactionTable
+
+SELECT TransactionId, TransactorFrom, TransactionTo, transactionTable.InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus 
+FROM transactionTable
+WHERE TransactionId = 451409
+INNER JOIN Inventory 
+ON transactionTable.InventoryId = Inventory.InventoryId
+
