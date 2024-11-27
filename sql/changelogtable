@@ -31,3 +31,14 @@ branchPhoneNumber int,
 PRIMARY KEY (branchId)
 )
 
+CREATE TABLE Inventory ( --You can choose whatever tbh if u want opt 1 or 2 
+Inventory_ID int not null, --ID
+Inv_Name varchar (30) not null,
+Inv_Value double, -- value or amount 
+Inv_Type varchar (9), --Asset, Liability, or empty
+Branch_ID int not null, --
+Goods_Type varchar(6), --Bought, sold, or donate	
+PRIMARY KEY (Inventory_ID),
+FOREIGN KEY (Branch_ID) REFERENCES Branches(Branch_ID)
+)
+

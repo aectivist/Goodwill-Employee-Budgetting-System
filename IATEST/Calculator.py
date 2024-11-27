@@ -7,6 +7,7 @@ from math import * #i'd like to complain about this, for some reason it won't lo
 import re
 import pygame
 import random
+
 playingbool = False
 def get_random_integer(min_value, max_value):
     return random.randint(min_value, max_value)

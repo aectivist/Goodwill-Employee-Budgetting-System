@@ -65,14 +65,14 @@ LoadingPage = CTkFrame(window, corner_radius=0) #implement later
 HomePage = CTkFrame(window, corner_radius=0)
 TransactionsPage = CTkFrame(window, corner_radius=0)
 ClientPage = CTkFrame(window, corner_radius=0)
-AssetPage = CTkFrame(window, corner_radius=0)
+InventoryPage = CTkFrame(window, corner_radius=0)
 BudgetPage = CTkFrame(window, corner_radius=0)
 CalculatorPage = CTkFrame(window, corner_radius=0)
 LoginPage = CTkFrame(window, corner_radius=0, bg_color='#0053A0')
 LoadingPage = CTkFrame(window, corner_radius=0) #implement later
 
 # Create a list to hold all the pages
-pages = [HomePage, TransactionsPage, ClientPage, AssetPage, BudgetPage, CalculatorPage]
+pages = [HomePage, TransactionsPage, ClientPage, InventoryPage, BudgetPage, CalculatorPage]
 
 # Function to show a page
 def show_page(page, loginaccess):
@@ -794,8 +794,8 @@ TransactionsTab.grid(row=0, column=1, pady=10, padx=6, sticky="nsew")
 ClientTab = CTkButton(TABFRAME, text="Clients", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
 ClientTab.grid(row=0, column=2, pady=10, padx=6, sticky="nsew")
 
-AssetTab = CTkButton(TABFRAME, text="Assets", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
-AssetTab.grid(row=0, column=3, pady=10, padx=6, sticky="nsew")
+InventoryTab = CTkButton(TABFRAME, text="Inventory", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
+InventoryTab.grid(row=0, column=3, pady=10, padx=6, sticky="nsew")
 
 BudgetTab = CTkButton(TABFRAME, text="Budget", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
 BudgetTab.grid(row=0, column=4, pady=10, padx=6, sticky="nsew")
@@ -809,8 +809,8 @@ def admittedAccess(loginaccess):
         loadedpage(LoginPage)
         TransactionsTab.configure(command=lambda: button_event(TransactionsPage,loginaccess))
         ClientTab.configure(command=lambda: button_event(ClientPage,loginaccess))
-        AssetTab.configure(command=lambda: button_event(AssetPage,loginaccess))
-        BudgetTab.configure(command=lambda: button_event(AssetPage,loginaccess))
+        InventoryTab.configure(command=lambda: button_event(InventoryPage,loginaccess))
+        BudgetTab.configure(command=lambda: button_event(InventoryPage,loginaccess))
         
 
 
