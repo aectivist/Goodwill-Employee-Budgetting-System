@@ -1,13 +1,4 @@
-CREATE TABLE Inventory(
-InventoryId int not null,
-InventoryName varchar(200) not null,
-InventoryValue float not null,
-InventoryType varchar(10) not null,--Asset, Liability, or empty
-BranchId int not null,
-GoodsStatus varchar(7),--Bought, sold, or donate	
-PRIMARY KEY(InventoryId),
-FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
-)
+
 INSERT INTO goodwillBranch VALUES (0, 'none','none',0)
 
 SELECT * FROM Inventory

@@ -14,7 +14,7 @@ cur = conn.cursor()
 
 window = CTk()
 window.title("BUDGET")
-window.geometry("600x400") #fml
+window.geometry("1024x600") #fml
 window.resizable(0,0) #disable resize
 set_appearance_mode("light")
 
@@ -25,7 +25,7 @@ set_appearance_mode("light")
 
 
 # Create frames for each page
-TABFRAME = CTkFrame(window, height=51, width=600, fg_color="#1E1E1E", corner_radius=0)
+TABFRAME = CTkFrame(window, height=51, width=1024, fg_color="#1E1E1E", corner_radius=0)
 TABFRAME.pack(anchor=CENTER, fill=X)
 
 
@@ -62,9 +62,9 @@ def show_page(page):
 
 
 
-TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
-EditFont = CTkFont(family="Oswald", size=15, weight='bold')
-BTNFont = CTkFont(family="Oswald", size=13)
+TitleFont = CTkFont(family="Oswald", weight='bold')
+EditFont = CTkFont(family="Oswald", weight='bold', size = 23)
+BTNFont = CTkFont(family="Oswald", size = 18)
 ErrorFont = CTkFont( size=10)
 TransactionsPagePost = 0 #so the page only posts once and not multiple times
 
@@ -75,8 +75,8 @@ def transactionpage(page): #TO BE UPDATED
         #START MASTER 
         PageMargin = CTkFrame(page)
         PageMargin.pack(expand=True)
-        RequestPadding = CTkFrame(PageMargin, width=170, height=330, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1)
-        OutputPadding = CTkFrame(PageMargin, width=410, height=330, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1)
+        RequestPadding = CTkFrame(PageMargin, width=281, height=495, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1)
+        OutputPadding = CTkFrame(PageMargin, width=679, height=495, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1) #993 total, 495 total
         RequestPadding.grid_propagate(0)
         OutputPadding.grid_propagate(0)
         
@@ -84,10 +84,10 @@ def transactionpage(page): #TO BE UPDATED
         OutputPadding.grid(row=0, column=1) 
 
         #Requested Content
-        SearchRequestContent = CTkFrame(RequestPadding, width=170, height=165, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
+        SearchRequestContent = CTkFrame(RequestPadding, width=281, height=247, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
         SearchRequestContent.grid_propagate(0)
         
-        EditsRequestContent = CTkFrame(RequestPadding, width=170, height=165, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
+        EditsRequestContent = CTkFrame(RequestPadding, width=281, height=247, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
         EditsRequestContent.grid_propagate(0)
         
         SearchRequestContent.grid(row=0, column=0)
@@ -107,31 +107,25 @@ def transactionpage(page): #TO BE UPDATED
 
         #Output Content
         global OutputTableScrollbarContent
-        OutputEditContent = CTkFrame(OutputPadding, width=410, height=115, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
+        OutputEditContent = CTkFrame(OutputPadding, width=679, height=172, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
         OutputEditContent.grid(row = 0, column = 0)
         LabelTransactionAdd = CTkLabel(OutputEditContent, text="TRANSACTIONS",font = EditFont)
         LabelTransactionAdd.place(x=5, y=1)
         
 
-        OutputTableContent = CTkFrame(OutputPadding, width=410, height=215, fg_color="#a6a6a6", corner_radius=0, border_color='#000000', border_width=1)
+        OutputTableContent = CTkFrame(OutputPadding, width=679, height=322, fg_color="#a6a6a6", corner_radius=0, border_color='#000000', border_width=1)
         OutputTableContent.grid(row = 1, column = 0) 
         OutputEditContent.grid_propagate(0)
         OutputTableContent.grid_propagate(0)
         
         
-        OutputTableScrollbarContent = CTkFrame(OutputTableContent, width=410, height=215)
+        OutputTableScrollbarContent = CTkFrame(OutputTableContent, width=679, height=322)
         OutputTableScrollbarContent.pack(fill="both", expand=True)
         OutputTableScrollbarContent.grid_propagate(0)
         
         
-        canvas = CTkCanvas(OutputTableScrollbarContent, width=410, height=215, highlightthickness=0)
-        canvas.pack(side="left", fill="both", expand=True)
-        
-        scrollbar = CTkScrollableFrame(canvas, width =387)
-        scrollbar.grid(rowspan=100, row = 0, column = 0, sticky='nsew')
-
         EditLabelRequest = CTkLabel(EditsRequestContent, text="EDITS", font=EditFont)
-        EditLabelRequest.grid(row=0, column=0, )
+        EditLabelRequest.grid(row=0, column=0)
         
         
         #important buttons for requesting
@@ -156,7 +150,7 @@ def transactionpage(page): #TO BE UPDATED
         SearchEntry = CTkEntry(SearchRequestContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Search")
         SearchEntry.grid(row=1, column=0, padx = 10, pady = 4,)
         
-        SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0, text_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#0051ff', command= lambda: TransactionSearch(ChoiceForSearch, SearchEntry))
+        SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0, text_color='#FFFFFF', border_color='#000000', font=BTNFont, border_width=1, hover_color='#0051ff', command= lambda: TransactionSearch(ChoiceForSearch, SearchEntry))
         SearchButton.grid(row=2,column=0, padx = 10, pady = 1,)
 
         comboVal = StringVar(value=ChoiceForSearch)
@@ -1173,24 +1167,22 @@ def transactionsql(mode, cur, TransIDHolder, PartyForHolder, PartyToHolder, Good
             print("Edit functionality not yet implemented.")
             # Add edit functionality here
         elif mode == "delete":
-            cur.execute("""SELECT InventoryId FROM transactionTable""")
+            # Fetch Inventory ID for logging/debugging purposes (optional)
+            cur.execute("""SELECT InventoryId FROM transactionTable WHERE TransactionId = %(TransID)s""", {'TransID': TransIDHolder})
             InvID = cur.fetchone()
+            print("Deleting Inventory ID:", InvID)
+
+            # Delete entries from transactionTable and Inventory using JOIN
             cur.execute("""
                 DELETE transactionTable, Inventory
                 FROM transactionTable
                 INNER JOIN Inventory
                 ON transactionTable.InventoryId = Inventory.InventoryId
-                WHERE transactionTable.transactionId = %(TransID)s""", {'TransID': TransIDHolder})
+                WHERE transactionTable.TransactionId = %(TransID)s
+            """, {'TransID': TransIDHolder})
             
-            cur.execute("""
-               DELETE Inventory
-                FROM Inventory
-                INNER JOIN transactionTable
-                ON transactionTable.InventoryId = Inventory.InventoryId
-                WHERE transactionTable.transactionId = %(TransID)s;
-                        """, {'TransID': TransIDHolder})
-            
-            conn.commit
+            # Commit changes
+            conn.commit()
             
             
 
