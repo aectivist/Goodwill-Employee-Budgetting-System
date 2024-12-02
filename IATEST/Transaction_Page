@@ -1099,11 +1099,18 @@ def transactionsql(mode, cur, TransIDHolder, PartyForHolder, PartyToHolder, Good
             cur.execute("""SELECT InventoryId FROM transactionTable""")
             InvID = cur.fetchone()
             cur.execute("""
-                DELETE FROM Inventory WHERE InventoryId = %(InvId)s""", {'InvId': InvID})
+                DELETE transactionTable, Inventory
+                FROM transactionTable
+                INNER JOIN Inventory
+                ON transactionTable.InventoryId = Inventory.InventoryId
+                WHERE transactionTable.transactionId = %(TransID)s""", {'TransID': TransIDHolder})
             
             cur.execute("""
-                DELETE FROM transactionTable
-                WHERE transactionId = %(TransID)s;
+               DELETE Inventory
+                FROM Inventory
+                INNER JOIN transactionTable
+                ON transactionTable.InventoryId = Inventory.InventoryId
+                WHERE transactionTable.transactionId = %(TransID)s;
                         """, {'TransID': TransIDHolder})
             
             conn.commit
