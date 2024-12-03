@@ -2,24 +2,50 @@ CREATE TABLE transactionTable(
 transactionId int not null, 
 transactorFrom varchar(30) not null,
 transactionTo varchar(30) not null, 
-InventoryId int not null,
+transactionDate DATE,
+transactiontype varchar(5), --- CASH/ ITEM
+transactionTypeId int,
 PRIMARY KEY (transactionId),
-FOREIGN KEY (InventoryId) REFERENCES Inventory(InventoryId)
-)
+FOREIGN KEY (transactionTypeId) REFERENCES transactionType(transactionTypeId)
+);
 
+CREATE TABLE transactionType (
+    transactionTypeId INT NOT NULL,
+    balanceID INT NOT NULL,
+    InventoryId INT NOT NULL,
+    PRIMARY KEY(transactionTypeId),
+	FOREIGN KEY(balanceID) REFERENCES balance(),
+    FOREIGN KEY(balanceID) REFERENCES balance(balanceID),
+    FOREIGN KEY(InventoryId) REFERENCES inventory(InventoryId)
+);
+
+SELECT * FROM BALANCE
+
+DROP TABLE transactionType
+DROP TABLE Balance
 DROP TABLE transactionTable
-
+DROP TABLE Inventory
 
 CREATE TABLE Inventory(
 InventoryId int not null,
 InventoryName varchar(200) not null,
 InventoryValue float not null,
-InventoryType varchar(10),--Asset, Liability, or empty
+InventoryType varchar(10),
 BranchId int not null,
 GoodsStatus varchar(7),--Bought, sold, or donate	
 PRIMARY KEY(InventoryId),
 FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 )
+CREATE TABLE Balance(
+BalanceID int not null,
+BalanceAmount float,
+DateOfChange DATE,
+BranchID int not null,
+PRIMARY KEY (BalanceID),
+FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
+)
+
+
 
 CREATE TABLE goodwillBranch(
 BranchId int not null,
@@ -28,8 +54,6 @@ branchAddress varchar(200) not null,
 branchPhoneNumber int,
 PRIMARY KEY (branchId)
 )
-
-
 
 
 

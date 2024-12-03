@@ -1,29 +1,31 @@
 
 INSERT INTO goodwillBranch VALUES (0, 'none','none',0)
 
-SELECT * FROM Inventory
-DROP TABLE transactiontable
-CREATE TABLE transactionTable(
-transactionId int not null, 
-transactorFrom varchar(30) not null,
-transactionTo varchar(30) not null, 
-PRIMARY KEY (transactionId)
-)
 CREATE TABLE Inventory(
 InventoryId int not null,
 InventoryName varchar(200) not null,
 InventoryValue float not null,
-InventoryType varchar(10),--Asset, Liability, or empty
+InventoryType varchar(10),
 BranchId int not null,
 GoodsStatus varchar(7),--Bought, sold, or donate	
 PRIMARY KEY(InventoryId),
 FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 )
 
+CREATE TABLE Balance(
+BalanceID int not null,
+BalanceAmount float,
+DateOfChange DATE,
+TransactionId int,
+PRIMARY KEY (BalanceID),
+FOREIGN KEY (TransactionId) REFERENCES TransactionTable(TransactionId)
+)
+
 CREATE TABLE transactionTable(
 transactionId int not null, 
 transactorFrom varchar(30) not null,
 transactionTo varchar(30) not null, 
+transactionDate DATE,
 InventoryId int not null,
 PRIMARY KEY (transactionId),
 FOREIGN KEY (InventoryId) REFERENCES Inventory(InventoryId)

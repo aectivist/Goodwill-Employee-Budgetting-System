@@ -130,52 +130,51 @@ def set_radians():
 OutputCalculatorFont = CTkFont(family="Oswald", size=30, weight='bold')
 EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 
-
+ViewedPost=0
 
 def calculatorpage(page):
-    global button_degrees, button_radians, button_EXP, HistoryToggleButton, HistorySideBar, HistoryScrollbar
-    #START MASTER
-    CalculatorMargin = CTkFrame(page)
-    CalculatorMargin.pack(expand=True)
-    #LEFT BAR
-    HistorySideBar = CTkFrame(CalculatorMargin, width=150, height=320, border_color="#000000", border_width=1,fg_color="#FFFFFF")
-    HistorySideBar.grid(row=0,column=0)
-    HistorySideBar.grid_propagate(0)
-    HistoryScrollbar = CTkScrollableFrame(HistorySideBar, width=140, height=270, border_width=1, fg_color="#FFFFFF",corner_radius=0)
-    HistoryScrollbar.grid(row=1,column=0)
-    HistoryToggleButton = CTkButton(HistorySideBar,text="EQUATION HISTORY",command=set_History,height=45, width=160, border_color="#000000", border_width=1,corner_radius=0, fg_color="#FFFFFF",text_color='#000000')
-    HistoryToggleButton.grid(row=0,column=0)
-    HistoryToggleButton.grid_propagate(0)
-    
+    if ViewedPost == 0:
+        global button_degrees, button_radians, button_EXP, HistoryToggleButton, HistorySideBar, HistoryScrollbar
+        #START MASTER
+        CalculatorMargin = CTkFrame(page)
+        CalculatorMargin.pack(expand=True)
+        #LEFT BAR
+        HistorySideBar = CTkFrame(CalculatorMargin, width=150, height=320, border_color="#000000", border_width=1,fg_color="#FFFFFF")
+        HistorySideBar.grid(row=0,column=0)
+        HistorySideBar.grid_propagate(0)
+        HistoryScrollbar = CTkScrollableFrame(HistorySideBar, width=140, height=270, border_width=1, fg_color="#FFFFFF",corner_radius=0)
+        HistoryScrollbar.grid(row=1,column=0)
+        HistoryToggleButton = CTkButton(HistorySideBar,text="EQUATION HISTORY",command=set_History,height=45, width=160, border_color="#000000", border_width=1,corner_radius=0, fg_color="#FFFFFF",text_color='#000000')
+        HistoryToggleButton.grid(row=0,column=0)
+        HistoryToggleButton.grid_propagate(0)
+        
 
-    #RIGHT BAR
-    CalculatorSide = CTkFrame(CalculatorMargin, width=410, height=320, border_color="#000000", border_width=1)
-    CalculatorSide.grid(row=0,column=1)
-    CalculatorSide.grid_propagate(0)    
-    #RIGHT BAR UI
-    OutputCalculations = CTkEntry(CalculatorSide ,font=OutputCalculatorFont, width=410, height=120, border_color="#000000", border_width=1,corner_radius=0)
-    OutputCalculations.grid(row=0,column=0)
-    OutputCalculations.configure(state="readonly")
-    
-    OutputCalculations.ans = 0
-    OutputCalculations.radians = True
-    OutputCalculations.trig_input = ""
+        #RIGHT BAR
+        CalculatorSide = CTkFrame(CalculatorMargin, width=410, height=320, border_color="#000000", border_width=1)
+        CalculatorSide.grid(row=0,column=1)
+        CalculatorSide.grid_propagate(0)    
+        #RIGHT BAR UI
+        OutputCalculations = CTkEntry(CalculatorSide ,font=OutputCalculatorFont, width=410, height=120, border_color="#000000", border_width=1,corner_radius=0)
+        OutputCalculations.grid(row=0,column=0)
+        OutputCalculations.configure(state="readonly")
+        
+        OutputCalculations.ans = 0
+        OutputCalculations.radians = True
+        OutputCalculations.trig_input = ""
 
-    OutputCalculations.degrees_button = None
-    OutputCalculations.radians_button = None
+        OutputCalculations.degrees_button = None
+        OutputCalculations.radians_button = None
 
 
-    ButtonsForCalculationsFrame = CTkFrame(CalculatorSide, width=410, height=200, border_color="#000000", border_width=1,corner_radius=0)
-    ButtonsForCalculationsFrame.grid(row=1, column=0)
-    ButtonsForCalculationsFrame.grid_propagate(0)
-    
-    for i in range(6):
-        ButtonsForCalculationsFrame.grid_columnconfigure(i, weight=1, uniform="column")
-        ButtonsForCalculationsFrame.grid_rowconfigure(0, minsize=40)
-
-    # Variable to store the mode
-    
-    # Radio buttons for Degrees and Radians
+        ButtonsForCalculationsFrame = CTkFrame(CalculatorSide, width=410, height=200, border_color="#000000", border_width=1,corner_radius=0)
+        ButtonsForCalculationsFrame.grid(row=1, column=0)
+        ButtonsForCalculationsFrame.grid_propagate(0)
+        
+        for i in range(6):
+            ButtonsForCalculationsFrame.grid_columnconfigure(i, weight=1, uniform="column")
+            ButtonsForCalculationsFrame.grid_rowconfigure(0, minsize=40)
+    else:
+        print("Calculator page has been printed!")
     
 
     
