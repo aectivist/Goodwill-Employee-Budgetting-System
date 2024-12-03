@@ -21,11 +21,11 @@ CREATE TABLE transactionType (
 
 SELECT * FROM BALANCE
 
+)
 DROP TABLE transactionType
 DROP TABLE Balance
 DROP TABLE transactionTable
 DROP TABLE Inventory
-
 CREATE TABLE Inventory(
 InventoryId int not null,
 InventoryName varchar(200) not null,
@@ -44,6 +44,10 @@ BranchID int not null,
 PRIMARY KEY (BalanceID),
 FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 )
+
+INSERT INTO Inventory VALUES (0,0,0,0,0,0);
+INSERT INTO Balance VALUES (0, 0,null,0)
+
 
 
 
