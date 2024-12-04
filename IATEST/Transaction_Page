@@ -207,66 +207,73 @@ def TransactionSearch_ComboCallback(choice):
     print(choice)
     print(ConfirmedChoiceForSearch)
 
-def TransactionSearch(SearchEntry):
-    global Error, ErrorBoolean, viewederror,ConfirmedChoiceForSearch
-    columns = ["Transaction ID", "From", "To", "Inventory ID", "Value",  "Name", "Type", "Status", "Branch ID"]
 
+# Function to handle search
+def TransactionSearch(SearchEntry):
+    global ConfirmedChoiceForSearch, TransactionType, viewederror, OutputTableScrollbarContent
+
+    TransactionType = "Item"  # Default for testing, replace with dynamic value
+    columns = ["Transaction ID", "From", "To", "Date", "Type", "Related Info"]
     try:
         query = """
-            SELECT 
-                transactionTable.TransactionId, 
-                transactionTable.TransactorFrom, 
-                transactionTable.TransactionTo, 
-                transactionTable.TransactionDate, 
-                transactionTable.InventoryId, 
-                Inventory.InventoryName, 
-                Inventory.InventoryValue, 
-                Inventory.InventoryType, 
-                Inventory.BranchId, 
-                Inventory.GoodsStatus
-            FROM 
-                transactionTable
-            INNER JOIN 
-                Inventory 
-            ON 
-                transactionTable.InventoryId = Inventory.InventoryId
-            WHERE
+        SELECT 
+            t.TransactionId AS "Transaction ID",
+            t.TransactorFrom AS "From",
+            t.TransactionTo AS "To",
+            t.TransactionDate AS "Date",
+            t.transactiontype AS "Type",
+            
+            CASE 
+                WHEN t.transactiontype = 'Item' THEN CONCAT(i.InventoryName, ' (', i.InventoryValue, ')')
+                WHEN t.transactiontype = 'Cash' THEN CONCAT('Balance: ', b.BalanceAmount)
+                ELSE 'N/A'
+            END AS "Related Info"
+            
+        FROM 
+            transactionTable t
+        INNER JOIN transactionType tt
+            ON t.transactionTypeId = tt.transactionTypeId
+        LEFT JOIN Inventory i
+            ON tt.InventoryId = i.InventoryId AND t.transactiontype = 'Item'
+        LEFT JOIN Balance b
+            ON tt.BalanceId = b.BalanceId AND t.transactiontype = 'Cash'
+        WHERE 
+            t.transactiontype = %(transactiontype)s
         """
-        params = {}
 
+        # Add filters dynamically
+        params = {"transactiontype": TransactionType}
         if ConfirmedChoiceForSearch == "Transaction ID":
-            query += " transactionTable.TransactionId = %(TransID)s;"
-            params = {"TransID": SearchEntry.get()}
+            query += " AND t.TransactionId = %(TransID)s;"
+            params["TransID"] = SearchEntry.get()
         elif ConfirmedChoiceForSearch == "Transaction From":
-            query += " transactionTable.TransactorFrom = %(TransactorFrom)s;"
-            params = {"TransactorFrom": SearchEntry.get()}
+            query += " AND t.TransactorFrom = %(TransactorFrom)s;"
+            params["TransactorFrom"] = SearchEntry.get()
         elif ConfirmedChoiceForSearch == "Transaction To":
-            query += " transactionTable.TransactionTo = %(TransactionTo)s;"
-            params = {"TransactionTo": SearchEntry.get()}
+            query += " AND t.TransactionTo = %(TransactionTo)s;"
+            params["TransactionTo"] = SearchEntry.get()
         elif ConfirmedChoiceForSearch == "Date":
             try:
-                # Parse the date input to a datetime object
                 search_date = datetime.strptime(SearchEntry.get(), "%d/%m/%Y")
-                # Convert the datetime object to the desired format (yyyy/mm/dd)
-                formatted_date = search_date.strftime("%Y/%m/%d")
-                query += " transactionTable.TransactionDate = %(Date)s;"
-                params = {"Date": formatted_date}
+                params["Date"] = search_date.strftime("%Y-%m-%d")
+                query += " AND t.TransactionDate = %(Date)s;"
             except ValueError:
-                print("Date invalid")
                 if viewederror == 0:
-                    print("Please Input Date Entry CORRECTLY.")
-                    ErrorBoolean = True
-                    Error = CTkLabel(SearchRequestContent, text="Please Input Date Entry CORRECTLY.", text_color="red", height=13)
-                    Error.place(x=50, y=3)
-                    viewederror = 1  # Avoid repeated error messages
-                return  # Exit the function if date is invalid
+                    ErrorLabel = CTkLabel(SearchRequestContent, text="Invalid date format. Use DD/MM/YYYY.", text_color="red")
+                    ErrorLabel.place(x=50, y=3)
+                    viewederror = 1
+                return
 
-
-        # Execute the query
+        # Execute query
         cur.execute(query, params)
-
-        # Fetch and display results
         rows = cur.fetchall()
+
+        # Clear previous results
+        for widget in OutputTableScrollbarContent.winfo_children():
+            widget.destroy()
+
+        # Display results
+
         if rows:
             tree = ttk.Treeview(OutputTableScrollbarContent, columns=columns, show="headings", height=10)
             for col in columns:
@@ -286,24 +293,22 @@ def TransactionSearch(SearchEntry):
             scrollbar.grid(row=0, column=1, sticky="ns")
             x_view_scrollbar.grid(row=1, column=0, sticky="ew")
 
-            OutputTableScrollbarContent.grid_rowconfigure(0, weight=1)
-            OutputTableScrollbarContent.grid_columnconfigure(0, weight=1)
+            OutputTableScrollbarContent.grid_rowconfigure(0, weight=5)
+            OutputTableScrollbarContent.grid_columnconfigure(0, weight=5)
         else:
             print("No results found.")
-            
+            NoResultsLabel = CTkLabel(OutputTableScrollbarContent, text="No results found.", text_color="red")
+            NoResultsLabel.pack()
+
     except psycopg2.Error as e:
         print(f"Database error: {e}")
-        cur.connection.rollback()
-        print("Rolling back the transaction due to an error.")
-        
+        ErrorLabel = CTkLabel(OutputTableScrollbarContent, text="Database error occurred.", text_color="red")
+        ErrorLabel.pack()
+
     except Exception as e:
         print(f"Unexpected error: {e}")
-
-
-        
-
-
-
+        ErrorLabel = CTkLabel(OutputTableScrollbarContent, text="Unexpected error occurred.", text_color="red")
+        ErrorLabel.pack()
 
 def outputContentGivenButtons(OutputEditContent, value): 
     global vieweditemflag, A_vieweditemflag, E_vieweditemflag, D_vieweditemflag, currentmode, mode
@@ -1309,12 +1314,6 @@ def transactionsql(mode, cur, TransIDHolder,TransTypeIDHolder, PartyForHolder, P
     global TransactorFromHolder, TransactorToHolder
     try:
         if mode == "add":
-            
-            cur.execute("""
-                INSERT INTO transactionTable (transactionId, transactorFrom, transactionTo, transactionDate, transactionType, transactionTypeID) 
-                VALUES (%(TransID)s, %(From)s, %(To)s, %(transactionDate)s, %(Typ)s, %(TransTypID)s)
-            """, {'TransID': TransIDHolder, 'From': TransactorFromHolder, 'To': TransactorToHolder, 'transactionDate': DateHolder,'Typ':TypeHolder, 'TransTypID': GoodsIDHolder}) #UPDATE TRANSACTION TABLE
-            
             if TypeHolder == "Item":    #IF THE TRANSACTION CONTAINS AN ITEM, THEN:
                 cur.execute("""
                 INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus) 
@@ -1336,7 +1335,11 @@ def transactionsql(mode, cur, TransIDHolder,TransTypeIDHolder, PartyForHolder, P
                 cur.execute("""
                     INSERT INTO transactionType (transactionTypeId, balanceID, InventoryId)
                     VALUES (%(transTypeId)s,   %(BalID)s), 0""", {"transTypeId":TransTypeIDHolder,"BalID":GoodsIDHolder}) #TRANSACTION TYPE--
-        
+            cur.execute("""
+                INSERT INTO transactionTable (transactionId, transactorFrom, transactionTo, transactionDate, transactionType, transactionTypeID) 
+                VALUES (%(TransID)s, %(From)s, %(To)s, %(transactionDate)s, %(Typ)s, %(TransTypID)s)
+            """, {'TransID': TransIDHolder, 'From': TransactorFromHolder, 'To': TransactorToHolder, 'transactionDate': DateHolder,'Typ':TypeHolder, 'TransTypID': TransTypeIDHolder}) #UPDATE TRANSACTION TABLE
+            
             
             
                 

@@ -14,14 +14,12 @@ CREATE TABLE transactionType (
     balanceID INT NOT NULL,
     InventoryId INT NOT NULL,
     PRIMARY KEY(transactionTypeId),
-	FOREIGN KEY(balanceID) REFERENCES balance(),
     FOREIGN KEY(balanceID) REFERENCES balance(balanceID),
     FOREIGN KEY(InventoryId) REFERENCES inventory(InventoryId)
-);
+)
 
 SELECT * FROM BALANCE
 
-)
 DROP TABLE transactionType
 DROP TABLE Balance
 DROP TABLE transactionTable
