@@ -6,7 +6,7 @@ import tkinter as tk
 from tkinter import ttk
 from datetime import datetime
         
-conn=psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
+conn=psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="Saibaba216$", port=5432)
 cur = conn.cursor()
 
 #https://github.com/Akascape/CTkTable
@@ -218,7 +218,7 @@ def TransactionSearch(SearchEntry):
                 transactionTable.TransactorFrom, 
                 transactionTable.TransactionTo, 
                 transactionTable.TransactionDate, 
-                transactionTable.InventoryId, 
+                transactionTable.transactionTypeID, 
                 Inventory.InventoryName, 
                 Inventory.InventoryValue, 
                 Inventory.InventoryType, 
@@ -226,10 +226,10 @@ def TransactionSearch(SearchEntry):
                 Inventory.GoodsStatus
             FROM 
                 transactionTable
-            INNER JOIN 
-                Inventory 
-            ON 
-                transactionTable.InventoryId = Inventory.InventoryId
+            LEFT JOIN 
+                transactionType ON transactionTable.transactionTypeID = transactionType.transactionTypeId
+            LEFT JOIN 
+                Inventory ON transactionType.InventoryId = Inventory.InventoryId
             WHERE
         """
         params = {}
