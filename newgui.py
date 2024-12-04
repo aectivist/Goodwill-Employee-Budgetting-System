@@ -39,7 +39,7 @@ def play_sound():
         button_EXP.configure(text="Play")  # Change button text to "Stop"
     playingbool = not playingbool
 
-conn=psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
+conn=psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="Saibaba216$", port=5432)
 
 loginaccess = False
 LOGIN = None
