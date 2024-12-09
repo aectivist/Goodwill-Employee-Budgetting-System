@@ -58,4 +58,7 @@ PRIMARY KEY (branchId)
 )
 
 
-
+CREATE TABLE ALREADYCREATEDKEYS(
+    keyId_T int not null,
+    keyId_IorB int not null
+)

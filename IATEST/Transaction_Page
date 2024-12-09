@@ -183,6 +183,7 @@ ErrorBoolean = False #If error statement has already been set
 #to check whether or not an item had a successful transaction
 sucessful_transaction = False
 
+
 #for knowing which mode the user is currently on
 currentmode = ""
 
@@ -192,7 +193,10 @@ TransDeleteExist = False
 
 TrueInventoryIDFlag = False #Checks for EDIT PANEL if the GOODS and TYPE are interdependent amongst each other. You can find it most notably on handleedittrans
 
-ConfirmedChoiceForSearch = ""
+ConfirmedChoiceForSearch = "" #Confirmed for choice for search is used to see whether or not the user has confirmed their choice for search. If they have, then it will be used to search for the item.
+
+keyCreatedChecker = False#For the key creation to see whether or not it has been created or not. If it is created, the checker stays false. Else if it is true, then it will continue to add the keys.
+#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 def TransactionSearch_ComboCallback(choice):
     global ConfirmedChoiceForSearch
     if choice == "Transaction ID":
@@ -210,7 +214,12 @@ def TransactionSearch_ComboCallback(choice):
 
 # Function to handle search
 def TransactionSearch(SearchEntry):
-    global ConfirmedChoiceForSearch, OutputTableScrollbarContent
+    global ConfirmedChoiceForSearch, OutputTableScrollbarContent, viewederror, ErrorBoolean
+
+    # Initialize viewederror if not already set
+    if 'viewederror' not in globals():
+        global viewederror
+        viewederror = 0
 
     try:
         # Base query with common transaction information
@@ -228,7 +237,7 @@ def TransactionSearch(SearchEntry):
             ,CASE 
                 WHEN t.transactiontype = 'Item' THEN i.InventoryId
                 WHEN t.transactiontype = 'Cash' THEN b.BalanceID
-            END as ID,
+            END as ID_inv_or_bal,
             CASE 
                 WHEN t.transactiontype = 'Item' THEN i.InventoryName
                 WHEN t.transactiontype = 'Cash' THEN 'Balance'
@@ -276,6 +285,7 @@ def TransactionSearch(SearchEntry):
                     params['search_value'] = search_date.strftime("%Y-%m-%d")
                 except ValueError:
                     if viewederror == 0:
+                        ErrorBoolean = True
                         ErrorLabel = CTkLabel(SearchRequestContent, text="Invalid date format. Use DD/MM/YYYY.", text_color="red")
                         ErrorLabel.place(x=50, y=3)
                         viewederror = 1
@@ -294,12 +304,12 @@ def TransactionSearch(SearchEntry):
             
             # Configure columns based on transaction type
             base_columns = ["TransID", "From", "To", "Date", "Type"]
-            detail_columns = ["ID", "Name_or_Amount", "Value_or_Date", "Inv_Type", "Status", "Branch"]
+            detail_columns = ["ID_inv_or_bal", "Name_or_Amount", "Value_or_Date", "Inv_Type", "Status", "Branch"]
             tree["columns"] = base_columns + detail_columns
 
             column_widths = {
                 "TransID": 70, "From": 100, "To": 100, "Date": 80, "Type": 60,
-                "ID": 70, "Name_or_Amount": 100, "Value_or_Date": 80, "Inv_Type": 80, 
+                "ID_inv_or_bal": 70, "Name_or_Amount": 100, "Value_or_Date": 80, "Inv_Type": 80, 
                 "Status": 70, "Branch": 70
             }
             
@@ -316,7 +326,7 @@ def TransactionSearch(SearchEntry):
                 tree.heading("Type", text="Type")
                 
                 # Set detail column headers based on transaction type
-                tree.heading("ID", text="ID")
+                tree.heading("ID_inv_or_bal", text="ID_inv_or_bal")
                 tree.heading("Name_or_Amount", text="Name/Balance")
                 tree.heading("Value_or_Date", text="Value/Amount")
                 tree.heading("Inv_Type", text="Type")
@@ -332,7 +342,7 @@ def TransactionSearch(SearchEntry):
             for row in rows:
                 tree.insert("", "end", values=row)
 
-            # Add scrollbars
+            # Add scrollbars 
             y_scrollbar = ttk.Scrollbar(OutputTableScrollbarContent, orient="vertical", command=tree.yview)
             x_scrollbar = ttk.Scrollbar(OutputTableScrollbarContent, orient="horizontal", command=tree.xview)
             tree.configure(yscrollcommand=y_scrollbar.set, xscrollcommand=x_scrollbar.set)
@@ -448,9 +458,9 @@ def clearcurrentmode ():
         except Exception as e:
             print(f"Error destroying Transaction_combobox and TransactionIDEdit: {e}")
         try:
-            if ErrorBoolean==True:
-                Error.destroy()
-                viewederror=0
+            if 'Error' in globals() and Error.winfo_exists():
+                Error.place_forget()
+                viewederror = 0
                 ErrorBoolean = False
         except Exception as e:
             print(f"Deletion Error not working. Error: {e}" )
@@ -487,6 +497,13 @@ def clearcurrentmode ():
     if TransDeleteExist:
         TransactionIDDelete.destroy()
         TransDeleteExist = False
+        try:
+            if 'Error' in globals() and Error.winfo_exists():
+                Error.place_forget()
+                viewederror = 0
+                ErrorBoolean = False
+        except Exception as e:
+            print(f"Deletion Error not working. Error: {e}" )      
 
     # Destroy the common input button if it exists
     try:
@@ -637,6 +654,7 @@ def handledeletetrans(TransactionIDDelete, deleteinputbutton):
         if exists:
             print("Item is deleted. Transaction =" + str(ItemToDelete))
             clearcurrentmode()
+            DeleteSQL(ItemToDelete)
         else:
             if viewederror == 0:
                 ErrorBoolean = True
@@ -649,6 +667,43 @@ def handledeletetrans(TransactionIDDelete, deleteinputbutton):
             Error = CTkLabel(OutputEditContent, text="Please enter correct field properly.", text_color="red", height=13)
             Error.place(x=200, y=3)
             viewederror = 1
+
+def DeleteSQL (ItemToDelete):
+    try:
+        cur.execute("""SELECT transactionTypeId FROM transactionTable WHERE transactionId = %s""", (ItemToDelete,))
+        transactionTypeId = cur.fetchone()[0]
+        cur.execute("""SELECT balanceid, inventoryid FROM transactionType WHERE transactionTypeId = %s""", (transactionTypeId,))
+        
+        result = cur.fetchone()
+        for i, id in enumerate(result):
+            print (i) #index to check if the index is 0, then it is balanceid, if it is 1, then it is inventoryid
+            print(id) #id to check if the id is 1, then thats the id that has an item. But if it doesnt have any, or if it is 0, then it means the item is empty.
+            if i == 0:
+                if id: #so if the index is 0 and the item has content then this will run
+                    balanceid = id
+                else: #if it doesnt, it makes sure that the item is empty.
+                    balanceid = None
+            elif i == 1:
+                if id:
+                    inventoryid = id
+                else:
+                    inventoryid = None
+        
+        #transaction table goes first, then transaction type, then balance, then inventory, so that it is in order
+        #by foreign key and deletion  
+        cur.execute("DELETE FROM transactionTable WHERE transactionId = %s", (ItemToDelete,))
+        cur.execute("DELETE FROM transactionType WHERE transactionTypeId = %s", (transactionTypeId,))
+       
+        if balanceid != None: #This is like said above, if the balance id is not empty, then balance id si deleted
+            cur.execute("DELETE FROM balance WHERE balanceid = %s", (balanceid,))
+        if inventoryid != None: #otherwise, if inventory is not empty, then inventory is deleted
+            cur.execute("DELETE FROM inventory WHERE inventoryid = %s", (inventoryid,))
+            
+        conn.commit()
+        print("Item has been deleted.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        conn.rollback()
 
 def callback(choice): #COMBO BOX FUNCTIONALITIES
     global enteronce, enteronceforcombo, inventorytypebox, diffvalue, typebox,  DateHolder, GoodsHolder,TransIDHolder, BranchHolder, TypeHolder, AmountHolder,InvTypHolder, typewaschecked
@@ -968,8 +1023,8 @@ def confirmyourchoice(choice, AddSearchBoxEnter):
             
             try:
                 # Try to convert the input to a datetime object using the desired format
-                datetime.strptime(DateHolder, "%d/%m/%Y")  # format: DD/MM/YYYY
-                Trans_DateFlag = True
+                datetime.strptime(DateHolder, "%Y/%m/%d")  # format: YYYY/MM/DD
+                Trans_DateFlag = True 
                 AddDateEntryBox.place_forget()
                 AddSearchBoxEnter.destroy()
                 try:
@@ -980,7 +1035,7 @@ def confirmyourchoice(choice, AddSearchBoxEnter):
                 Trans_DateFlag = False
                 if viewederror == 0:
                     ErrorBoolean = True
-                    Error = CTkLabel(OutputEditContent, text="Please Input Date Entry CORRECTLY.", text_color="red", height=13)
+                    Error = CTkLabel(OutputEditContent, text="Date format: YYYY/MM/DD.", text_color="red", height=13)
                     Error.place(x=200, y=3)
                     viewederror = 1
 
@@ -1307,6 +1362,7 @@ def get_random_integer(min_value, max_value):
 
 def transactionIDcreator():
     global PartyForHolder, PartyToHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder
+    global keyCreatedChecker
     ID = [] #trans id
     ITID=[] #inv typ id
     RID = [] #inventory generator
@@ -1338,8 +1394,30 @@ def transactionIDcreator():
         RID.append(RandInt)
     GoodsIDHolder = ''.join(RID)
     print(int(GoodsIDHolder))
-    transactionsql(mode, cur, TransIDHolder, TransTypeIDHolder, PartyForHolder, PartyToHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder)
-        
+
+    print("This worked")
+    cur.execute("""SELECT * FROM ALREADYCREATEDKEYS""")
+    results = cur.fetchall()
+    
+    print (results)
+    print("This too")
+    keyCreatedChecker = True
+    
+    for row in results:
+        if row[0] == TransIDHolder or row[1] == TransTypeIDHolder or row[2] == GoodsIDHolder:
+            print("Duplicate ID found")
+            keyCreatedChecker = False
+            break
+    
+    if keyCreatedChecker:
+        print("This ran!")
+        cur.execute("""INSERT INTO ALREADYCREATEDKEYS
+        VALUES (%s, %s, %s)""", (TransIDHolder, TransTypeIDHolder, GoodsIDHolder))
+        conn.commit()
+        return transactionsql(mode, cur, TransIDHolder, TransTypeIDHolder, PartyForHolder, PartyToHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder)
+
+    else:
+        return transactionIDcreator()  # Try again with new IDs
 
     
 def transactionsql(mode, cur, TransIDHolder, TransTypeIDHolder, PartyForHolder, PartyToHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder):
@@ -1423,9 +1501,9 @@ def transactionsql(mode, cur, TransIDHolder, TransTypeIDHolder, PartyForHolder, 
                         SET branchid = %(BranchId)s
                         WHERE balanceid = %(BalID)s
                     """, {'BranchId': BranchHolder, 'BalID': GoodsIDHolder})
-            
+                    
             if Trans_PartyFlag:
-                cur.execute("""
+                cur.execute(""" 
                     UPDATE transactionTable
                     SET transactorFrom = %(From)s, transactionTo = %(To)s
                     WHERE transactionId = %(TransID)s
@@ -1433,25 +1511,7 @@ def transactionsql(mode, cur, TransIDHolder, TransTypeIDHolder, PartyForHolder, 
             
             conn.commit()
             print("EDIT EXECUTED")
-        elif mode == "delete":
-            # Delete functionality
-            cur.execute("""
-                DELETE FROM transactionTable
-                WHERE transactionId = %(TransID)s
-            """, {'TransID': TransIDHolder})
-            
-            cur.execute("""
-                DELETE FROM Inventory
-                WHERE InventoryId = %(InvID)s
-            """, {'InvID': GoodsIDHolder})
-            
-            cur.execute("""
-                DELETE FROM balance
-                WHERE balanceid = %(BalID)s
-            """, {'BalID': GoodsIDHolder})
-            
-            conn.commit()
-            print("DELETE EXECUTED")
+        
     except Exception as e:
         print(f"An error occurred: {e}")
 
