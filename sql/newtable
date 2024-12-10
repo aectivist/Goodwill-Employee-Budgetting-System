@@ -1,6 +1,16 @@
 
 INSERT INTO goodwillBranch VALUES (0, 'none','none',0)
 
+
+
+CREATE TABLE goodwillBranch(
+BranchId int not null,
+branchName varchar (200) not null,
+branchAddress varchar(200) not null,
+branchPhoneNumber int,
+PRIMARY KEY (branchId)
+)
+
 CREATE TABLE Inventory(
 InventoryId int not null,
 InventoryName varchar(200) not null,
@@ -32,6 +42,16 @@ FOREIGN KEY (InventoryId) REFERENCES Inventory(InventoryId)
 )
 SELECT * FROM Inventory
 SELECT * FROM transactionTable
+
+
+CREATE TABLE transactionType (
+    transactionTypeId INT NOT NULL,
+    balanceID INT NOT NULL,
+    InventoryId INT NOT NULL,
+    PRIMARY KEY(transactionTypeId),
+    FOREIGN KEY(balanceID) REFERENCES balance(balanceID),
+    FOREIGN KEY(InventoryId) REFERENCES inventory(InventoryId)
+)
 
 DELETE FROM Inventory WHERE InventoryId = 494876
 

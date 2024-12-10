@@ -196,32 +196,40 @@ TrueInventoryIDFlag = False #Checks for EDIT PANEL if the GOODS and TYPE are int
 ConfirmedChoiceForSearch = "" #Confirmed for choice for search is used to see whether or not the user has confirmed their choice for search. If they have, then it will be used to search for the item.
 
 keyCreatedChecker = False#For the key creation to see whether or not it has been created or not. If it is created, the checker stays false. Else if it is true, then it will continue to add the keys.
+
+#FOR SEARCH
+ErrorLabelBoolean = False #NOTE: This is for the error label. If the error label is already set, then it will not be set again. This is to prevent multiple error labels from being set.
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 def TransactionSearch_ComboCallback(choice):
     global ConfirmedChoiceForSearch
-    if choice == "Transaction ID":
-        ConfirmedChoiceForSearch = "Transaction ID"
-    elif choice == "Transaction From":
-        ConfirmedChoiceForSearch = "Transaction From"
-    elif choice == "Transaction To":
-        ConfirmedChoiceForSearch = "Transaction To"
-    elif choice == "Date":
-        ConfirmedChoiceForSearch = "Date"
-    print("Search Combobox works")
-    print(choice)
-    print(ConfirmedChoiceForSearch)
+    
+    # Map choices to search types
+    search_types = {
+        "Transaction ID": "Transaction ID",
+        "Transaction From": "Transaction From", 
+        "Transaction To": "Transaction To",
+        "Date": "Date"
+    }
+    
+    # Update confirmed choice if valid
+    if choice in search_types:
+        ConfirmedChoiceForSearch = search_types[choice]
+        print(f"Search type set to: {ConfirmedChoiceForSearch}")
+    else:
+        print(f"Invalid search type: {choice}")
+        ConfirmedChoiceForSearch = "Transaction ID" # Default
 
-
-# Function to handle search
 def TransactionSearch(SearchEntry):
-    global ConfirmedChoiceForSearch, OutputTableScrollbarContent, viewederror, ErrorBoolean
-
-    # Initialize viewederror if not already set
-    if 'viewederror' not in globals():
-        global viewederror
-        viewederror = 0
-
+    global ConfirmedChoiceForSearch, OutputTableScrollbarContent
+    
+    # Clear previous results and errors
+    for widget in OutputTableScrollbarContent.winfo_children():
+        widget.destroy()
+    
     try:
+        search_value = SearchEntry.get().strip()
+        params = {}
+        
         # Base query with common transaction information
         base_query = """
         SELECT 
@@ -230,10 +238,6 @@ def TransactionSearch(SearchEntry):
             t.TransactionTo,
             t.TransactionDate,
             t.transactiontype
-        """
-
-        # Add type-specific fields and joins
-        query = base_query + """
             ,CASE 
                 WHEN t.transactiontype = 'Item' THEN i.InventoryId
                 WHEN t.transactiontype = 'Cash' THEN b.BalanceID
@@ -264,88 +268,58 @@ def TransactionSearch(SearchEntry):
         LEFT JOIN Balance b ON tt.BalanceId = b.BalanceId AND t.transactiontype = 'Cash'
         WHERE 1=1
         """
-
-        params = {}
         
-        # Add search conditions based on user selection
-        if SearchEntry.get():  # Only add condition if search entry is not empty
+        # Add search conditions based on user selection and input validation
+        if search_value:  # Only add condition if search entry is not empty
             if ConfirmedChoiceForSearch == "Transaction ID":
-                query += " AND t.TransactionId = %(search_value)s"
-                params['search_value'] = SearchEntry.get()
-            elif ConfirmedChoiceForSearch == "Transaction From":
-                query += " AND t.TransactorFrom ILIKE %(search_value)s"
-                params['search_value'] = f"%{SearchEntry.get()}%"
-            elif ConfirmedChoiceForSearch == "Transaction To":
-                query += " AND t.TransactionTo ILIKE %(search_value)s"
-                params['search_value'] = f"%{SearchEntry.get()}%"
+                if not search_value.isdigit():
+                    raise ValueError("Transaction ID must be a number")
+                base_query += " AND t.TransactionId = %(search_value)s"
+                params['search_value'] = int(search_value)
+                
+            elif ConfirmedChoiceForSearch in ["Transaction From", "Transaction To"]:
+                field = "t.TransactorFrom" if ConfirmedChoiceForSearch == "Transaction From" else "t.TransactionTo"
+                base_query += f" AND {field} ILIKE %(search_value)s"
+                params['search_value'] = f"%{search_value}%"
+                
             elif ConfirmedChoiceForSearch == "Date":
                 try:
-                    search_date = datetime.strptime(SearchEntry.get(), "%Y/%m/%d")
-                    query += " AND t.TransactionDate = %(search_value)s"
+                    search_date = datetime.strptime(search_value, "%Y/%m/%d")
+                    base_query += " AND t.TransactionDate = %(search_value)s"
                     params['search_value'] = search_date.strftime("%Y-%m-%d")
                 except ValueError:
-                    if viewederror == 0:
-                        ErrorBoolean = True                 
-                        ErrorLabel = CTkLabel(OutputTableScrollbarContent, text=f"Error: {e}", text_color="red")
-                        print(f"Error: {e}")
-                        ErrorLabel.grid()
-                    return
+                    raise ValueError("Date must be in YYYY/MM/DD format")
 
         # Execute query
-        cur.execute(query, params)
+        cur.execute(base_query, params)
         rows = cur.fetchall()
 
-        # Clear previous results
-        for widget in OutputTableScrollbarContent.winfo_children():
-            widget.destroy()
-
         if rows:
+            # Create and configure treeview
             tree = ttk.Treeview(OutputTableScrollbarContent, show="headings", height=10)
             
-            # Configure columns based on transaction type
-            base_columns = ["TransID", "From", "To", "Date", "Type"]
-            detail_columns = ["ID_inv_or_bal", "Name_or_Amount", "Value_or_Date", "Inv_Type", "Status", "Branch"]
-            tree["columns"] = base_columns + detail_columns
-
+            # Configure columns
+            columns = ["TransID", "From", "To", "Date", "Type", 
+                      "ID_inv_or_bal", "Name_or_Amount", "Value_or_Date", 
+                      "Inv_Type", "Status", "Branch"]
+            tree["columns"] = columns
+            
+            # Configure column widths and headers
             column_widths = {
                 "TransID": 70, "From": 100, "To": 100, "Date": 80, "Type": 60,
-                "ID_inv_or_bal": 70, "Name_or_Amount": 100, "Value_or_Date": 80, "Inv_Type": 80, 
-                "Status": 70, "Branch": 70
+                "ID_inv_or_bal": 70, "Name_or_Amount": 100, "Value_or_Date": 80,
+                "Inv_Type": 80, "Status": 70, "Branch": 70
             }
             
             for col, width in column_widths.items():
                 tree.column(col, width=width, anchor="center")
-                
-            if rows and len(rows) > 0:
-                transaction_type = rows[0][4] 
-                
-                tree.heading("TransID", text="Transaction ID")
-                tree.heading("From", text="From")
-                tree.heading("To", text="To")
-                tree.heading("Date", text="Date")
-                tree.heading("Type", text="Type")
-                
-                # Set detail column headers based on transaction type
-                tree.heading("ID_inv_or_bal", text="ID_inv_or_bal")
-                tree.heading("Name_or_Amount", text="Name/Balance")
-                tree.heading("Value_or_Date", text="Value/Amount")
-                tree.heading("Inv_Type", text="Type")
-                tree.heading("Status", text="Status")
-                tree.heading("Branch", text="Branch ID")
-                    
-                # Hide unused columns for Cash transactions
-                if transaction_type == 'Cash':
-                    tree.column("Inv_Type", width=0)
-                    tree.column("Status", width=0)
+                tree.heading(col, text=col)
 
             # Insert data
             for row in rows:
-                if len(row) >= 11:  # Adjust number based on expected columns
-                    tree.insert("", "end", values=row)
-                else:
-                    print(f"Warning: Row {row} has insufficient data")
+                tree.insert("", "end", values=row)
 
-            # Add scrollbars 
+            # Add scrollbars
             y_scrollbar = ttk.Scrollbar(OutputTableScrollbarContent, orient="vertical", command=tree.yview)
             x_scrollbar = ttk.Scrollbar(OutputTableScrollbarContent, orient="horizontal", command=tree.xview)
             tree.configure(yscrollcommand=y_scrollbar.set, xscrollcommand=x_scrollbar.set)
@@ -354,23 +328,27 @@ def TransactionSearch(SearchEntry):
             tree.grid(row=0, column=0, sticky="nsew")
             y_scrollbar.grid(row=0, column=1, sticky="ns")
             x_scrollbar.grid(row=1, column=0, sticky="ew")
-
+            
             OutputTableScrollbarContent.grid_rowconfigure(0, weight=1)
             OutputTableScrollbarContent.grid_columnconfigure(0, weight=1)
-
         else:
-            NoResultsLabel = CTkLabel(OutputTableScrollbarContent, text="No results found.", text_color="red")
-            NoResultsLabel.grid()
+            error_label = CTkLabel(OutputTableScrollbarContent, 
+                                 text="No results found", 
+                                 text_color="red")
+            error_label.grid(row=0, column=0, sticky="nsew")
 
-    except psycopg2.Error as e:
-        print(f"Database error: {e}")
-        ErrorLabel = CTkLabel(OutputTableScrollbarContent, text="Database error occurred.", text_color="red")
-        ErrorLabel.grid()
-
+    except ValueError as ve:
+        error_label = CTkLabel(OutputTableScrollbarContent, 
+                             text=str(ve), 
+                             text_color="red")
+        error_label.grid(row=0, column=0, sticky="nsew")
+        
     except Exception as e:
-        print(f"Unexpected error: {e}")
-        ErrorLabel = CTkLabel(OutputTableScrollbarContent, text="An error occurred while searching.", text_color="red")
-        ErrorLabel.grid()
+        error_label = CTkLabel(OutputTableScrollbarContent, 
+                             text=f"An error occurred: {str(e)}", 
+                             text_color="red")
+        error_label.grid(row=0, column=0, sticky="nsew")
+
 
 def outputContentGivenButtons(OutputEditContent, value): 
     global vieweditemflag, A_vieweditemflag, E_vieweditemflag, D_vieweditemflag, currentmode, mode
@@ -515,21 +493,18 @@ def clearcurrentmode ():
         pass  # Handle case where button isn't created yet
 
         
-    
-   
+
 def addmodeui():
     vieweditemflag = 1
     
     global TransAddExist, TransactionNameBoxFrom, TransactionNameBoxTo, Transaction_inputbutton, Transaction_combobox, sucessful_transaction 
-    global DateHolder, GoodsHolder, BranchHolder, TypeHolder, AmountHolder, PartyToHolder, PartyForHolder, StatusHolder, InvTypHolder,TransIDHolder
+    global DateHolder, GoodsHolder, BranchHolder, TypeHolder, AmountHolder, StatusHolder, InvTypHolder,TransIDHolder
     DateHolder=""
     GoodsHolder=""
     BranchHolder=""
     TypeHolder="Item"
     AmountHolder = "0"
     StatusHolder = "Bought"
-    PartyToHolder=""
-    PartyForHolder=""
     InvTypHolder="None"
 
     sucessful_transaction = False
@@ -581,28 +556,32 @@ def editmodeui():
     
     vieweditemflag = 1
     global TransEditExist, TransactionIDEdit, Transaction_combobox, Transaction_inputbutton, sucessful_transaction
-    global DateHolder, GoodsIDHolder, BranchHolder, TypeHolder, AmountHolder, PartyToHolder, PartyForHolder, StatusHolder, InvTypHolder,TransIDHolder
+    global DateHolder, GoodsIDHolder, BranchHolder, TypeHolder, AmountHolder, PartyToHolder, PartyForHolder, StatusHolder, InvTypHolder,TransIDHolder, GoodsHolder
     TransIDHolder=""
     DateHolder=""
-    GoodsIDHolder=""
-    BranchHolder=""
+    GoodsIDHolder=0 #just in case inv/bal is not selected, and it selects the 0 id within the database (which exists)
+    GoodsHolder="" #js adding so that it isnt left out (coz it goes balistic in transactionsql if it isnt used correctly)
+    BranchHolder=0
     TypeHolder="Item"
-    AmountHolder = "0"
+    AmountHolder = 0
     PartyToHolder=""
     PartyForHolder=""
     StatusHolder ="Bought"
     InvTypHolder="None"
-
+    
+    
     sucessful_transaction = False
 
     #All Flags
-    global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag, Trans_IDFlag, Trans_PartyFlag
+    global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag, Trans_IDFlag, Trans_PartyFlag, TransactionNameToFlag, TransactionNameForFlag
     Trans_DateFlag=False
     Trans_GoodsFlag=False
     Trans_TypeFlag=False
     Trans_BranchFlag=False
     Trans_IDFlag = False
     Trans_PartyFlag = False
+    TransactionNameToFlag = False
+    TransactionNameForFlag = False
     
     global StatusChecker
     StatusChecker=1 #Whether sold or bought ONLY IF the item is selected
@@ -880,9 +859,12 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
         
         print (enteronce)
         if enteronce > 1:
-            EditSearchBoxEnter.destroy()
+            try:
+                if EditSearchBoxEnter.winfo_exists():
+                    EditSearchBoxEnter.destroy()
+            except Exception as e:
+                print(f"Error destroying EditSearchBoxEnter: {e}")
             enteronce = 1
-            print (enteronce)
             
         
         if enteronce == 1:
@@ -890,23 +872,32 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
             EditSearchBoxEnter.place(x=190,y=82)
 
         if enteronceforcombo>1:
-            if diffvalue == 1:
-                EditDateEntryBox.destroy()
-            elif diffvalue == 2:
-                EditGoodsEntryBox.destroy()
-                inventorytypebox.destroy()
-            elif diffvalue == 3:
-                typebox.destroy()
-                amtinputEdit.destroy()
-                statusbox.destroy()
-            elif diffvalue == 4:
-                EditBranchEntryBox.destroy()
-            elif diffvalue == 5:
-                PartyToEntryBox.destroy()
-                PartyForEntryBox.destroy()
+            try:
+                if diffvalue == 1 and 'EditDateEntryBox' in globals() and EditDateEntryBox.winfo_exists():
+                    EditDateEntryBox.place_forget()
+                elif diffvalue == 2:
+                    if 'EditGoodsEntryBox' in globals() and EditGoodsEntryBox.winfo_exists():
+                        EditGoodsEntryBox.place_forget()
+                    if 'inventorytypebox' in globals() and inventorytypebox.winfo_exists():
+                        inventorytypebox.place_forget()
+                elif diffvalue == 3:
+                    if 'typebox' in globals() and typebox.winfo_exists():
+                        typebox.place_forget()
+                    if 'amtinputEdit' in globals() and amtinputEdit.winfo_exists():
+                        amtinputEdit.place_forget()
+                    if 'statusbox' in globals() and statusbox.winfo_exists():
+                        statusbox.place_forget()
+                elif diffvalue == 4 and 'EditBranchEntryBox' in globals() and EditBranchEntryBox.winfo_exists():
+                    EditBranchEntryBox.place_forget()
+                elif diffvalue == 5:
+                    if 'PartyToEntryBox' in globals() and PartyToEntryBox.winfo_exists():
+                        PartyToEntryBox.place_forget()
+                    if 'PartyForEntryBox' in globals() and PartyForEntryBox.winfo_exists():
+                        PartyForEntryBox.place_forget()
+            except Exception as e:
+                print(f"Error cleaning up widgets: {e}")
 
             enteronceforcombo = 1
-            print (enteronceforcombo)
 
         if enteronceforcombo == 1:
             if choice == "Date": #For DATE
@@ -923,12 +914,18 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 EditGoodsEntryBox.place(x=120, y = 53)
                 EditGoodsEntryBox.configure(state="normal")
                 EditGoodsEntryBox.insert(0,GoodsIDHolder)
-                
-                inventorytypeVal = StringVar(value="None")
-                inventorytypebox = CTkComboBox(OutputEditContent, values=["None", "Liability","Asset"], command=boolforinvtypcheck, variable=inventorytypeVal, height = 27, corner_radius=1, width=180) #whether none asset or liability 
-                inventorytypebox.place(x=5, y = 82)
-                inventorytypebox.set(InvTypHolder)
-                inventorytypebox.configure(state="readonly")
+
+                if TypeHolder == "Item":
+                    inventorytypeVal = StringVar(value="None")
+                    inventorytypebox = CTkComboBox(OutputEditContent, values=["None", "Liability","Asset"], command=boolforinvtypcheck, variable=inventorytypeVal, height = 27, corner_radius=1, width=180) #whether none asset or liability 
+                    inventorytypebox.place(x=5, y = 82)
+                    inventorytypebox.set(InvTypHolder)
+                    inventorytypebox.configure(state="readonly")
+                else:
+                    try:
+                        inventorytypebox.place_forget()
+                    except Exception as e:
+                        print("inventorytypebox does not exist")
                 
             elif choice == "Type": #for TYPE
                 diffvalue = 3
@@ -974,17 +971,17 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
         
         
             
-        if BranchHolder == "" or DateHolder == "" or GoodsIDHolder == "" or AmountHolder == "" or PartyForHolder == "" or PartyToHolder == "": #if blank is empty, then delete items in it
+        if BranchHolder == 0 or DateHolder == "" or GoodsIDHolder == 0 or AmountHolder == 0 or PartyForHolder == "" or PartyToHolder == "": #if blank is empty, then delete items in it
             if DateHolder ==""and diffvalue == 1:
                 EditDateEntryBox.delete(0, END)
                 EditDateEntryBox.configure(placeholder_text="Date of Transaction")
-            elif GoodsIDHolder ==""and diffvalue == 2:
+            elif GoodsIDHolder ==0 and diffvalue == 2:
                 EditGoodsEntryBox.delete(0, END)
                 EditGoodsEntryBox.configure(placeholder_text="Inventory/Balance ID")
             elif TypeHolder == ""and diffvalue == 3:
                 amtinputEdit.delete(0, END)
                 amtinputEdit.configure(placeholder_text="Amount")
-            elif BranchHolder == "" and diffvalue == 4:
+            elif BranchHolder == 0 and diffvalue == 4:
                 EditBranchEntryBox.delete(0, END)
                 EditBranchEntryBox.configure(placeholder_text="Branch Id")
             elif diffvalue == 5:
@@ -1018,11 +1015,11 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
 
 def confirmyourchoice(choice, AddSearchBoxEnter):
     global DateHolder, GoodsHolder, BranchHolder, TypeChecker, TypeHolder, typebox, AmountHolder
-    global TransIDHolder, PartyForHolder, InvTypHolder, PartyToHolder, Trans_PartyFlag, StatusHolder, StatusChecker
-    global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag, Trans_IDFlag
+    global TransIDHolder, PartyForHolder, InvTypHolder, PartyToHolder, Trans_PartyFlag, StatusHolder, StatusChecker, GoodsIDHolder
+    global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag, Trans_IDFlag, TransactionNameToFlag, TransactionNameForFlag
     global ErrorBoolean, Error, viewederror, amountedit
     
-    if mode == "add":
+    if mode == "add": #ADD=========================================================#####################################################
         if choice == "Date":  # DATE ----------
             DateHolder = AddDateEntryBox.get()
             
@@ -1037,12 +1034,13 @@ def confirmyourchoice(choice, AddSearchBoxEnter):
                 except Exception as e:
                     print("Error does not exist")
             except ValueError:
-                Trans_DateFlag = False
                 if viewederror == 0:
+                    Trans_DateFlag = False
                     ErrorBoolean = True
-                    Error = CTkLabel(OutputTableScrollbarContent, text="Date format: YYYY/MM/DD.", text_color="red", height=13)
-                    Error.place()
+                    Error = CTkLabel(OutputEditContent, text="Date format: YYYY/MM/DD.", text_color="red", height=13)
+                    Error.place(x=200, y=3)
                     viewederror = 1
+                    
 
         elif choice == "Object Name":  # GOODS ---------
             if TypeChecker:
@@ -1070,49 +1068,176 @@ def confirmyourchoice(choice, AddSearchBoxEnter):
                 pass
             AddSearchBoxEnter.destroy()
 
-        elif choice == "Branch ID":  # BRANCH ------
-            BranchHolder = AddBranchEntryBox.get()
-            AddBranchEntryBox.place_forget()
-            Trans_BranchFlag = True
-            AddSearchBoxEnter.destroy()
-
-    elif mode == "edit":
-        EditSearchBoxEnter.destroy()
-        if choice == "Date" and EditDateEntryBox.get():
+        elif choice == "Branch ID":
+            if AddBranchEntryBox.get() == '':
+                show_error_message("Please enter a branch ID")
+                show_error_message("Invalid Branch ID")
+            else:
+                BranchHolder = AddBranchEntryBox.get()
+            
+            if BranchHolder:
+                cur.execute("""
+                    SELECT EXISTS(
+                        SELECT 1 FROM goodwillBranch 
+                        WHERE branchId = %(branchId)s
+                    )
+                """, {'branchId': BranchHolder})
+                branch_exists = cur.fetchone()[0]
+                
+                if branch_exists:
+                    try:
+                        AddBranchEntryBox.place_forget()
+                        Trans_BranchFlag = True
+                        AddSearchBoxEnter.destroy()
+                        # Commit the transaction if successful
+                        cur.execute("COMMIT")
+                        try:
+                            Error.destroy()
+                        except Exception as e:
+                            print("Error does not exist")
+                    except Exception as e:
+                        # Rollback on error
+                        cur.execute("ROLLBACK")
+                        show_error_message(f"Transaction failed: {str(e)}")
+                else:
+                    # Rollback if branch doesn't exist
+                    cur.execute("ROLLBACK")
+                    show_error_message("Invalid Branch ID")
+ 
+    elif mode == "edit": #EDIT=========================================================#####################################################
+        if choice == "Date":
+            DateHolder = EditDateEntryBox.get()
             try:
                 # Try to convert the input to a datetime object using the desired format
                 datetime.strptime(DateHolder, "%Y/%m/%d")  # format: YYYY/MM/DD
                 Trans_DateFlag = True 
-                EditDateEntryBox.place_forget()
                 EditSearchBoxEnter.destroy()
                 try:
                     Error.destroy()
                 except Exception as e:
                     print("Error does not exist")
             except ValueError:
-                Trans_DateFlag = False
                 if viewederror == 0:
+                    Trans_DateFlag = False
                     ErrorBoolean = True
                     Error = CTkLabel(OutputEditContent, text="Date format: YYYY/MM/DD.", text_color="red", height=13)
                     Error.place(x=200, y=3)
                     viewederror = 1
             
-        elif choice == "Inventory/Balance ID" and EditGoodsEntryBox.get():
-            GoodsIDHolder = EditGoodsEntryBox.get()
-            Trans_GoodsFlag = True
-            EditGoodsEntryBox.configure(state="readonly")
+        elif choice == "Inventory/Balance ID" :
+            if EditGoodsEntryBox.get() == '':
+                show_error_message("Please enter an inventory/balance ID")
+                show_error_message("Invalid Inventory/Balance ID")
+                print("Invalid!!!")
+            else:
+                try: #adding this for the above, in case the error message exists
+                    Error.destroy()
+                except Exception as e:
+                    print("Error does not exist")
+                GoodsIDHolder = EditGoodsEntryBox.get()
+                if TypeChecker == True:
+                    cur.execute("""
+                            SELECT EXISTS(
+                                SELECT 1 FROM transactionType 
+                                WHERE inventoryid = %(inventoryid)s
+                            )
+                        """, {'inventoryid': GoodsIDHolder})
+                    goods_exists = cur.fetchone()[0]
+                        
+                    if goods_exists:
+                        try:
+                            GoodsIDHolder = EditGoodsEntryBox.get()
+                            InvTypHolder = inventorytypebox.get()
+                            Trans_GoodsFlag = True
+                            EditGoodsEntryBox.configure(state="readonly")        
+                            EditSearchBoxEnter.destroy()
+                            try:
+                                Error.destroy()
+                            except Exception as e:
+                                print("Error does not exist")
+                        except Exception as e:
+                            # Rollback on error
+                            cur.execute("ROLLBACK")
+                            show_error_message(f"Transaction failed: {str(e)}")
+                    else:
+                        GoodsIDHolder = 0
+                        # Rollback if branch doesn't exist
+                        cur.execute("ROLLBACK")
+                        show_error_message("Invalid Inventory/Balance ID")
+                elif TypeChecker == False:
+                    GoodsIDHolder = EditGoodsEntryBox.get()
+                    cur.execute("""
+                            SELECT EXISTS(
+                                SELECT 1 FROM transactionType 
+                                WHERE balanceid = %(balanceid)s
+                            )
+                        """, {'balanceid': GoodsIDHolder})
+                    goods_exists = cur.fetchone()[0]
+                        
+                    if goods_exists:
+                        try:
+                            GoodsIDHolder = EditGoodsEntryBox.get()
+                            Trans_GoodsFlag = True
+                            EditGoodsEntryBox.configure(state="readonly")        
+                            EditSearchBoxEnter.destroy()
+                            try:
+                                Error.destroy()
+                            except Exception as e:
+                                print("Error does not exist")
+                        except Exception as e:
+                            # Rollback on error
+                            cur.execute("ROLLBACK")
+                            show_error_message(f"Transaction failed: {str(e)}")
+                    else:
+                        GoodsIDHolder = 0
+                        # Rollback if branch doesn't exist
+                        cur.execute("ROLLBACK")
+                        show_error_message("Invalid Inventory/Balance ID")
+                
+        elif choice == "Branch ID":
+            if EditBranchEntryBox.get() == '':
+                show_error_message("Please enter a branch ID")
+                show_error_message("Invalid Branch ID")
+            else:
+                BranchHolder = EditBranchEntryBox.get()
             
-        elif choice == "Branch ID" and EditBranchEntryBox.get():
-            BranchHolder = EditBranchEntryBox.get()
-            Trans_BranchFlag = True
-            EditBranchEntryBox.configure(state="readonly")
+            if BranchHolder:
+                cur.execute("""
+                    SELECT EXISTS(
+                        SELECT 1 FROM goodwillBranch 
+                        WHERE branchId = %(branchId)s
+                    )
+                """, {'branchId': BranchHolder})
+                branch_exists = cur.fetchone()[0]
+                
+                if branch_exists:
+                    try:
+                        BranchHolder = EditBranchEntryBox.get()
+                        Trans_BranchFlag = True
+                        EditBranchEntryBox.configure(state="readonly")
+                        # Commit the transaction if successful
+                        cur.execute("COMMIT")
+                        try:
+                            Error.destroy()
+                        except Exception as e:
+                            print("Error does not exist")
+                    except Exception as e:
+                        # Rollback on error
+                        cur.execute("ROLLBACK")
+                        show_error_message(f"Transaction failed: {str(e)}")
+                else:
+                    # Rollback if branch doesn't exist
+                    cur.execute("ROLLBACK")
+                    show_error_message("Invalid Branch ID")
 
-        elif choice == "Type" and TypeHolder:
+        elif choice == "Type":
             TypeHolder = "Item" if TypeChecker else "Cash"
             StatusHolder = {1: "Bought", 2: "Sold", 3: "Donation"}.get(StatusChecker, "Bought")
             Trans_TypeFlag = True
             AmountHolder = amtinputEdit.get()
             amtinputEdit.configure(state="readonly")
+            EditSearchBoxEnter.destroy()
+            
             
         elif choice == "Parties":
             if PartyForEntryBox.get() and PartyToEntryBox.get():
@@ -1121,6 +1246,7 @@ def confirmyourchoice(choice, AddSearchBoxEnter):
                 PartyForEntryBox.configure(state="readonly")
                 PartyToEntryBox.configure(state="readonly")
                 Trans_PartyFlag = True
+                EditSearchBoxEnter.destroy()
 
 def handleaddtrans():
     global ErrorBoolean, Error, viewederror, amountedit
@@ -1180,29 +1306,188 @@ def handleaddtrans():
     else:
         show_error_message("Please enter transaction parties")
 
+
+
+
+
+
+
+
+
+
+
+
+def handleedittrans():
+    global ErrorBoolean, Error, viewederror, amountedit
+    global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag, Trans_IDFlag, Trans_PartyFlag, amountedit, diffvalue
+    global amountedit, ErrorBoolean, Error, viewederror, sucessful_transaction, Transaction_inputbutton, TrueInventoryIDFlag,TransactionNameToFlag, TransactionNameForFlag
+    global DateHolder, GoodsIDHolder, TransIDHolder, BranchHolder, TypeHolder, AmountHolder, InvTypHolder, StatusHolder, PartyForHolder, PartyToHolder, GoodsHolder
+    if TransactionIDEdit.get() != "":  # Ensure Transaction ID is provided MAINLY------------------------
+        try: #Try basically checks if the transaction ID exists in the database
+            cur.execute("""SELECT EXISTS(SELECT 1 FROM transactionTable WHERE transactionId = %s)""", (TransactionIDEdit.get(),))
+            result = cur.fetchone()
+            if result and result[0]:  # Check both result exists and its value
+                Trans_IDFlag = True
+                TransIDHolder = TransactionIDEdit.get()
+            else:
+                Trans_IDFlag = False
+                show_error_message("Transaction ID does not exist.")
+        except Exception as e: #If there is an error, then it'll print the below
+            show_error_message(f"Database error: {str(e)}")
+
+        if diffvalue == 3: #to check if amount holder is a number
+            if AmountHolder.isnumeric() and Trans_TypeFlag:
+                amountedit = True #NOTE: MAKE SURE TO RUN AN ERROR FUNCTION IF THE AMOUNT IS NOT A NUMBER 111111111111111111e4i21u4u12y4812g
+            else:
+                show_error_message("Please input a valid amount")
+
+    elif viewederror == 0: #If there is no error, but the id section is empty, then it'll print the below
+        print("Please Input the id entry.")
+        ErrorBoolean = True
+        Error = CTkLabel(OutputEditContent, text="Please Input the transaction entry.", text_color="red", height=13)
+        Error.place(x=200, y=3)
+        viewederror = 1
+        print(viewederror) #-------------------------------
+            
+    if Trans_DateFlag or Trans_GoodsFlag or Trans_TypeFlag or Trans_BranchFlag or TransactionNameToFlag or TransactionNameForFlag:
+        if Trans_GoodsFlag and Trans_TypeFlag: #INVENTORY CHANGER
+            if TypeChecker == True: #If the type checker is true, or if it is an item, then it'll check the inventory id
+                cur.execute("""SELECT EXISTS(SELECT 1 FROM transactionType WHERE inventoryid = %s)""", (GoodsIDHolder,))
+                result = cur.fetchone()
+                if result and result[0]:
+                    TrueInventoryIDFlag = True
+                else:
+                    TrueInventoryIDFlag = False 
+                    if viewederror == 0:
+                        print("Please Input the correct entries.")
+                        ErrorBoolean = True
+                        Error = CTkLabel(OutputEditContent, text="Please fill the correct Inv/Bal ID.", text_color="red", height=13)
+                        Error.place(x=120, y=3)
+                        viewederror = 1
+                        print(viewederror)
+            elif TypeChecker == False: #If the type checker is false, or if it is cash, then it'll check the balance id
+                cur.execute("""SELECT EXISTS(SELECT 1 FROM transactionType WHERE balanceid = %s)""", (GoodsIDHolder,))
+                result = cur.fetchone()
+                if result and result[0]:
+                    TrueInventoryIDFlag = True
+                else:
+                    TrueInventoryIDFlag = False
+                    if viewederror == 0:
+                        print("Please Input the correct entries.")
+                        ErrorBoolean = True
+                        Error = CTkLabel(OutputEditContent, text="Please fill the correct Inv/Bal ID.", text_color="red", height=13)
+                        Error.place(x=120, y=3)
+                        viewederror = 1
+                        print(viewederror)
+        else: #If the inventory flag is false, then it'll print the below
+            TrueInventoryIDFlag = False
+            if viewederror == 0:
+                    print("Please Input the correct entries.")
+                    ErrorBoolean = True
+                    Error = CTkLabel(OutputEditContent, text="Please fill both Inv/Bal ID and Type.", text_color="red", height=13)
+                    Error.place(x=120, y=3)
+                    viewederror = 1
+                    print(viewederror)
+
+        if PartyForHolder and PartyToHolder: #make error checker
+            Trans_PartyFlag = True
+
+    print(f"Date= {Trans_DateFlag}, Inventory= {TrueInventoryIDFlag}, Type= {Trans_TypeFlag}, Branch= {Trans_BranchFlag}, Party= {Trans_PartyFlag}")
+
+    if diffvalue > 0:
+        if Trans_IDFlag and (Trans_DateFlag or TrueInventoryIDFlag or Trans_BranchFlag or Trans_PartyFlag):  # Ensure at least one other flag is set
+            print("Successfully Submitted.")
+            print(f"TransactionID: {TransIDHolder}")
+            if Trans_DateFlag:
+                print(f"Date: {DateHolder}")
+            if TrueInventoryIDFlag:
+                print(f"Goods: {GoodsIDHolder}")
+                print(f"Inventory Type: {InvTypHolder}")
+            if Trans_TypeFlag:
+                print(f"Type: {TypeHolder}")
+                print(f"Amount of type: {AmountHolder}")
+                print(f"Good status: {StatusHolder}")
+            if Trans_BranchFlag:
+                print(f"Branch ID: {BranchHolder}")
+            if Trans_PartyFlag:
+                print(f"Party For: {PartyForHolder}")
+                print(f"Party To: {PartyToHolder}")
+            
+            transactionIDcreator()
+
+            if Transaction_inputbutton.winfo_exists():
+                Transaction_inputbutton.destroy()
+            try:
+                TransactionIDEdit.place_forget()
+                Transaction_combobox.destroy()
+            except Exception as e:
+                print(f"Error destroying Transaction_combobox and TransactionIDEdit: {e}")
+
+            try:
+                try:
+                    for widget in [Transaction_inputbutton,EditSearchBoxEnter]:
+                        if widget.winfo_exists():
+                            widget.place_forget()
+                    if diffvalue == 1:
+                        EditDateEntryBox.place_forget()
+                    elif diffvalue == 2:
+                        EditGoodsEntryBox.place_forget()
+                    elif diffvalue==3:
+                        typebox.place_forget()
+                        amtinputEdit.place_forget()
+                    elif diffvalue==4:
+                        EditBranchEntryBox.place_forget()
+                    elif diffvalue==5:
+                        PartyToEntryBox.place_forget()
+                        PartyForEntryBox.place_forget()
+                    try:
+                        inventorytypebox.place_forget()
+                    except Exception as e:
+                        print("inventorytypebox does not exist")
+                    statusbox.place_forget()
+                except Exception as e:
+                    print(f"Error destroying widgets: {e}")
+            except Exception as e:
+                print(f"ERROR:{e}")
+
+        else:  # Print an error
+            if viewederror == 0:
+                print("Please Input the correct entries.")
+                ErrorBoolean = True
+                Error = CTkLabel(OutputEditContent, text="Please Input the correct entries.", text_color="red", height=13)
+                Error.place(x=200, y=3)
+                viewederror = 1
+                print(viewederror)
+
+    else:  # Print an error
+        if viewederror == 0:
+            print("Please Input an entry.")
+            ErrorBoolean = True
+            Error = CTkLabel(OutputEditContent, text="Please Input an entry.", text_color="red", height=13)
+            Error.place(x=200, y=3)
+            viewederror = 1
+            print(viewederror)
+
+
 def clear_ui_elements():
     global viewederror, ErrorBoolean
-    
-    # Clear main transaction fields
-    for widget in [TransactionNameBoxTo, TransactionNameBoxFrom, 
-                  Transaction_combobox, Transaction_inputbutton]:
-        widget.place_forget()
-    
-    # Clear entry fields based on type
-    for widget in [AddBranchEntryBox, AddDateEntryBox, 
-                  AddGoodsEntryBox, typebox, amtinput]:
-        try:
+    if mode == "add":
+        # Clear main transaction fields
+        for widget in [TransactionNameBoxTo, TransactionNameBoxFrom, 
+                    Transaction_combobox, Transaction_inputbutton]:
             widget.place_forget()
-        except Exception:
-            pass
-            
-    # Clear optional widgets
-    try:
-        inventorytypebox.place_forget()
-        statusbox.place_forget()
-    except Exception:
-        pass
-
+        
+        # Clear entry fields based on type
+        for widget in [AddBranchEntryBox, AddDateEntryBox, 
+                    AddGoodsEntryBox, typebox, amtinput]:
+            try:
+                widget.place_forget()
+            except Exception:
+                pass
+                
+        # Clear optional widgets
+        
+    
     # Clear any error messages
     if 'Error' in globals() and Error.winfo_exists():
         Error.place_forget()
@@ -1231,128 +1516,6 @@ def show_error_message(message):
         )
         Error.place(x=200, y=3)
         viewederror = 1
-
-def handleedittrans():
-    global ErrorBoolean, Error, viewederror, amountedit
-    global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag, Trans_IDFlag, Trans_PartyFlag, amountedit, diffvalue
-    global amountedit, ErrorBoolean, Error, viewederror, sucessful_transaction, Transaction_inputbutton, TrueInventoryIDFlag 
-
-    if TransactionIDEdit.get() != "":  # Ensure Transaction ID is provided MAINLY------------------------
-        try: #Try basically checks if the transaction ID exists in the database
-            cur.execute("""SELECT EXISTS(SELECT 1 FROM transactionTable WHERE transactionId = %s)""", (TransactionIDEdit.get(),))
-            result = cur.fetchone()
-            if result and result[0]:  # Check both result exists and its value
-                Trans_IDFlag = True
-                TransIDHolder = TransactionIDEdit.get()
-            else:
-                show_error_message("Transaction ID does not exist.")
-        except Exception as e: #If there is an error, then it'll print the below
-            show_error_message(f"Database error: {str(e)}")
-    elif viewederror == 0: #If there is no error, but the id section is empty, then it'll print the below
-        print("Please Input the id entry.")
-        ErrorBoolean = True
-        Error = CTkLabel(OutputEditContent, text="Please Input the transaction entry.", text_color="red", height=13)
-        Error.place(x=200, y=3)
-        viewederror = 1
-        print(viewederror) #-------------------------------
-            
-    if diffvalue == 3: #to check if amount holder is a number
-        if AmountHolder.isnumeric() and Trans_TypeFlag:
-            amountedit = True #NOTE: MAKE SURE TO RUN AN ERROR FUNCTION IF THE AMOUNT IS NOT A NUMBER 111111111111111111e4i21u4u12y4812g
-    
-    
-    
-
-    if Trans_GoodsFlag and Trans_TypeFlag: #INVENTORY CHANGER
-        TrueInventoryIDFlag = True
-    else:
-        TrueInventoryIDFlag = False
-        if viewederror == 0:
-                print("Please Input the correct entries.")
-                ErrorBoolean = True
-                Error = CTkLabel(OutputEditContent, text="Please fill both Inv ID and Type.", text_color="red", height=13)
-                Error.place(x=200, y=3)
-                viewederror = 1
-                print(viewederror)
-
-    if PartyForHolder and PartyToHolder:
-        Trans_PartyFlag = True
-
-    print(f"Date= {Trans_DateFlag}, Inventory= {TrueInventoryIDFlag}, Type= {Trans_TypeFlag}, Branch= {Trans_BranchFlag}, Party= {Trans_PartyFlag}")
-
-    if diffvalue > 0:
-        if Trans_IDFlag and (Trans_DateFlag or TrueInventoryIDFlag or Trans_BranchFlag or Trans_PartyFlag):  # Ensure at least one other flag is set
-            print("Successfully Submitted.")
-            print(f"TransactionID: {TransIDHolder}")
-            print(f"Date: {DateHolder}")
-            print(f"Goods: {GoodsIDHolder}")
-            print(f"Inventory Type: {InvTypHolder}")
-            print(f"Branch ID: {BranchHolder}")
-            print(f"Type: {TypeHolder}")
-            print(f"Amount of type: {AmountHolder}")
-            print(f"Good status: {StatusHolder}")
-
-            if ErrorBoolean:
-                Error.destroy()
-                viewederror = 0
-                ErrorBoolean = False
-            sucessful_transaction = True
-
-            if Transaction_inputbutton.winfo_exists():
-                Transaction_inputbutton.destroy()
-            try:
-                TransactionIDEdit.place_forget()
-                Transaction_combobox.destroy()
-            except Exception as e:
-                print(f"Error destroying Transaction_combobox and TransactionIDEdit: {e}")
-
-            try:
-                if diffvalue == 0:
-                    print("Has not used combobox yet")
-                elif diffvalue == 1:
-                    EditDateEntryBox.place_forget()
-                elif diffvalue == 2:
-                    EditGoodsEntryBox.place_forget()
-                    try:
-                        inventorytypebox.place_forget()
-                    except Exception as e:
-                        print("inventorytypebox does not exist")
-                elif diffvalue == 3:
-                    typebox.place_forget()
-                    amtinputEdit.place_forget()
-                    try:
-                        statusbox.place_forget()
-                    except Exception as e:
-                        print("Already destroyed.")
-                elif diffvalue == 4:
-                    EditBranchEntryBox.place_forget()
-                elif diffvalue == 5:
-                    PartyToEntryBox.place_forget()
-                    PartyForEntryBox.place_forget()
-                if diffvalue > 0:
-                    EditSearchBoxEnter.place_forget()
-                if ErrorBoolean:
-                    Error.destroy()
-            except Exception as e:
-                print("ERROR")
-
-        else:  # Print an error
-            if viewederror == 0:
-                print("Please Input the correct entries.")
-                ErrorBoolean = True
-                Error = CTkLabel(OutputEditContent, text="Please Input the correct entries.", text_color="red", height=13)
-                Error.place(x=200, y=3)
-                viewederror = 1
-                print(viewederror)
-
-    else:  # Print an error
-        if viewederror == 0:
-            print("Please Input an entry.")
-            ErrorBoolean = True
-            Error = CTkLabel(OutputEditContent, text="Please Input an entry.", text_color="red", height=13)
-            Error.place(x=200, y=3)
-            viewederror = 1
-            print(viewederror)
 
 #FOR CHECKING WHETHER DESIRED TRANSACTION ITEM IS CASH OR AN ITEM~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 def boolfortypecheck(choice):
@@ -1409,92 +1572,99 @@ def get_random_integer(min_value, max_value):
 def transactionIDcreator():
     global PartyForHolder, PartyToHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder
     global keyCreatedChecker
-    ID = [] #trans id
-    ITID=[] #inv typ id
-    RID = [] #inventory generator
+    InvBalIDHolder = ""
+    GenTransID = ""
+    if mode == "add": #To ensure that ID generation happens for ONLY add functions
+        ID = [] #trans id
+        RID = [] #goods generator (inv or bal)
 
-    idCharLimit = 5 #Transaction ID generator
-    while idCharLimit >=0: 
-        I= get_random_integer(0, 9)
-        RandInt = str(I)
-        idCharLimit =idCharLimit-1
-        ID.append(RandInt)
-    TransIDHolder = ''.join(ID)
-    print(int(TransIDHolder))
+        idCharLimit = 5 #Transaction ID generator
+        while idCharLimit >=0: 
+            I= get_random_integer(0, 9)
+            RandInt = str(I)
+            idCharLimit =idCharLimit-1
+            ID.append(RandInt)
+        GenTransID = ''.join(ID)
+        print(int(GenTransID))
 
-  
-    idCharLimit2=5
-    while idCharLimit2 >=0: #Goods ID generator
-        N= get_random_integer(0, 9)
-        idCharLimit2 =idCharLimit2-1
-        RandInt = str(N)
-        RID.append(RandInt)
-    GoodsIDHolder = ''.join(RID)
-    print(int(GoodsIDHolder))
-
-    print("This worked")
-    cur.execute("""SELECT * FROM ALREADYCREATEDKEYS""")
-    results = cur.fetchall()
     
-    print (results)
-    print("This too")
-    if not results:  # Check if results is empty
-        keyCreatedChecker = True
+        idCharLimit2=5
+        while idCharLimit2 >=0: #Goods ID generator
+            N= get_random_integer(0, 9)
+            idCharLimit2 =idCharLimit2-1
+            RandInt = str(N)
+            RID.append(RandInt)
+        InvBalIDHolder = ''.join(RID)
+        print(int(InvBalIDHolder))
+
+        print("This worked")
+        cur.execute("""SELECT * FROM ALREADYCREATEDKEYS""")
+        results = cur.fetchall()
+        
+        print (results)
+        print("This too")
+        if not results:  # Check if results is empty
+            keyCreatedChecker = True
+        else:
+            for row in results:
+                if len(row) < 3:  # Check if row has enough elements
+                    print("Invalid row in ALREADYCREATEDKEYS")
+                    keyCreatedChecker = True
+                    continue
+                if row[1] == GenTransID or row[2] == InvBalIDHolder:  # Check if the generated IDs already exist
+                    keyCreatedChecker = False
+                    break
+        
+        if keyCreatedChecker:
+            print("This ran!")
+            cur.execute("""INSERT INTO ALREADYCREATEDKEYS (keyId_T, keyId_IorB)
+            VALUES (%s, %s)""", (GenTransID, InvBalIDHolder))
+            conn.commit()
+            return transactionsql(mode, cur, GenTransID, InvBalIDHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder)
+
+        else:
+            return transactionIDcreator()  # Try again with new IDs
     else:
-        for row in results:
-            if len(row) < 3:  # Check if row has enough elements
-                print("Invalid row in ALREADYCREATEDKEYS")
-                keyCreatedChecker = True
-                continue
-            if row[1] == TransIDHolder or row[2] == GoodsIDHolder:
-                keyCreatedChecker = False
-                break
+        return transactionsql(mode, cur, GenTransID, InvBalIDHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder)
     
-    if keyCreatedChecker:
-        print("This ran!")
-        cur.execute("""INSERT INTO ALREADYCREATEDKEYS (keyId_T, keyId_IorB)
-        VALUES (%s, %s)""", (TransIDHolder, GoodsIDHolder))
-        conn.commit()
-        return transactionsql(mode, cur, TransIDHolder, PartyForHolder, PartyToHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder)
-
-    else:
-        return transactionIDcreator()  # Try again with new IDs
-
-    
-def transactionsql(mode, cur, TransIDHolder, PartyForHolder, PartyToHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder):
+def transactionsql(mode, cur, GenTransID,  GoodsIDHolder, InvBalIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder):
+    global PartyForHolder, PartyToHolder
     global TransactorFromHolder, TransactorToHolder
-    TransTypeIDHolder = GoodsIDHolder
+    TransTypeIDHolder = InvBalIDHolder
     
+    if GoodsIDHolder == "":
+        GoodsIDHolder = 0
+        print("Inv ID: " + str(GoodsIDHolder))
     try:
         if mode == "add":
-            if TypeHolder == "Item":    #IF THE TRANSACTION CONTAINS AN ITEM, THEN:
+            if TypeHolder == "Item": 
                 cur.execute("""
                 INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus) 
                 VALUES (%(InvID)s, %(InvName)s, %(Value)s, %(InvTyp)s, %(BranchId)s, %(Status)s)
-                """, {'InvID': GoodsIDHolder, 'InvName': GoodsHolder, 'Value': AmountHolder, 
+                """, {'InvID': InvBalIDHolder, 'InvName': GoodsHolder, 'Value': AmountHolder, 
                   'InvTyp': InvTypHolder, 'BranchId': BranchHolder, 'Status': StatusHolder}) #INVENTORY-
                 
                 cur.execute("""
                     INSERT INTO transactionType (transactionTypeId, balanceID, InventoryId)
-                    VALUES (%(transTypeId)s, 0, %(InvID)s)""", {"transTypeId":TransTypeIDHolder,"InvID":GoodsIDHolder}) #TRANSACTION TYPE--
+                    VALUES (%(transTypeId)s, 0, %(InvID)s)""", {"transTypeId":TransTypeIDHolder, "InvID":InvBalIDHolder}) #TRANSACTION TYPE--
                 
 
             elif TypeHolder == "Cash":     
                 cur.execute("""
                     INSERT INTO balance (balanceid, balanceamount, dateofchange, branchid) 
                     VALUES (%(GoodsIDHolder)s, %(Amt)s, %(dateofchange)s, %(BranchID)s)
-                """, {'GoodsIDHolder': GoodsIDHolder, 'Amt': AmountHolder, 
+                """, {'GoodsIDHolder': InvBalIDHolder, 'Amt': AmountHolder, 
                      'dateofchange': DateHolder, 'BranchID': BranchHolder})
                 
                 cur.execute("""
                     INSERT INTO transactionType (transactionTypeId, balanceID, InventoryId)
                     VALUES (%(transTypeId)s, %(BalID)s, 0)
-                """, {"transTypeId": TransTypeIDHolder, "BalID": GoodsIDHolder})
+                """, {"transTypeId": TransTypeIDHolder, "BalID": InvBalIDHolder})
 
             cur.execute("""
                 INSERT INTO transactionTable (transactionId, transactorFrom, transactionTo, transactionDate, transactionType, transactionTypeID) 
                 VALUES (%(TransID)s, %(From)s, %(To)s, %(transactionDate)s, %(Typ)s, %(TransTypID)s)
-            """, {'TransID': TransIDHolder, 'From': TransactorFromHolder, 'To': TransactorToHolder, 'transactionDate': DateHolder,'Typ':TypeHolder, 'TransTypID': TransTypeIDHolder}) #UPDATE TRANSACTION TABLE
+            """, {'TransID': GenTransID, 'From': TransactorFromHolder, 'To': TransactorToHolder, 'transactionDate': DateHolder,'Typ':TypeHolder, 'TransTypID': TransTypeIDHolder}) #UPDATE TRANSACTION TABLE
             
             
             
@@ -1502,6 +1672,22 @@ def transactionsql(mode, cur, TransIDHolder, PartyForHolder, PartyToHolder, Good
             conn.commit()
             print("EXECUTED")
         elif mode == "edit":
+            print("Successfully Submitted.")
+            print(f"TransactionID: {TransIDHolder}")
+            if Trans_DateFlag:
+                print(f"Date: {DateHolder}")
+            if TrueInventoryIDFlag:
+                print(f"Goods: {GoodsIDHolder}")
+                print(f"Inventory Type: {InvTypHolder}")
+            if Trans_TypeFlag:
+                print(f"Type: {TypeHolder}")
+                print(f"Amount of type: {AmountHolder}")
+                print(f"Good status: {StatusHolder}")
+            if Trans_BranchFlag:
+                print(f"Branch ID: {BranchHolder}")
+            if Trans_PartyFlag:
+                print(f"Party For: {PartyForHolder}")
+                print(f"Party To: {PartyToHolder}")
             # Edit functionality
             if Trans_DateFlag:
                 cur.execute("""
@@ -1509,13 +1695,22 @@ def transactionsql(mode, cur, TransIDHolder, PartyForHolder, PartyToHolder, Good
                     SET transactionDate = %(transactionDate)s
                     WHERE transactionId = %(TransID)s
                 """, {'transactionDate': DateHolder, 'TransID': TransIDHolder})
+
             
             if Trans_GoodsFlag:
-                cur.execute("""
-                    UPDATE Inventory
-                    SET InventoryName = %(InvName)s, InventoryValue = %(Value)s, InventoryType = %(InvTyp)s, GoodsStatus = %(Status)s
-                    WHERE InventoryId = %(InvID)s
-                """, {'InvName': GoodsHolder, 'Value': AmountHolder, 'InvTyp': InvTypHolder, 'Status': StatusHolder, 'InvID': GoodsIDHolder})
+                
+                if TypeHolder == "Item":
+                    cur.execute("""
+                        UPDATE Inventory
+                        SET InventoryName = %(InvName)s, InventoryValue = %(Value)s, InventoryType = %(InvTyp)s, BranchId = %(BranchId)s, GoodsStatus = %(Status)s
+                        WHERE InventoryId = %(InvID)s
+                    """, {'InvName': GoodsHolder, 'Value': AmountHolder, 'InvTyp': InvTypHolder, 'BranchId': BranchHolder, 'Status': StatusHolder, 'InvID': GoodsIDHolder})
+                elif TypeHolder == "Cash":
+                    cur.execute("""
+                        UPDATE balance
+                        SET balanceamount = %(Amt)s
+                        WHERE balanceid = %(BalID)s
+                    """, {'Amt': AmountHolder, 'BalID': GoodsIDHolder})
             
             if Trans_TypeFlag:
                 cur.execute("""
@@ -1532,11 +1727,6 @@ def transactionsql(mode, cur, TransIDHolder, PartyForHolder, PartyToHolder, Good
                     """, {'Amt': AmountHolder, 'BalID': GoodsIDHolder})
             
             if Trans_BranchFlag:
-                cur.execute("""
-                    UPDATE Inventory
-                    SET BranchId = %(BranchId)s
-                    WHERE InventoryId = %(InvID)s
-                """, {'BranchId': BranchHolder, 'InvID': GoodsIDHolder})
                 
                 if TypeHolder == "Cash":
                     cur.execute("""
@@ -1544,6 +1734,12 @@ def transactionsql(mode, cur, TransIDHolder, PartyForHolder, PartyToHolder, Good
                         SET branchid = %(BranchId)s
                         WHERE balanceid = %(BalID)s
                     """, {'BranchId': BranchHolder, 'BalID': GoodsIDHolder})
+                elif TypeHolder == "Item":
+                    cur.execute("""
+                    UPDATE Inventory
+                    SET BranchId = %(BranchId)s
+                    WHERE InventoryId = %(InvID)s
+                """, {'BranchId': BranchHolder, 'InvID': GoodsIDHolder})
                     
             if Trans_PartyFlag:
                 cur.execute(""" 

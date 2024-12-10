@@ -4,7 +4,7 @@ transactorFrom varchar(30) not null,
 transactionTo varchar(30) not null, 
 transactionDate DATE,
 transactiontype varchar(5), --- CASH/ ITEM
-transactionTypeId int,
+transactionTypeId int not null,
 PRIMARY KEY (transactionId),
 FOREIGN KEY (transactionTypeId) REFERENCES transactionType(transactionTypeId)
 );
@@ -38,7 +38,7 @@ CREATE TABLE Balance(
 BalanceID int not null,
 BalanceAmount float,
 DateOfChange DATE,
-BranchID int not null,
+BranchId int not null,
 PRIMARY KEY (BalanceID),
 FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 )
@@ -46,16 +46,6 @@ FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 INSERT INTO Inventory VALUES (0,0,0,0,0,0);
 INSERT INTO Balance VALUES (0, 0,null,0)
 
-
-
-
-CREATE TABLE goodwillBranch(
-BranchId int not null,
-branchName varchar (200) not null,
-branchAddress varchar(200) not null,
-branchPhoneNumber int,
-PRIMARY KEY (branchId)
-)
 
 
 CREATE TABLE ALREADYCREATEDKEYS(
