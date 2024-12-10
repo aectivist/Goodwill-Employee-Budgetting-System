@@ -1649,7 +1649,7 @@ def transactionsql(mode, cur, GenTransID,  GoodsIDHolder, InvBalIDHolder, GoodsH
                     VALUES (%(transTypeId)s, 0, %(InvID)s)""", {"transTypeId":TransTypeIDHolder, "InvID":InvBalIDHolder}) #TRANSACTION TYPE--
                 
 
-            elif TypeHolder == "Cash":     
+            elif TypeHolder == "Cash":     #NOTE THIS ERROR: 12312321321332133
                 cur.execute("""
                     INSERT INTO balance (balanceid, balanceamount, dateofchange, branchid) 
                     VALUES (%(GoodsIDHolder)s, %(Amt)s, %(dateofchange)s, %(BranchID)s)
