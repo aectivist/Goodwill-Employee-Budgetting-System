@@ -1,0 +1,1038 @@
+from customtkinter import *
+from CTkTable import *
+import psycopg2
+import random
+import tkinter as tk
+from tkinter import ttk
+from datetime import datetime
+
+conn = psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
+cur = conn.cursor()
+
+window = CTk()
+window.title("DONATOR")
+window.geometry("600x400")
+window.resizable(0, 0)
+set_appearance_mode("light")
+
+# Create frames
+TABFRAME = CTkFrame(window, height=51, width=600, fg_color="#1E1E1E", corner_radius=0)
+TABFRAME.pack(anchor=CENTER, fill=X)
+
+DonatorPage = CTkFrame(window)
+DonatorPage.pack(fill=BOTH, expand=True)
+
+pages = [DonatorPage]
+
+# Global variables
+TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
+EditFont = CTkFont(family="Oswald", size=15, weight='bold')
+BTNFont = CTkFont(family="Oswald", size=13)
+ErrorFont = CTkFont(size=10)
+DonatorPagePost = 0
+
+# Required datatypes
+vieweditemflag = False
+A_vieweditemflag = 0 
+E_vieweditemflag = 0
+D_vieweditemflag = 0 
+viewederror = 0
+ErrorBoolean = False
+successful_transaction = False
+currentmode = ""
+DonatorAddExist = False
+DonatorEditExist = False
+DonatorDeleteExist = False
+ConfirmedChoiceForSearch = ""
+
+# Add these global variables
+DonAddExist = False
+DonEditExist = False
+DonDeleteExist = False
+DonatorAddExist = False
+DonatorEditExist = False
+DonatorDeleteExist = False
+
+# For tracking entry states
+AddAddressEntryBox = None
+AddPhoneEntryBox = None
+AddOrgEntryBox = None
+AddDonationEntryBox = None
+AddDonationTypeBox = None
+AddSearchBoxEnter = None
+EditSearchBoxEnter = None
+DonatorNameBox = None
+Donator_combobox = None
+Donator_inputbutton = None
+DonatorIDEdit = None
+DonatorIDDelete = None
+
+# For tracking holder values
+DonatorIDHolder = ""
+DonationIDHolder = ""
+AddressHolder = ""
+PhoneHolder = ""
+OrgHolder = ""
+DonationHolder = ""
+DonationTypeHolder = "Item"
+
+# For tracking flags
+DonaIDFlag = False
+DonaNameFlag = False #Added
+DonaAddressFlag = False
+DonaPhoneFlag = False
+DonaOrgFlag = False
+DonaDonationFlag = False
+
+# For tracking mode and state
+diffvalue = 0
+enteronce = 0
+enteronceforcombo = 0
+mode = ""
+
+def show_page(page):
+    page.pack(fill=BOTH, expand=True)
+    window.update_idletasks()
+    if page == DonatorPage:
+        donatorpage(DonatorPage)
+
+def donatorpage(page):
+    global DonatorPagePost, OutputEditContent, SearchRequestContent
+    if DonatorPagePost == 0:
+        # Create page layout
+        PageMargin = CTkFrame(page)
+        PageMargin.pack(expand=True)
+        
+        RequestPadding = CTkFrame(PageMargin, width=170, height=330, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1)
+        OutputPadding = CTkFrame(PageMargin, width=410, height=330, fg_color="#dbdbdb", corner_radius=0, border_color='#000000', border_width=1)
+        
+        RequestPadding.grid_propagate(0)
+        OutputPadding.grid_propagate(0)
+        
+        RequestPadding.grid(row=0, column=0)
+        OutputPadding.grid(row=0, column=1)
+
+        # Create content frames
+        SearchRequestContent = CTkFrame(RequestPadding, width=170, height=165, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
+        EditsRequestContent = CTkFrame(RequestPadding, width=170, height=165, fg_color="#FFFFFF", corner_radius=0,border_color='#000000', border_width=1)
+        
+        SearchRequestContent.grid_propagate(0)
+        EditsRequestContent.grid_propagate(0)
+        
+        SearchRequestContent.grid(row=0, column=0)
+        EditsRequestContent.grid(row=1, column=0)
+        
+        # Grid configurations
+        for i in range(1):
+            EditsRequestContent.grid_columnconfigure(i, weight=1, uniform="column")
+            EditsRequestContent.grid_rowconfigure(0, minsize=51)
+        
+        for i in range(1):
+            SearchRequestContent.grid_columnconfigure(i, weight=1, uniform="column")
+            SearchRequestContent.grid_rowconfigure(0, minsize=51)
+
+        # Output Content setup
+        global OutputTableScrollbarContent
+        OutputEditContent = CTkFrame(OutputPadding, width=410, height=115, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
+        OutputEditContent.grid(row=0, column=0)
+        LabelDonatorAdd = CTkLabel(OutputEditContent, text="DONATORS", font=EditFont)
+        LabelDonatorAdd.place(x=5, y=1)
+
+        OutputTableContent = CTkFrame(OutputPadding, width=410, height=215, fg_color="#a6a6a6", corner_radius=0, border_color='#000000', border_width=1)
+        OutputTableContent.grid(row=1, column=0)
+        OutputEditContent.grid_propagate(0)
+        OutputTableContent.grid_propagate(0)
+
+        # Setup scrollable content
+        OutputTableScrollbarContent = CTkFrame(OutputTableContent, width=410, height=215)
+        OutputTableScrollbarContent.pack(fill="both", expand=True)
+        OutputTableScrollbarContent.grid_propagate(0)
+
+        canvas = CTkCanvas(OutputTableScrollbarContent, width=410, height=215, highlightthickness=0)
+        canvas.pack(side="left", fill="both", expand=True)
+
+        scrollbar = CTkScrollableFrame(canvas, width=387)
+        scrollbar.grid(rowspan=100, row=0, column=0, sticky='nsew')
+
+        # Setup Edit buttons section
+        EditLabelRequest = CTkLabel(EditsRequestContent, text="EDITS", font=EditFont)
+        EditLabelRequest.grid(row=0, column=0)
+
+        AddButtonRequest = CTkButton(EditsRequestContent, text="ADD", corner_radius=0,command=lambda: outputContentGivenButtons(OutputEditContent, 1),font=BTNFont, text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        AddButtonRequest.grid(row=1, column=0, padx=10, pady=4, sticky='nsew')
+
+        EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT", corner_radius=0,command=lambda: outputContentGivenButtons(OutputEditContent, 2),font=BTNFont, fg_color='#FFFFFF', text_color='#000000',border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        EditButtonRequest.grid(row=2, column=0, padx=10, pady=1, sticky='nsew')
+
+        DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE", corner_radius=0,command=lambda: outputContentGivenButtons(OutputEditContent, 3),font=BTNFont, fg_color='#FFFFFF', text_color='#000000',border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        DeleteButtonRequest.grid(row=3, column=0, padx=10, pady=2, sticky='nsew')
+
+        # Setup Search section
+        SearchLabel = CTkLabel(SearchRequestContent, text="DONATORS", font=EditFont)
+        SearchLabel.grid(row=0, column=0, padx=10, pady=0)
+
+        SearchEntry = CTkEntry(SearchRequestContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Search")
+        SearchEntry.grid(row=1, column=0, padx=10, pady=4)
+
+        SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0,  text_color='#FFFFFF', border_color='#000000',border_width=1, hover_color='#0051ff',command=lambda: DonatorSearch(SearchEntry))
+        SearchButton.grid(row=2, column=0, padx=10, pady=1)
+
+        comboVal = StringVar(value="Donator ID")
+        SearchComboChoices = CTkComboBox(SearchRequestContent, values=["Donator ID", "Donation ID"],command=DonatorSearch_ComboCallback,  variable=comboVal, corner_radius=1)
+        SearchComboChoices.set("Donator ID")
+        SearchComboChoices.grid(row=3, column=0, padx=10, pady=2)
+        SearchComboChoices.configure(state="readonly")
+
+        DonatorPagePost = 1
+    else:
+        print("Page has already been outputted!")
+
+def DonatorSearch_ComboCallback(choice):
+    global ConfirmedChoiceForSearch
+    search_types = {
+        "Donator ID": "Donator ID",
+        "Donation ID": "Donation ID"
+    }
+    if choice in search_types:
+        ConfirmedChoiceForSearch = search_types[choice]
+        print(f"Search type set to: {ConfirmedChoiceForSearch}")
+    else:
+        print(f"Invalid search type: {choice}")
+        ConfirmedChoiceForSearch = "Donator ID"
+
+def DonatorSearch(SearchEntry):
+    global ConfirmedChoiceForSearch, OutputTableScrollbarContent
+    for widget in OutputTableScrollbarContent.winfo_children():
+        widget.destroy()
+    
+    try:
+        search_value = SearchEntry.get().strip()
+        params = {}
+        base_query = """
+        SELECT 
+            d.DonatorID,
+            d.DonatorName,
+            d.DonatorAddress,
+            d.DonatorPhoneNumber,
+            d.OrganizationName,
+            dd.DonationID,
+            dd.Donation,
+            dd.DonationType
+        FROM Donator d
+        LEFT JOIN Donation_Details dd ON d.DonatorID = dd.DonatorID
+        WHERE 1=1
+        """
+        
+        if search_value:
+            if ConfirmedChoiceForSearch == "Donator ID":
+                if not search_value.isdigit():
+                    raise ValueError("Donator ID must be a number")
+                base_query += " AND d.DonatorID = %(search_value)s"
+                params['search_value'] = int(search_value)
+            elif ConfirmedChoiceForSearch == "Donation ID":
+                if not search_value.isdigit():
+                    raise ValueError("Donation ID must be a number")
+                base_query += " AND dd.DonationID = %(search_value)s"
+                params['search_value'] = int(search_value)
+
+        cur.execute(base_query, params)
+        rows = cur.fetchall()
+
+        if rows:
+            tree = ttk.Treeview(OutputTableScrollbarContent, show="headings", height=10)
+            columns = ["DonatorID", "DonatorName", "DonatorAddress", "DonatorPhoneNumber", "OrganizationName", "DonationID", "Donation", "DonationType"]
+            tree["columns"] = columns
+            
+            column_widths = {
+                "DonatorID": 70, "DonatorName": 100, "DonatorAddress": 100,"DonatorPhoneNumber": 100, "OrganizationName": 100,"DonationID": 70, "Donation": 100, "DonationType": 100
+            }
+            
+            for col, width in column_widths.items():
+                tree.column(col, width=width, anchor="center")
+                tree.heading(col, text=col)
+            
+            for row in rows:
+                tree.insert("", "end", values=row)
+            
+            y_scrollbar = ttk.Scrollbar(OutputTableScrollbarContent, orient="vertical", command=tree.yview)
+            x_scrollbar = ttk.Scrollbar(OutputTableScrollbarContent, orient="horizontal", command=tree.xview)
+            tree.configure(yscrollcommand=y_scrollbar.set, xscrollcommand=x_scrollbar.set)
+            
+            tree.grid(row=0, column=0, sticky="nsew")
+            y_scrollbar.grid(row=0, column=1, sticky="ns")
+            x_scrollbar.grid(row=1, column=0, sticky="ew")
+            
+            OutputTableScrollbarContent.grid_rowconfigure(0, weight=1)
+            OutputTableScrollbarContent.grid_columnconfigure(0, weight=1)
+        else:
+            error_label = CTkLabel(OutputTableScrollbarContent, text="No results found", text_color="red")
+            error_label.grid(row=0, column=0, sticky="nsew")
+            
+    except ValueError as ve:
+        error_label = CTkLabel(OutputTableScrollbarContent, text=str(ve), text_color="red")
+        error_label.grid(row=0, column=0, sticky="nsew")
+    except Exception as e:
+        error_label = CTkLabel(OutputTableScrollbarContent, text=f"An error occurred: {str(e)}", text_color="red")
+        error_label.grid(row=0, column=0, sticky="nsew")
+
+def outputContentGivenButtons(OutputEditContent, value):
+    global vieweditemflag, A_vieweditemflag, E_vieweditemflag, D_vieweditemflag, currentmode, mode
+    if value == 1:
+        mode = "add"
+    elif value == 2:
+        mode = "edit"
+    elif value == 3:
+        mode = "delete"
+        
+    if currentmode == mode:
+        return
+        
+    clearcurrentmode()
+    
+    if currentmode == "":
+        vieweditemflag = 0
+        
+    if mode == "add":
+        addmodeui()
+    elif mode == "edit":
+        editmodeui()
+    elif mode == "delete":
+        deletemodeui()
+        
+    currentmode = mode
+
+
+
+
+
+def clearcurrentmode():
+    global DonAddExist, DonEditExist, DonDeleteExist, diffvalue, viewederror, ErrorBoolean
+    global Donator_inputbutton, DonatorNameBox, Donator_combobox
+    global AddAddressEntryBox, AddPhoneEntryBox, AddOrgEntryBox, AddDonationEntryBox, AddDonationTypeBox
+    global AddSearchBoxEnter, DonatorIDEdit, EditSearchBoxEnter, DonatorIDDelete
+
+    # Handle Add mode cleanup
+    if DonAddExist:
+        try:
+            if 'DonatorNameBox' in globals() and DonatorNameBox is not None:
+                DonatorNameBox.place_forget()
+            if 'Donator_combobox' in globals() and Donator_combobox is not None:
+                Donator_combobox.place_forget()
+        except Exception as e:
+            print(f"Add cleanup error: {e}")
+
+        # Clear error messages
+        try:
+            if ErrorBoolean and 'Error' in globals():
+                Error.destroy()
+                viewederror = 0
+                ErrorBoolean = False
+        except Exception:
+            pass
+
+        # Clear entry boxes based on diffvalue
+        try:
+            if diffvalue == 1 and 'AddAddressEntryBox' in globals():
+                AddAddressEntryBox.place_forget()
+            elif diffvalue == 2 and 'AddPhoneEntryBox' in globals():
+                AddPhoneEntryBox.place_forget()
+            elif diffvalue == 3 and 'AddOrgEntryBox' in globals():
+                AddOrgEntryBox.place_forget()
+            elif diffvalue == 4:
+                if 'AddDonationEntryBox' in globals():
+                    AddDonationEntryBox.place_forget()
+                if 'AddDonationTypeBox' in globals():
+                    AddDonationTypeBox.place_forget()
+            elif diffvalue == 5 and 'AddDateEntryBox' in globals():
+                    AddDateEntryBox.place_forget()
+            if diffvalue > 0 and 'AddSearchBoxEnter' in globals():
+                AddSearchBoxEnter.destroy()
+        except Exception as e:
+            print(f"Entry cleanup error: {e}")
+
+        DonAddExist = False
+
+    # Handle Edit mode cleanup
+    if DonEditExist:
+        try:
+            if 'DonatorIDEdit' in globals() and DonatorIDEdit is not None:
+                DonatorIDEdit.destroy()
+            if 'Donator_combobox' in globals() and Donator_combobox is not None:
+                Donator_combobox.destroy()
+        except Exception:
+            pass
+        
+        try:
+            if ErrorBoolean and 'Error' in globals():
+                Error.destroy()
+                viewederror = 0
+                ErrorBoolean = False
+        except Exception:
+            pass
+
+        # Clear entry boxes based on diffvalue
+        try:
+            if diffvalue == 1 and 'EditNameEntryBox' in globals():
+                EditNameEntryBox.place_forget()
+            elif diffvalue == 2 and 'EditAddressEntryBox' in globals():
+                EditAddressEntryBox.place_forget()
+            elif diffvalue == 3 and 'EditPhoneEntryBox' in globals():
+                EditPhoneEntryBox.place_forget()
+            elif diffvalue == 4 and 'EditOrgEntryBox' in globals():
+                EditOrgEntryBox.place_forget()
+            elif diffvalue == 5:
+                if 'EditDonationEntryBox' in globals():
+                    EditDonationEntryBox.place_forget()
+                if 'EditDonationTypeBox' in globals():
+                    EditDonationTypeBox.place_forget()
+            
+            if diffvalue > 0 and 'AddSearchBoxEnter' in globals():
+                EditSearchBoxEnter.destroy()
+        except Exception as e:
+            print(f"Entry cleanup error: {e}")
+
+        DonEditExist = False
+
+    # Handle Delete mode cleanup
+    if DonDeleteExist:
+        try:
+            if 'DonatorIDDelete' in globals() and DonatorIDDelete is not None:
+                DonatorIDDelete.destroy()
+        except Exception:
+            pass
+        DonDeleteExist = False
+
+    # Clean up common elements
+    try:
+        if 'Donator_inputbutton' in globals() and Donator_inputbutton is not None:
+            Donator_inputbutton.destroy()
+    except Exception:
+        pass
+
+def addmodeui():
+    global DonAddExist, DonatorNameBox, Donator_inputbutton, Donator_combobox, successful_transaction
+    global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder
+    
+    # Initialize holders
+    AddressHolder = ""
+    PhoneHolder = ""
+    OrgHolder = ""
+    DonationHolder = ""
+    DonationTypeHolder = "Item"
+    successful_transaction = False
+
+    # Initialize flags
+    global DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag
+    DonaAddressFlag = False
+    DonaPhoneFlag = False
+    DonaOrgFlag = False
+    DonaDonationFlag = False
+
+    global enteronce, diffvalue, enteronceforcombo
+    enteronce = 0
+    diffvalue = 0
+    enteronceforcombo = 0
+
+    # Create Add-specific widgets
+    DonatorNameBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Donator Name", width=390, height=25)
+    DonatorNameBox.place(x=5, y=25)
+
+    comboVal = StringVar(value="Select")
+    Donator_combobox = CTkComboBox(OutputEditContent, values=["Address", "Phone Number", "Organization", "Donation", "Date"], command=callback, variable=comboVal, height=25, corner_radius=1, width=110)
+    Donator_combobox.set("Select")
+    Donator_combobox.place(x=5, y=53)
+    Donator_combobox.configure(state="readonly")
+
+    Donator_inputbutton = CTkButton(OutputEditContent, text="Add",  corner_radius=0, command=lambda: handleadddonator(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000',border_width=1, hover_color='#e6e6e6',width=100, height=27)
+    Donator_inputbutton.place(x=295, y=82)
+
+    DonAddExist = True
+
+def editmodeui():
+    global DonEditExist, DonatorIDEdit, Donator_combobox, Donator_inputbutton, successful_transaction
+    global DonatorIDHolder, DonatorNameHolder, AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder,DonationIDHolder
+    
+        # Initialize holders
+    DonatorIDHolder = ""
+    DonationIDHolder = ""
+    DonatorNameHolder = ""  #Added
+    AddressHolder = ""
+    PhoneHolder = ""
+    OrgHolder = ""
+    DonationHolder = ""
+    DonationTypeHolder = "Item"
+    successful_transaction = False
+
+    # Initialize flags
+    global DonaIDFlag,DonaNameFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag
+    DonaIDFlag = False
+    DonaNameFlag = False #Added
+    DonaAddressFlag = False
+    DonaPhoneFlag = False
+    DonaOrgFlag = False
+    DonaDonationFlag = False
+
+    global enteronce, diffvalue, enteronceforcombo
+    enteronce = 0
+    diffvalue = 0
+    enteronceforcombo = 0
+    
+    # Similar setup to addmodeui but for editing
+    DonatorIDEdit = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donator ID", width=390, height=25)
+    DonatorIDEdit.place(x=5, y=25)
+
+    
+    comboVal = StringVar(value="Select")
+    Donator_combobox = CTkComboBox(OutputEditContent,values=["Name", "Address", "Phone Number", "Organization", "Donation"], command=callback, variable=comboVal, height=25, corner_radius=1, width=110)
+    Donator_combobox.set("Select")
+    Donator_combobox.place(x=5, y=53)
+    Donator_combobox.configure(state="readonly")
+
+    Donator_inputbutton = CTkButton(OutputEditContent, text="Edit",corner_radius=0, command=lambda: handleeditdonator(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6',width=100, height=27)
+    Donator_inputbutton.place(x=295, y=82)
+
+    DonEditExist = True
+
+def deletemodeui():
+    global DonDeleteExist, DonatorIDDelete, Donator_inputbutton
+    DonatorIDDelete = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Enter Donator ID to delete",width=390, height=25)
+    DonatorIDDelete.place(x=5, y=25)
+
+    Donator_inputbutton = CTkButton(OutputEditContent, text="Delete", command=lambda: handledeletedonator(DonatorIDDelete, Donator_inputbutton), corner_radius=0, font=BTNFont,text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height=27)
+    Donator_inputbutton.place(x=295, y=82)
+    DonDeleteExist = True
+
+def callback(choice):
+    global enteronce, enteronceforcombo, diffvalue
+    global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder
+    global ErrorBoolean, Error, viewederror
+    
+    enteronce = enteronce + 1
+    enteronceforcombo = enteronceforcombo + 1
+
+    # Clear any existing errors
+    if ErrorBoolean:
+        Error.destroy()
+        viewederror = 0
+        ErrorBoolean = False
+
+    if mode == "add":
+        global AddAddressEntryBox, AddPhoneEntryBox, AddOrgEntryBox, AddDonationEntryBox, AddDonationTypeBox, AddSearchBoxEnter
+        
+        if enteronce > 1:
+            try:
+                AddSearchBoxEnter.destroy()
+            except:
+                print('no searchbox')
+            enteronce = 1
+            
+        if enteronce == 1:
+            AddSearchBoxEnter = CTkButton(OutputEditContent, text="Confirm", corner_radius=0, font=BTNFont,command=lambda: confirmyourchoice(choice, AddSearchBoxEnter),text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1,hover_color='#e6e6e6', width=100, height=27)
+            AddSearchBoxEnter.place(x=190, y=82)
+
+        # Clear previous entries
+        if enteronceforcombo > 1:
+            clear_previous_entries()
+            enteronceforcombo = 1
+
+        # Create new entry based on choice
+        if enteronceforcombo == 1:
+            create_entry_widget(choice)
+            
+    elif mode == "edit":
+        global EditAddressEntryBox, EditPhoneEntryBox, EditOrgEntryBox, EditDonationEntryBox, EditDonationTypeBox, EditSearchBoxEnter
+        
+        if enteronce > 1:
+            try:
+                EditSearchBoxEnter.destroy()
+            except:
+                print('no searchbox')
+            enteronce = 1
+            
+        if enteronce == 1:
+            EditSearchBoxEnter = CTkButton(OutputEditContent, text="Confirm", corner_radius=0, font=BTNFont,command=lambda: confirmyourchoice(choice, EditSearchBoxEnter),text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1,hover_color='#e6e6e6', width=100, height=27)
+            EditSearchBoxEnter.place(x=190, y=82)
+
+        # Clear previous entries
+        if enteronceforcombo > 1:
+            clear_previous_entries()
+            enteronceforcombo = 1
+
+        # Create new entry based on choice
+        if enteronceforcombo == 1:
+            create_entry_widget(choice)
+
+    elif mode == "delete":
+        pass
+
+def clear_previous_entries(): #Clears basically anything as long as it is within the scope. 
+    global diffvalue 
+    if mode == "add": #add mode clears the entry based on: the diff value, or which place it is in in the combobox, as well as it's original search entries
+        try:
+            if diffvalue == 1: #CLEARING ITEMS BASED ON DIFFVALUE
+                AddAddressEntryBox.place_forget()
+            elif diffvalue == 2:
+                AddPhoneEntryBox.place_forget()
+            elif diffvalue == 3:
+                AddOrgEntryBox.place_forget()
+            elif diffvalue == 4:
+                AddDonationEntryBox.place_forget()
+                AddDonationTypeBox.place_forget()
+            elif diffvalue == 5:
+                AddDateEntryBox.place_forget()
+                        
+        except Exception as e:
+            print(f"Error clearing entries: {e}")
+    if mode == "edit": #edit mode clears the entry based on: the diff value, or which place it is in in the combobox, as well as it's original search entries
+        try:
+            if diffvalue == 1:
+                EditNameEntryBox.place_forget()
+            elif diffvalue == 2:
+                EditAddressEntryBox.place_forget()
+            elif diffvalue == 3:
+                EditPhoneEntryBox.place_forget()
+            elif diffvalue == 4:
+                EditOrgEntryBox.place_forget()
+            elif diffvalue == 5:
+                EditDonationEntryBox.place_forget()
+                
+        except Exception as e:
+            print(f"Error clearing entries: {e}")
+
+def create_entry_widget(choice):
+    global diffvalue, AddressHolder, PhoneHolder, OrgHolder, DonationHolder
+    if mode == "add":   #If the mode is  add then itll run -----------------------------------------------------------------------------------------------------------
+        if choice == "Address": #the choice for address
+            diffvalue = 1
+            CreateAddressEntry() #which is moves to the createaddressentry function
+        elif choice == "Phone Number":
+            diffvalue = 2 #the choice for phone number
+            CreatePhoneEntry()
+        elif choice == "Organization":
+            diffvalue = 3 #this is the choice for adding organization name (should allow N/A or EMPTY)
+            CreateOrgEntry()
+        elif choice == "Donation":
+            diffvalue = 4 #this is the choice for adding donation
+            CreateDonationEntry()
+        elif choice == "Date":
+            diffvalue = 5 #this is the choice for adding date
+            CreateDateEntry()
+    elif mode == "edit": #if the mode is edit then itll run----------------------------------------------------------------------------------------------------------------
+        if choice == "Name":
+            diffvalue = 1 
+            EditNameEntry()
+        if choice == "Address":
+            diffvalue = 2
+            EditAddressEntry()
+        elif choice == "Phone Number":
+            diffvalue = 3
+            EditPhoneEntry()
+        elif choice == "Organization":
+            diffvalue = 4
+            EditOrgEntry()
+        elif choice == "Donation":
+            diffvalue = 5
+            EditDonationEntry()
+   
+#EDIT FUNCTIONSSSSS===================================================================-=-=-=-0)+_+)+_+_+)+_
+
+def EditNameEntry():
+    global EditNameEntryBox
+    EditNameEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donator Name",width=275, height=25)
+    EditNameEntryBox.place(x=120, y=53)
+    if DonatorNameHolder == "":
+        EditNameEntryBox.delete(0,END)
+        EditNameEntryBox.configure(placeholder_text= "Donator Name")
+    else:
+        EditNameEntryBox.insert(0, DonatorNameHolder)
+    
+def EditAddressEntry():
+    global EditAddressEntryBox
+    EditAddressEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donator Address",width=275, height=25)
+    EditAddressEntryBox.place(x=120, y=53)
+    if AddressHolder == "":
+        EditAddressEntryBox.delete(0,END)
+        EditAddressEntryBox.configure(placeholder_text= "Donator Address")
+    else:
+        EditAddressEntryBox.insert(0, AddressHolder)
+
+def EditPhoneEntry():
+    global EditPhoneEntryBox
+    EditPhoneEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Phone Number",width=275, height=25)
+    EditPhoneEntryBox.place(x=120, y=53)
+    if PhoneHolder == "":
+        EditPhoneEntryBox.delete(0,END)
+        EditPhoneEntryBox.configure(placeholder_text= "Phone Number")
+    else:
+        EditPhoneEntryBox.insert(0, PhoneHolder)
+    
+def EditOrgEntry():
+    global EditOrgEntryBox
+    EditOrgEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Organization Name",width=275, height=25)
+    EditOrgEntryBox.place(x=120, y=53)
+    if OrgHolder == "":
+        EditOrgEntryBox.delete(0,END)
+        EditOrgEntryBox.configure(placeholder_text="Organization Name")
+    else:
+        EditOrgEntryBox.insert(0, OrgHolder)
+
+def EditDonationEntry():
+    global EditDonationEntryBox, EditDonationTypeBox
+    EditDonationEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation Amount/Item", width=132, height=25)
+    EditDonationEntryBox.place(x=120, y=53)
+    EditDonationEntryBox.insert(0, DonationHolder)
+    
+    EditDonationIDEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation ID", width=132, height=25)
+    EditDonationIDEntryBox.place(x=260, y=53)
+    EditDonationIDEntryBox.insert(0, DonationIDHolder)
+    
+    comboVal = StringVar(value=DonationTypeHolder)
+    EditDonationTypeBox = CTkComboBox(OutputEditContent,values=["Item", "Funds"],variable=comboVal,height=25, corner_radius=1, width=110)
+    EditDonationTypeBox.place(x=5, y=82)
+    EditDonationTypeBox.configure(state="readonly")
+
+    if DonationHolder == "" or DonationIDHolder == "":
+        if DonationHolder == "":
+            EditDonationEntryBox.delete(0, END)
+            EditDonationEntryBox.configure(placeholder_text="Donation Amount/Item")
+        elif DonationIDHolder == "":
+            EditDonationIDEntryBox.delete(0, END)
+            EditDonationIDEntryBox.configure(placeholder_text="Donation ID")
+    else:
+        if DonationHolder != "":
+            EditDonationEntryBox.insert(0, DonationHolder)
+        else:
+            EditDonationIDEntryBox.insert(0, DonationIDHolder)
+
+def EditDateEntry():
+    global EditDateEntryBox
+    EditDateEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Date",width=275, height=25)
+    EditDateEntryBox.place(x=120, y=53)
+    if DateHolder == "":
+        EditDateEntryBox.delete(0,END)
+        EditDateEntryBox.configure(placeholder_text= "Date")
+    else:
+        EditDateEntryBox.insert(0, DateHolder)
+        
+#ADD FUNCTIONSSSSS===================================================================-=-=-=-0)+_+)+_+_+)+_
+
+def CreateAddressEntry():
+    global AddAddressEntryBox
+    AddAddressEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donator Address",width=275, height=25)
+    AddAddressEntryBox.place(x=120, y=53)
+    if AddressHolder == "":
+        AddAddressEntryBox.delete(0,END)
+        AddAddressEntryBox.configure(placeholder_text= "Donator Address")
+    else:
+        AddAddressEntryBox.insert(0, AddressHolder)
+
+def CreatePhoneEntry():
+    global AddPhoneEntryBox
+    AddPhoneEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Phone Number",width=275, height=25)
+    AddPhoneEntryBox.place(x=120, y=53)
+    if PhoneHolder == "":
+        AddPhoneEntryBox.delete(0,END)
+        AddPhoneEntryBox.configure(placeholder_text= "Phone Number")
+    else:
+        AddPhoneEntryBox.insert(0, PhoneHolder)
+    
+
+def CreateOrgEntry():
+    global AddOrgEntryBox
+    AddOrgEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Organization Name",width=275, height=25)
+    AddOrgEntryBox.place(x=120, y=53)
+    if OrgHolder == "":
+        AddOrgEntryBox.delete(0,END)
+        AddOrgEntryBox.configure(placeholder_text="Organization Name")
+    else:
+        AddOrgEntryBox.insert(0, OrgHolder)
+
+def CreateDonationEntry():
+    global AddDonationEntryBox, AddDonationTypeBox
+    AddDonationEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation Amount/Item", width=275, height=25)
+    AddDonationEntryBox.place(x=120, y=53)
+    
+    comboVal = StringVar(value="Item")
+    AddDonationTypeBox = CTkComboBox(OutputEditContent,values=["Item", "Funds"],variable=comboVal,height=25, corner_radius=1, width=110)
+    AddDonationTypeBox.place(x=5, y=82)
+    AddDonationTypeBox.configure(state="readonly")
+    
+    if DonationHolder == "":
+        AddDonationEntryBox.delete(0, END)
+        AddDonationEntryBox.configure(placeholder_text="Donation Amount/Item")
+    else:
+        AddDonationEntryBox.insert(0, DonationHolder)
+
+def CreateDateEntry():
+    global AddDateEntryBox
+    AddDateEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Date",width=275, height=25)
+    AddDateEntryBox.place(x=120, y=53)
+    
+    if DateHolder == "":
+        AddDateEntryBox.delete(0,END)
+        AddDateEntryBox.configure(placeholder_text= "Date")
+    else:
+        AddDateEntryBox.insert(0, DateHolder)
+
+def confirmyourchoice(choice, SearchBoxEnter):
+    global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder, DonatorNameHolder, DateHolder, DonatorIDHolder,DonationIDHolder
+    global DonaNameFlag, DonaIDFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaIDFlag
+    
+    if mode == "add":
+        if choice == "Address":
+            AddressHolder = AddAddressEntryBox.get()
+            clear_entry_and_button(choice, SearchBoxEnter)
+            DonaAddressFlag = True
+            
+        elif choice == "Phone Number":
+            PhoneHolder = AddPhoneEntryBox.get()
+            if PhoneHolder.isdigit() and len (PhoneHolder) >= 5 and len(PhoneHolder) <= 15:
+                clear_entry_and_button(choice, SearchBoxEnter)
+                DonaPhoneFlag = True
+            else:
+                if PhoneHolder.isdigit() == False: #IF PHONE HOLDER IS NOT A NUMBER
+                    show_error("Phone number must be a number")
+                    return
+                elif len(PhoneHolder) < 5 or len(PhoneHolder) > 15: #IF PHONE HOLDER HAS LESS THAN 5 BUT MORE THAN 15 (out of bounds for phone number)
+                    show_error("Phone number must be between 5 and 15 digits")
+                return
+                
+        elif choice == "Organization":
+            OrgHolder = AddOrgEntryBox.get()
+            if OrgHolder == "": #IF ORG HOLDER IS EMPTY
+                OrgHolder = "N/A"#THIS WILL RUN
+            DonaOrgFlag = True 
+            clear_entry_and_button(choice, SearchBoxEnter)
+            
+        elif choice == "Donation":
+            DonationHolder = AddDonationEntryBox.get()
+            DonationTypeHolder = AddDonationTypeBox.get()
+            if DonationTypeHolder == "Funds" and not DonationHolder.isdigit():
+                show_error("Funds must be a number")
+                return
+            DonaDonationFlag = True
+            clear_entry_and_button(choice, SearchBoxEnter)
+        
+        elif choice == "Date":
+            DateHolder = AddDateEntryBox.get()  
+            try:
+                # Try to convert the input to a datetime object using the desired format
+                datetime.strptime(DateHolder, "%Y/%m/%d")  # format: YYYY/MM/DD
+                DonaDonationFlag = True 
+                AddDateEntryBox.place_forget()
+                AddSearchBoxEnter.destroy()
+                try:
+                    Error.destroy()
+                except Exception as e:
+                    print("Error does not exist")
+            except ValueError:
+                show_error("Date format: YYYY/MM/DD.")
+                
+    elif choice == "edit":
+        if choice == "Name":
+            DonatorNameHolder = EditNameEntryBox.get()
+            DonaNameFlag = True
+        elif choice == "Address":
+            AddressHolder = EditAddressEntryBox.get()
+            DonaAddressFlag = True
+        elif choice == "Phone Number":
+            PhoneHolder = EditPhoneEntryBox.get()
+            DonaPhoneFlag = True
+        elif choice == "Organization":
+            OrgHolder = EditOrgEntryBox.get()
+            DonaOrgFlag = True 
+        elif choice == "Donation":
+            DonationHolder = EditDonationEntryBox.get()
+            DonationTypeHolder = EditDonationTypeBox.get()
+            DonaDonationFlag = True
+        
+        
+
+def show_error(message):
+    global ErrorBoolean, Error, viewederror
+    if viewederror == 0:
+        ErrorBoolean = True
+        Error = CTkLabel(OutputEditContent, text=message, text_color="red", height=13)
+        Error.place(x=200, y=3)
+        viewederror = 1
+
+def clear_entry_and_button(choice, button):
+    if choice == "Address":
+        AddAddressEntryBox.place_forget()
+    elif choice == "Phone Number":
+        AddPhoneEntryBox.place_forget()
+    elif choice == "Organization":
+        AddOrgEntryBox.place_forget()
+    elif choice == "Donation":
+        AddDonationEntryBox.place_forget()
+        AddDonationTypeBox.place_forget()
+    button.destroy()
+
+def handleadddonator():
+    global ErrorBoolean, Error, viewederror
+    global DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag
+    
+    donator_name = DonatorNameBox.get().strip()
+    
+    if not donator_name:
+        show_error("Please enter donator name")
+        return
+        
+    if diffvalue > 0:
+        all_valid = (DonaAddressFlag and DonaPhoneFlag and 
+                    DonaOrgFlag and DonaDonationFlag)
+        
+        if all_valid:
+            try:
+                # Begin transaction
+                cur.execute("BEGIN")
+                
+                # Insert donator
+                cur.execute("""
+                    INSERT INTO Donator (DonatorName, DonatorAddress, DonatorPhoneNumber, OrganizationName)
+                    VALUES (%s, %s, %s, %s) RETURNING DonatorID
+                """, (donator_name, AddressHolder, PhoneHolder, OrgHolder))
+                
+                donator_id = cur.fetchone()[0]
+                
+                # Insert donation details
+                cur.execute("""
+                    INSERT INTO Donation_Details (DonatorID, Donation, DonationType)
+                    VALUES (%s, %s, %s)
+                """, (donator_id, DonationHolder, DonationTypeHolder))
+                
+                cur.execute("COMMIT")
+                clear_ui_elements()
+                show_success_message("Donator added successfully")
+                
+            except Exception as e:
+                cur.execute("ROLLBACK")
+                show_error(f"Error adding donator: {str(e)}")
+        else:
+            show_error("Please complete all fields")
+    else:
+        show_error("Please select additional information")
+
+def handleeditdonator():
+    donator_id = DonatorIDEdit.get().strip()
+    
+    if not donator_id.isdigit():
+        show_error("Please enter valid donator ID")
+        return
+        
+    try:
+        cur.execute("BEGIN")
+        
+        if DonaAddressFlag:
+            cur.execute("""
+                UPDATE Donator 
+                SET DonatorAddress = %s 
+                WHERE DonatorID = %s
+            """, (AddressHolder, donator_id))
+            
+        if DonaPhoneFlag:
+            cur.execute("""
+                UPDATE Donator 
+                SET DonatorPhoneNumber = %s 
+                WHERE DonatorID = %s
+            """, (PhoneHolder, donator_id))
+            
+        if DonaOrgFlag:
+            cur.execute("""
+                UPDATE Donator 
+                SET OrganizationName = %s 
+                WHERE DonatorID = %s
+            """, (OrgHolder, donator_id))
+            
+        if DonaDonationFlag:
+            cur.execute("""
+                UPDATE Donation_Details 
+                SET Donation = %s, DonationType = %s 
+                WHERE DonatorID = %s
+            """, (DonationHolder, DonationTypeHolder, donator_id))
+        
+        cur.execute("COMMIT")
+        clear_ui_elements()
+        show_success_message("Donator updated successfully")
+        
+    except Exception as e:
+        cur.execute("ROLLBACK")
+        show_error(f"Error updating donator: {str(e)}")
+
+def handledeletedonator(DonatorIDDelete, deleteinputbutton):
+    donator_id = DonatorIDDelete.get().strip()
+    
+    if not donator_id:
+        show_error("Please enter donator ID")
+        return
+        
+    try:
+        cur.execute("BEGIN")
+        
+        # Delete donation details first (foreign key constraint)
+        cur.execute("DELETE FROM Donation_Details WHERE DonatorID = %s", (donator_id,))
+        
+        # Delete donator
+        cur.execute("DELETE FROM Donator WHERE DonatorID = %s", (donator_id,))
+        
+        if cur.rowcount == 0:
+            cur.execute("ROLLBACK")
+            show_error("Donator ID not found")
+            return
+            
+        cur.execute("COMMIT")
+        clear_ui_elements()
+        show_success_message("Donator deleted successfully")
+        
+    except Exception as e:
+        cur.execute("ROLLBACK")
+        show_error(f"Error deleting donator: {str(e)}")
+
+def clear_ui_elements():
+    global viewederror, ErrorBoolean
+    
+    # Clear mode-specific widgets
+    if mode == "add":
+        for widget in [DonatorNameBox, Donator_combobox, Donator_inputbutton]:
+            try:
+                widget.place_forget()
+            except Exception:
+                pass
+    elif mode == "edit":
+        for widget in [DonatorIDEdit, Donator_combobox, Donator_inputbutton]:
+            try:
+                widget.destroy()
+            except Exception:
+                pass
+    elif mode == "delete":
+        for widget in [DonatorIDDelete, Donator_inputbutton]:
+            try:
+                widget.destroy()
+            except Exception:
+                pass
+                
+    # Clear any error messages
+    try:
+        if ErrorBoolean:
+            Error.destroy()
+            viewederror = 0
+            ErrorBoolean = False
+    except Exception:
+        pass
+
+def show_success_message(message):
+    success_label = CTkLabel(OutputEditContent, text=message, text_color="green", height=13)
+    success_label.place(x=200, y=3)
+    OutputEditContent.after(3000, success_label.destroy)
+
+def show_error_message(message):
+    global ErrorBoolean, Error, viewederror
+    if viewederror == 0:
+        ErrorBoolean = True
+        Error = CTkLabel(OutputEditContent, text=message, text_color="red", height=13)
+        Error.place(x=200, y=3)
+        viewederror = 1
+
+# Initialize main window
+show_page(DonatorPage)
+window.mainloop()

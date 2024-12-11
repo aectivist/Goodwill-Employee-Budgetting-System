@@ -171,6 +171,10 @@ def transactionpage(page): #TO BE UPDATED
 
 
 #REQUIRED DATATYPES _------------------------------------------------------------------- 
+#SQL
+InvBalIDHolder = 0 #Create INV/BAL ID HOLDER
+GenTransID = 0 #Create General Transaction ID
+        
 #checks if items has been viewed
 vieweditemflag = False
 A_vieweditemflag = 0 #for add
@@ -497,9 +501,10 @@ def clearcurrentmode ():
 def addmodeui():
     vieweditemflag = 1
     
-    global TransAddExist, TransactionNameBoxFrom, TransactionNameBoxTo, Transaction_inputbutton, Transaction_combobox, sucessful_transaction 
+    global TransAddExist, TransactionNameBoxFrom, TransactionNameBoxTo, Transaction_inputbutton, Transaction_combobox, sucessful_transaction,GoodsIDHolder
     global DateHolder, GoodsHolder, BranchHolder, TypeHolder, AmountHolder, StatusHolder, InvTypHolder,TransIDHolder
     DateHolder=""
+    GoodsIDHolder=0 #just in case inv/bal is not selected, and it selects the 0 id within the database (which exists)
     GoodsHolder=""
     BranchHolder=""
     TypeHolder="Item"
@@ -839,7 +844,7 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 if TypeHolder == "Item":#checks if this is an item, then it'll replace the item with what's already held. Im actually gonna morb.
                     AddGoodsEntryBox.delete(0, END)
                     AddGoodsEntryBox.insert(0, GoodsHolder)
-                elif TypeHolder == "Cash": #otherwise, it would only place balance if it is cash (since CASH cannot have any other name other than it being run against the balance)
+                elif TypeHolder=="Cash": #otherwise, it would only place balance if it is cash (since CASH cannot have any other name other than it being run against the balance)
                     AddGoodsEntryBox.configure(state="normal")
                     AddGoodsEntryBox.delete(0, END)
                     AddGoodsEntryBox.configure(placeholder_text="Balance")
@@ -1287,10 +1292,9 @@ def handleaddtrans():
                         # Begin transaction
                         cur.execute("BEGIN")
                         
-                        transactionIDcreator()
-                        
                         # Clear UI elements
                         clear_ui_elements()
+                        transactionIDcreator()
                         
                         cur.execute("COMMIT")
                         show_success_message()
@@ -1379,12 +1383,20 @@ def handleedittrans():
                         Error.place(x=120, y=3)
                         viewederror = 1
                         print(viewederror)
-        else: #If the inventory flag is false, then it'll print the below
+        elif Trans_BranchFlag: #If the inventory flag is false, then it'll print the below
+            if viewederror == 0:
+                    print("Please Input the correct entries.")
+                    ErrorBoolean = True
+                    Error = CTkLabel(OutputEditContent, text="Successfully editted", text_color="green", height=13)
+                    Error.place(x=120, y=3)
+                    viewederror = 1
+                    print(viewederror)
+        else:
             TrueInventoryIDFlag = False
             if viewederror == 0:
                     print("Please Input the correct entries.")
                     ErrorBoolean = True
-                    Error = CTkLabel(OutputEditContent, text="Please fill both Inv/Bal ID and Type.", text_color="red", height=13)
+                    Error = CTkLabel(OutputEditContent, text="Please fill the correct entries.", text_color="red", height=13)
                     Error.place(x=120, y=3)
                     viewederror = 1
                     print(viewederror)
@@ -1572,9 +1584,11 @@ def get_random_integer(min_value, max_value):
 def transactionIDcreator():
     global PartyForHolder, PartyToHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder
     global keyCreatedChecker
-    InvBalIDHolder = ""
-    GenTransID = ""
+    global GenTransID, InvBalIDHolder, GoodsIDHolder
+    
     if mode == "add": #To ensure that ID generation happens for ONLY add functions
+        
+        
         ID = [] #trans id
         RID = [] #goods generator (inv or bal)
 
@@ -1606,7 +1620,7 @@ def transactionIDcreator():
         if not results:  # Check if results is empty
             keyCreatedChecker = True
         else:
-            for row in results:
+            for row in results: #FOR ROWS IN RESULTS
                 if len(row) < 3:  # Check if row has enough elements
                     print("Invalid row in ALREADYCREATEDKEYS")
                     keyCreatedChecker = True
@@ -1615,22 +1629,25 @@ def transactionIDcreator():
                     keyCreatedChecker = False
                     break
         
-        if keyCreatedChecker:
+        if keyCreatedChecker: #If the key is created, then it'll insert the key into the database
             print("This ran!")
             cur.execute("""INSERT INTO ALREADYCREATEDKEYS (keyId_T, keyId_IorB)
             VALUES (%s, %s)""", (GenTransID, InvBalIDHolder))
-            conn.commit()
-            return transactionsql(mode, cur, GenTransID, InvBalIDHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder)
+            print(GenTransID, InvBalIDHolder)
+            transactionsql(mode, GenTransID, InvBalIDHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder)
+            return 
 
         else:
             return transactionIDcreator()  # Try again with new IDs
     else:
-        return transactionsql(mode, cur, GenTransID, InvBalIDHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder)
-    
-def transactionsql(mode, cur, GenTransID,  GoodsIDHolder, InvBalIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder):
+        transactionsql(mode, GenTransID, InvBalIDHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder)
+        return
+
+def transactionsql(mode, GenTransID, InvBalIDHolder, GoodsIDHolder, GoodsHolder, AmountHolder, InvTypHolder, BranchHolder, StatusHolder):
     global PartyForHolder, PartyToHolder
     global TransactorFromHolder, TransactorToHolder
     TransTypeIDHolder = InvBalIDHolder
+    print(TransTypeIDHolder)
     
     if GoodsIDHolder == "":
         GoodsIDHolder = 0
@@ -1666,9 +1683,6 @@ def transactionsql(mode, cur, GenTransID,  GoodsIDHolder, InvBalIDHolder, GoodsH
                 VALUES (%(TransID)s, %(From)s, %(To)s, %(transactionDate)s, %(Typ)s, %(TransTypID)s)
             """, {'TransID': GenTransID, 'From': TransactorFromHolder, 'To': TransactorToHolder, 'transactionDate': DateHolder,'Typ':TypeHolder, 'TransTypID': TransTypeIDHolder}) #UPDATE TRANSACTION TABLE
             
-            
-            
-                
             conn.commit()
             print("EXECUTED")
         elif mode == "edit":
@@ -1696,9 +1710,7 @@ def transactionsql(mode, cur, GenTransID,  GoodsIDHolder, InvBalIDHolder, GoodsH
                     WHERE transactionId = %(TransID)s
                 """, {'transactionDate': DateHolder, 'TransID': TransIDHolder})
 
-            
             if Trans_GoodsFlag:
-                
                 if TypeHolder == "Item":
                     cur.execute("""
                         UPDATE Inventory
@@ -1727,7 +1739,6 @@ def transactionsql(mode, cur, GenTransID,  GoodsIDHolder, InvBalIDHolder, GoodsH
                     """, {'Amt': AmountHolder, 'BalID': GoodsIDHolder})
             
             if Trans_BranchFlag:
-                
                 if TypeHolder == "Cash":
                     cur.execute("""
                         UPDATE balance

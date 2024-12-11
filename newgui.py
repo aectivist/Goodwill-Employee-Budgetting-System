@@ -7,37 +7,17 @@ from CTkTable import *
 import math
 from math import *
 import re
-import pygame
-import random
-playingbool = False
-def get_random_integer(min_value, max_value):
-    return random.randint(min_value, max_value)
 
 
-
-
-def songchanger():
-    global soundpath
-    A=['Serial Experiments Lain Opening.mp3','Cyberpunk Edgerunners.mp3','DanDaDan.mp3','Nirvana.mp3','breakcore.mp3']
-    I = get_random_integer(0, len(A)-1)
-    soundpath = os.path.join('IATEST\\song', A[I])
-    return soundpath
-    
-pygame.mixer.init()
 
 
 def play_sound():
     global soundpath
     global playingbool
     if playingbool == False:
-        songchanger()
-        pygame.mixer.music.load(soundpath)
-        pygame.mixer.music.play()
-        button_EXP.configure(text="Stop")  # Change button text to "Play"
+        print("yea")
     else:
-        pygame.mixer.music.stop()
-        button_EXP.configure(text="Play")  # Change button text to "Stop"
-    playingbool = not playingbool
+        print("nah")
 
 conn=psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
 
@@ -790,7 +770,7 @@ HomeTab.grid(row=0, column=0, pady=10, padx=6, sticky="nsew")
 TransactionsTab = CTkButton(TABFRAME, text="Transactions", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
 TransactionsTab.grid(row=0, column=1, pady=10, padx=6, sticky="nsew")
 
-ClientTab = CTkButton(TABFRAME, text="Clients", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
+ClientTab = CTkButton(TABFRAME, text="Donator", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
 ClientTab.grid(row=0, column=2, pady=10, padx=6, sticky="nsew")
 
 InventoryTab = CTkButton(TABFRAME, text="Inventory", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
