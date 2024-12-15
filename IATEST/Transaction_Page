@@ -546,7 +546,7 @@ def addmodeui():
     TransactionNameBoxTo.place(x=205, y=25)
 
     comboVal = StringVar(value="Select")
-    Transaction_combobox = CTkComboBox(OutputEditContent, values=["Date", "Object Name", "Type", "Branch ID"], command=callback, variable=comboVal, height = 25, corner_radius=1, width=110)
+    Transaction_combobox = CTkComboBox(OutputEditContent, values=["Date", "Object Category", "Type", "Branch ID"], command=callback, variable=comboVal, height = 25, corner_radius=1, width=110)
     Transaction_combobox.set("Select")
     Transaction_combobox.place(x=5, y = 53)
     Transaction_combobox.configure(state="readonly")
@@ -753,7 +753,7 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
                 AddDateEntryBox.insert(0,DateHolder)
                 
                 
-            elif choice == "Object Name": #for Inventory
+            elif choice == "Object Category": #for Inventory
                 diffvalue = 2
                 AddGoodsEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Inventory/Balance ID", width=275, height = 25)
                 AddGoodsEntryBox.place(x=120, y = 53)
@@ -820,7 +820,7 @@ def callback(choice): #COMBO BOX FUNCTIONALITIES
             elif GoodsHolder ==""and diffvalue == 2:
                 if TypeHolder == "Item":
                     AddGoodsEntryBox.delete(0, END)
-                    AddGoodsEntryBox.configure(placeholder_text="Object Name")
+                    AddGoodsEntryBox.configure(placeholder_text="Object Category")
                 elif TypeHolder=="Cash":
                     AddGoodsEntryBox.delete(0, END)
                     AddGoodsEntryBox.configure(placeholder_text="Balance")
@@ -1047,7 +1047,7 @@ def confirmyourchoice(choice, AddSearchBoxEnter):
                     viewederror = 1
                     
 
-        elif choice == "Object Name":  # GOODS ---------
+        elif choice == "Object Category":  # GOODS ---------
             if TypeChecker:
                 GoodsHolder = AddGoodsEntryBox.get()
                 InvTypHolder = inventorytypebox.get()

@@ -113,6 +113,7 @@ EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 ViewedPost=0
 
 def calculatorpage(page):
+    global ViewedPost
     if ViewedPost == 0:
         global button_degrees, button_radians, button_EXP, HistoryToggleButton, HistorySideBar, HistoryScrollbar
         #START MASTER
@@ -153,6 +154,7 @@ def calculatorpage(page):
         for i in range(6):
             ButtonsForCalculationsFrame.grid_columnconfigure(i, weight=1, uniform="column")
             ButtonsForCalculationsFrame.grid_rowconfigure(0, minsize=40)
+        ViewedPost+=1
     else:
         print("Calculator page has been printed!")
     

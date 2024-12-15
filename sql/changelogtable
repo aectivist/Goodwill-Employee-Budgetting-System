@@ -1,7 +1,7 @@
 CREATE TABLE transactionTable(
 transactionId int not null, 
-transactorFrom varchar(30) not null,
-transactionTo varchar(30) not null, 
+transactorFrom varchar(200) not null,
+transactionTo varchar(200) not null, 
 transactionDate DATE,
 transactiontype varchar(5), --- CASH/ ITEM
 transactionTypeId int not null,
