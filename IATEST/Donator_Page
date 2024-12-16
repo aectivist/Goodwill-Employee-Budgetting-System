@@ -75,6 +75,9 @@ PhoneHolder = ""
 OrgHolder = ""
 DonationHolder = ""
 DonationTypeHolder = "Item"
+DateHolder = ""  # Add this line
+BranchIDHolder = ""  # Add this line
+DonNameHolder = ""  # Add this line
 
 # For tracking flags
 DonaIDFlag = False
@@ -83,6 +86,7 @@ DonaAddressFlag = False
 DonaPhoneFlag = False
 DonaOrgFlag = False
 DonaDonationFlag = False
+DonaBranchFlag = False  # Add this line
 
 # For tracking mode and state
 diffvalue = 0
@@ -177,9 +181,11 @@ def donatorpage(page):
         SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0,  text_color='#FFFFFF', border_color='#000000',border_width=1, hover_color='#0051ff',command=lambda: DonatorSearch(SearchEntry))
         SearchButton.grid(row=2, column=0, padx=10, pady=1)
 
-        comboVal = StringVar(value="Donator ID")
-        SearchComboChoices = CTkComboBox(SearchRequestContent, values=["Donator ID", "Donation ID"],command=DonatorSearch_ComboCallback,  variable=comboVal, corner_radius=1)
-        SearchComboChoices.set("Donator ID")
+        comboVal = StringVar(value="Donator Name")
+        SearchComboChoices = CTkComboBox(SearchRequestContent, 
+            values=["Donator Name", "Donation Name", "Date"],  # Simplified search options
+            command=DonatorSearch_ComboCallback, variable=comboVal, corner_radius=1)
+        SearchComboChoices.set("Donator Name")
         SearchComboChoices.grid(row=3, column=0, padx=10, pady=2)
         SearchComboChoices.configure(state="readonly")
 
@@ -190,15 +196,14 @@ def donatorpage(page):
 def DonatorSearch_ComboCallback(choice):
     global ConfirmedChoiceForSearch
     search_types = {
-        "Donator ID": "Donator ID",
-        "Donation ID": "Donation ID"
+        "Donator Name": "Donator Name",
+        "Donation Name": "Donation Name",
+        "Date": "Date"
     }
     if choice in search_types:
         ConfirmedChoiceForSearch = search_types[choice]
-        print(f"Search type set to: {ConfirmedChoiceForSearch}")
     else:
-        print(f"Invalid search type: {choice}")
-        ConfirmedChoiceForSearch = "Donator ID"
+        ConfirmedChoiceForSearch = "Donator Name"
 
 def DonatorSearch(SearchEntry):
     global ConfirmedChoiceForSearch, OutputTableScrollbarContent
@@ -207,53 +212,105 @@ def DonatorSearch(SearchEntry):
     
     try:
         search_value = SearchEntry.get().strip()
-        params = {}
+        params = {'search_value': search_value}
+        
         base_query = """
         SELECT 
             d.DonatorID,
             d.DonatorName,
             d.DonatorAddress,
             d.DonatorPhoneNumber,
-            d.OrganizationName,
-            dd.DonationID,
-            dd.Donation,
-            dd.DonationType
+            d.DonatorOrganization,
+            i.InventoryId as DonationID,
+            i.InventoryName as DonationName,
+            i.InventoryValue as DonationAmount,
+            i.InventoryType as DonationType,
+            g.BranchId,
+            g.BranchName
         FROM Donator d
-        LEFT JOIN Donation_Details dd ON d.DonatorID = dd.DonatorID
+        LEFT JOIN Inventory i ON d.DonationID = i.InventoryId
+        LEFT JOIN goodwillbranch g ON i.BranchId = g.BranchId
         WHERE 1=1
         """
         
-        if search_value:
-            if ConfirmedChoiceForSearch == "Donator ID":
-                if not search_value.isdigit():
-                    raise ValueError("Donator ID must be a number")
-                base_query += " AND d.DonatorID = %(search_value)s"
-                params['search_value'] = int(search_value)
-            elif ConfirmedChoiceForSearch == "Donation ID":
-                if not search_value.isdigit():
-                    raise ValueError("Donation ID must be a number")
-                base_query += " AND dd.DonationID = %(search_value)s"
-                params['search_value'] = int(search_value)
+        search_conditions = {
+            "Donator Name": "LOWER(d.DonatorName) LIKE LOWER(%(like_value)s)",
+            "Donation Name": "LOWER(i.InventoryName) LIKE LOWER(%(like_value)s)",
+            "Date": "DATE(i.DateCreated) = %(search_value)s"  # Assuming you have a date field
+        }
+
+        if search_value and ConfirmedChoiceForSearch in search_conditions:
+            condition = search_conditions[ConfirmedChoiceForSearch]
+            if ConfirmedChoiceForSearch == "Date":
+                try:
+                    datetime.strptime(search_value, "%Y/%m/%d")
+                    params['search_value'] = search_value
+                except ValueError:
+                    raise ValueError("Date format must be YYYY/MM/DD")
+            else:
+                params['like_value'] = f"%{search_value}%"
+            base_query += f" AND {condition}"
 
         cur.execute(base_query, params)
         rows = cur.fetchall()
 
         if rows:
-            tree = ttk.Treeview(OutputTableScrollbarContent, show="headings", height=10)
-            columns = ["DonatorID", "DonatorName", "DonatorAddress", "DonatorPhoneNumber", "OrganizationName", "DonationID", "Donation", "DonationType"]
+            tree = ttk.Treeview(OutputTableScrollbarContent, show="headings", height=10, selectmode="browse")
+            columns = [
+                # Donator columns
+                "DonatorID", "DonatorName", "DonatorAddress", "PhoneNumber", "Organization",
+                # Inventory columns
+                "DonationID", "DonationName", "DonationAmount", "DonationType",
+                # Branch columns
+                "BranchID", "BranchName"
+            ]
             tree["columns"] = columns
             
+            # Adjust column widths and order
             column_widths = {
-                "DonatorID": 70, "DonatorName": 100, "DonatorAddress": 100,"DonatorPhoneNumber": 100, "OrganizationName": 100,"DonationID": 70, "Donation": 100, "DonationType": 100
+                # Donator info
+                "DonatorID": 80,
+                "DonatorName": 250,
+                "DonatorAddress": 350,
+                "PhoneNumber": 120,
+                "Organization": 150,
+                # Inventory info
+                "DonationID": 80,
+                "DonationName": 150,
+                "DonationAmount": 100,
+                "DonationType": 100,
+                # Branch info
+                "BranchID": 80,
+                "BranchName": 150
+            }
+            
+            
+            style = ttk.Style()
+            style.configure("Treeview")  # Increase row height
+            # Configure columns with sections
+            sections = {
+                "Donator Info": ["DonatorID", "DonatorName", "DonatorAddress", "PhoneNumber", "Organization"],
+                "Donation Info": ["DonationID", "DonationName", "DonationAmount", "DonationType"],
+                "Branch Info": ["BranchID", "BranchName"]
             }
             
             for col, width in column_widths.items():
-                tree.column(col, width=width, anchor="center")
-                tree.heading(col, text=col)
+                tree.column(col, width=width, anchor="w")  # Left align
+                # Add section prefix to column headers
+                for section, cols in sections.items():
+                    if col in cols:
+                        tree.heading(col, text=f"{col}")
+                        break
+            
+            # Configure horizontal scrolling
+            tree.configure(xscrollcommand=lambda *args: x_scrollbar.set(*args))
+            x_scrollbar = ttk.Scrollbar(OutputTableScrollbarContent, orient="horizontal", command=tree.xview)
+            x_scrollbar.grid(row=1, column=0, sticky="ew")
             
             for row in rows:
                 tree.insert("", "end", values=row)
             
+            # Add scrollbars
             y_scrollbar = ttk.Scrollbar(OutputTableScrollbarContent, orient="vertical", command=tree.yview)
             x_scrollbar = ttk.Scrollbar(OutputTableScrollbarContent, orient="horizontal", command=tree.xview)
             tree.configure(yscrollcommand=y_scrollbar.set, xscrollcommand=x_scrollbar.set)
@@ -301,10 +358,6 @@ def outputContentGivenButtons(OutputEditContent, value):
         
     currentmode = mode
 
-
-
-
-
 def clearcurrentmode():
     global DonAddExist, DonEditExist, DonDeleteExist, diffvalue, viewederror, ErrorBoolean
     global Donator_inputbutton, DonatorNameBox, Donator_combobox
@@ -343,8 +396,12 @@ def clearcurrentmode():
                     AddDonationEntryBox.place_forget()
                 if 'AddDonationTypeBox' in globals():
                     AddDonationTypeBox.place_forget()
+                if 'DonationNameEntryBox' in globals() and DonationNameEntryBox is not None:
+                    DonationNameEntryBox.place_forget()  # Add this line
             elif diffvalue == 5 and 'AddDateEntryBox' in globals():
                     AddDateEntryBox.place_forget()
+            elif diffvalue == 6 and 'AddBranchIDEntryBox' in globals():
+                    AddBranchIDEntryBox.place_forget()
             if diffvalue > 0 and 'AddSearchBoxEnter' in globals():
                 AddSearchBoxEnter.destroy()
         except Exception as e:
@@ -359,8 +416,14 @@ def clearcurrentmode():
                 DonatorIDEdit.destroy()
             if 'Donator_combobox' in globals() and Donator_combobox is not None:
                 Donator_combobox.destroy()
-        except Exception:
-            pass
+            if 'EditDonationEntryBox' in globals() and EditDonationEntryBox is not None:
+                EditDonationEntryBox.destroy()
+            if 'EditDonationTypeBox' in globals() and EditDonationTypeBox is not None:
+                EditDonationTypeBox.destroy()
+            if 'EditDonationIDEntryBox' in globals() and EditDonationIDEntryBox is not None:
+                EditDonationIDEntryBox.destroy()
+        except Exception as e:
+            print(f"Edit cleanup error: {e}")
         
         try:
             if ErrorBoolean and 'Error' in globals():
@@ -385,6 +448,8 @@ def clearcurrentmode():
                     EditDonationEntryBox.place_forget()
                 if 'EditDonationTypeBox' in globals():
                     EditDonationTypeBox.place_forget()
+            elif diffvalue == 6 and 'EditBranchIDEntryBox' in globals():
+                    EditBranchIDEntryBox.place_forget()
             
             if diffvalue > 0 and 'AddSearchBoxEnter' in globals():
                 EditSearchBoxEnter.destroy()
@@ -438,7 +503,7 @@ def addmodeui():
     DonatorNameBox.place(x=5, y=25)
 
     comboVal = StringVar(value="Select")
-    Donator_combobox = CTkComboBox(OutputEditContent, values=["Address", "Phone Number", "Organization", "Donation", "Date"], command=callback, variable=comboVal, height=25, corner_radius=1, width=110)
+    Donator_combobox = CTkComboBox(OutputEditContent, values=["Address", "Phone Number", "Organization", "Donation", "Date", "Branch ID"], command=callback, variable=comboVal, height=25, corner_radius=1, width=110)
     Donator_combobox.set("Select")
     Donator_combobox.place(x=5, y=53)
     Donator_combobox.configure(state="readonly")
@@ -483,7 +548,7 @@ def editmodeui():
 
     
     comboVal = StringVar(value="Select")
-    Donator_combobox = CTkComboBox(OutputEditContent,values=["Name", "Address", "Phone Number", "Organization", "Donation"], command=callback, variable=comboVal, height=25, corner_radius=1, width=110)
+    Donator_combobox = CTkComboBox(OutputEditContent,values=["Name", "Address", "Phone Number", "Organization", "Donation ID", "Branch ID"], command=callback, variable=comboVal, height=25, corner_radius=1, width=110)
     Donator_combobox.set("Select")
     Donator_combobox.place(x=5, y=53)
     Donator_combobox.configure(state="readonly")
@@ -565,39 +630,41 @@ def callback(choice):
     elif mode == "delete":
         pass
 
-def clear_previous_entries(): #Clears basically anything as long as it is within the scope. 
-    global diffvalue 
-    if mode == "add": #add mode clears the entry based on: the diff value, or which place it is in in the combobox, as well as it's original search entries
-        try:
-            if diffvalue == 1: #CLEARING ITEMS BASED ON DIFFVALUE
-                AddAddressEntryBox.place_forget()
-            elif diffvalue == 2:
-                AddPhoneEntryBox.place_forget()
-            elif diffvalue == 3:
-                AddOrgEntryBox.place_forget()
-            elif diffvalue == 4:
-                AddDonationEntryBox.place_forget()
-                AddDonationTypeBox.place_forget()
-            elif diffvalue == 5:
-                AddDateEntryBox.place_forget()
+def clear_previous_entries():
+    global diffvalue
+    try:
+        if mode == "add":
+            widgets_to_clear = {
+                1: ['AddAddressEntryBox'],
+                2: ['AddPhoneEntryBox'],
+                3: ['AddOrgEntryBox'],
+                4: ['AddDonationEntryBox', 'AddDonationTypeBox', 'DonationNameEntryBox'],  # Add DonationNameEntryBox here
+                5: ['AddDateEntryBox'],
+                6: ['AddBranchIDEntryBox']
+            }
+        else:  # edit mode
+            widgets_to_clear = {
+                1: ['EditNameEntryBox'],
+                2: ['EditAddressEntryBox'],
+                3: ['EditPhoneEntryBox'],
+                4: ['EditOrgEntryBox'],
+                5: ['EditDonationEntryBox', 'EditDonationTypeBox', 'EditDonationIDEntryBox'],
+                6: ['EditBranchIDEntryBox']
+            }
+
+        # Only clear widgets for current diffvalue
+        if diffvalue in widgets_to_clear:
+            for widget_name in widgets_to_clear[diffvalue]:
+                if widget_name in globals() and globals()[widget_name] is not None:
+                    try:
+                        widget = globals()[widget_name]
+                        if widget.winfo_exists():  # Check if widget still exists
+                            widget.place_forget()
+                    except Exception:
+                        pass  # Widget already destroyed or doesn't exist
                         
-        except Exception as e:
-            print(f"Error clearing entries: {e}")
-    if mode == "edit": #edit mode clears the entry based on: the diff value, or which place it is in in the combobox, as well as it's original search entries
-        try:
-            if diffvalue == 1:
-                EditNameEntryBox.place_forget()
-            elif diffvalue == 2:
-                EditAddressEntryBox.place_forget()
-            elif diffvalue == 3:
-                EditPhoneEntryBox.place_forget()
-            elif diffvalue == 4:
-                EditOrgEntryBox.place_forget()
-            elif diffvalue == 5:
-                EditDonationEntryBox.place_forget()
-                
-        except Exception as e:
-            print(f"Error clearing entries: {e}")
+    except Exception as e:
+        print(f"Error clearing entries: {e}")
 
 def create_entry_widget(choice):
     global diffvalue, AddressHolder, PhoneHolder, OrgHolder, DonationHolder
@@ -614,9 +681,13 @@ def create_entry_widget(choice):
         elif choice == "Donation":
             diffvalue = 4 #this is the choice for adding donation
             CreateDonationEntry()
+            
         elif choice == "Date":
             diffvalue = 5 #this is the choice for adding date
             CreateDateEntry()
+        elif choice == "Branch ID":
+            diffvalue = 6
+            CreateBranchIDEntry()
     elif mode == "edit": #if the mode is edit then itll run----------------------------------------------------------------------------------------------------------------
         if choice == "Name":
             diffvalue = 1 
@@ -630,9 +701,12 @@ def create_entry_widget(choice):
         elif choice == "Organization":
             diffvalue = 4
             EditOrgEntry()
-        elif choice == "Donation":
+        elif choice == "Donation ID":
             diffvalue = 5
-            EditDonationEntry()
+            EditDonationIDEntry()
+        elif choice == "Branch ID":
+            diffvalue = 6
+            EditBranchIDEntry()
    
 #EDIT FUNCTIONSSSSS===================================================================-=-=-=-0)+_+)+_+_+)+_
 
@@ -677,32 +751,19 @@ def EditOrgEntry():
         EditOrgEntryBox.insert(0, OrgHolder)
 
 def EditDonationEntry():
-    global EditDonationEntryBox, EditDonationTypeBox
-    EditDonationEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation Amount/Item", width=132, height=25)
+    global EditDonationEntryBox, EditDonationTypeBox, EditDonationIDEntryBox
+    EditDonationEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation Amount/Item", width=275, height=25)
     EditDonationEntryBox.place(x=120, y=53)
     EditDonationEntryBox.insert(0, DonationHolder)
     
-    EditDonationIDEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation ID", width=132, height=25)
-    EditDonationIDEntryBox.place(x=260, y=53)
-    EditDonationIDEntryBox.insert(0, DonationIDHolder)
-    
-    comboVal = StringVar(value=DonationTypeHolder)
-    EditDonationTypeBox = CTkComboBox(OutputEditContent,values=["Item", "Funds"],variable=comboVal,height=25, corner_radius=1, width=110)
-    EditDonationTypeBox.place(x=5, y=82)
-    EditDonationTypeBox.configure(state="readonly")
 
     if DonationHolder == "" or DonationIDHolder == "":
         if DonationHolder == "":
             EditDonationEntryBox.delete(0, END)
-            EditDonationEntryBox.configure(placeholder_text="Donation Amount/Item")
-        elif DonationIDHolder == "":
-            EditDonationIDEntryBox.delete(0, END)
-            EditDonationIDEntryBox.configure(placeholder_text="Donation ID")
+            EditDonationEntryBox.configure(placeholder_text="Donation ID")
     else:
         if DonationHolder != "":
             EditDonationEntryBox.insert(0, DonationHolder)
-        else:
-            EditDonationIDEntryBox.insert(0, DonationIDHolder)
 
 def EditDateEntry():
     global EditDateEntryBox
@@ -713,6 +774,24 @@ def EditDateEntry():
         EditDateEntryBox.configure(placeholder_text= "Date")
     else:
         EditDateEntryBox.insert(0, DateHolder)
+
+def EditBranchIDEntry():
+    global EditBranchIDEntryBox
+    EditBranchIDEntryBox = CTkEntry(OutputEditContent, corner_radius=0,
+        border_color='#000000', border_width=1,
+        placeholder_text="Branch ID", width=275, height=25)
+    EditBranchIDEntryBox.place(x=120, y=53)
+    if BranchIDHolder:
+        EditBranchIDEntryBox.insert(0, BranchIDHolder)
+
+def EditDonationIDEntry():
+    global EditDonationIDEntryBox
+    EditDonationIDEntryBox = CTkEntry(OutputEditContent, corner_radius=0,
+        border_color='#000000', border_width=1,
+        placeholder_text="Donation ID", width=275, height=25)
+    EditDonationIDEntryBox.place(x=120, y=53)
+    if DonationIDHolder:
+        EditDonationIDEntryBox.insert(0, DonationIDHolder)
         
 #ADD FUNCTIONSSSSS===================================================================-=-=-=-0)+_+)+_+_+)+_
 
@@ -748,35 +827,46 @@ def CreateOrgEntry():
         AddOrgEntryBox.insert(0, OrgHolder)
 
 def CreateDonationEntry():
-    global AddDonationEntryBox, AddDonationTypeBox
-    AddDonationEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation Amount/Item", width=275, height=25)
+    global AddDonationEntryBox, AddDonationTypeBox, DonationNameEntryBox, DonNameHolder
+    AddDonationEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation Amount/Item", width=132, height=25)
     AddDonationEntryBox.place(x=120, y=53)
+
+       
+    DonationNameEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation Name", width=132, height=25)
+    DonationNameEntryBox.place(x=260, y=53)
+    
+    if DonNameHolder:
+        DonationNameEntryBox.insert(0, DonNameHolder)
     
     comboVal = StringVar(value="Item")
     AddDonationTypeBox = CTkComboBox(OutputEditContent,values=["Item", "Funds"],variable=comboVal,height=25, corner_radius=1, width=110)
     AddDonationTypeBox.place(x=5, y=82)
     AddDonationTypeBox.configure(state="readonly")
-    
+ 
     if DonationHolder == "":
         AddDonationEntryBox.delete(0, END)
         AddDonationEntryBox.configure(placeholder_text="Donation Amount/Item")
-    else:
-        AddDonationEntryBox.insert(0, DonationHolder)
 
 def CreateDateEntry():
-    global AddDateEntryBox
-    AddDateEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Date",width=275, height=25)
+    global AddDateEntryBox, DateHolder
+    AddDateEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Date (YYYY/MM/DD)", width=275, height=25)
     AddDateEntryBox.place(x=120, y=53)
     
-    if DateHolder == "":
-        AddDateEntryBox.delete(0,END)
-        AddDateEntryBox.configure(placeholder_text= "Date")
-    else:
+    if DateHolder:
         AddDateEntryBox.insert(0, DateHolder)
 
+def CreateBranchIDEntry():
+    global AddBranchIDEntryBox
+    AddBranchIDEntryBox = CTkEntry(OutputEditContent, corner_radius=0,
+        border_color='#000000', border_width=1,
+        placeholder_text="Branch ID", width=275, height=25)
+    AddBranchIDEntryBox.place(x=120, y=53)
+    if BranchIDHolder:
+        AddBranchIDEntryBox.insert(0, BranchIDHolder)
+
 def confirmyourchoice(choice, SearchBoxEnter):
-    global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder, DonatorNameHolder, DateHolder, DonatorIDHolder,DonationIDHolder
-    global DonaNameFlag, DonaIDFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaIDFlag
+    global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder, DonatorNameHolder, DateHolder, DonatorIDHolder,DonationIDHolder, BranchIDHolder
+    global DonaNameFlag, DonaIDFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaIDFlag, DonaBranchFlag
     
     if mode == "add":
         if choice == "Address":
@@ -806,9 +896,13 @@ def confirmyourchoice(choice, SearchBoxEnter):
             
         elif choice == "Donation":
             DonationHolder = AddDonationEntryBox.get()
+            DonNameHolder = DonationNameEntryBox.get()  # Add this line
             DonationTypeHolder = AddDonationTypeBox.get()
             if DonationTypeHolder == "Funds" and not DonationHolder.isdigit():
                 show_error("Funds must be a number")
+                return
+            if DonationTypeHolder == "Item" and not DonNameHolder:  # Add validation
+                show_error("Please enter a name for the donation item")
                 return
             DonaDonationFlag = True
             clear_entry_and_button(choice, SearchBoxEnter)
@@ -828,6 +922,19 @@ def confirmyourchoice(choice, SearchBoxEnter):
             except ValueError:
                 show_error("Date format: YYYY/MM/DD.")
                 
+        elif choice == "Branch ID":
+            branch_id = AddBranchIDEntryBox.get()
+            if branch_id.isdigit():
+                cur.execute("SELECT BranchId FROM goodwillbranch WHERE BranchId = %s", (branch_id,))
+                if cur.fetchone():
+                    BranchIDHolder = branch_id
+                    DonaBranchFlag = True
+                    clear_entry_and_button(choice, SearchBoxEnter)
+                else:
+                    show_error("Branch ID does not exist")
+            else:
+                show_error("Branch ID must be a number")
+
     elif choice == "edit":
         if choice == "Name":
             DonatorNameHolder = EditNameEntryBox.get()
@@ -841,19 +948,52 @@ def confirmyourchoice(choice, SearchBoxEnter):
         elif choice == "Organization":
             OrgHolder = EditOrgEntryBox.get()
             DonaOrgFlag = True 
-        elif choice == "Donation":
-            DonationHolder = EditDonationEntryBox.get()
-            DonationTypeHolder = EditDonationTypeBox.get()
-            DonaDonationFlag = True
-        
+        elif choice == "Donation ID":
+            donation_id = EditDonationIDEntryBox.get()
+            if donation_id.isdigit():
+                cur.execute("SELECT InventoryId FROM Inventory WHERE InventoryId = %s", (donation_id,))
+                if cur.fetchone():
+                    DonationIDHolder = donation_id
+                    DonaDonationFlag = True
+                    clear_entry_and_button(choice, SearchBoxEnter)
+                else:
+                    show_error("Donation ID does not exist")
+            else:
+                show_error("Donation ID must be a number")
+        elif choice == "Branch ID":
+            branch_id = EditBranchIDEntryBox.get()
+            if branch_id.isdigit():
+                cur.execute("SELECT BranchId FROM goodwillbranch WHERE BranchId = %s", (branch_id,))
+                if cur.fetchone():
+                    BranchIDHolder = branch_id
+                    DonaBranchFlag = True
+                else:
+                    show_error("Branch ID does not exist")
+            else:
+                show_error("Branch ID must be a number")
         
 
 def show_error(message):
     global ErrorBoolean, Error, viewederror
     if viewederror == 0:
         ErrorBoolean = True
-        Error = CTkLabel(OutputEditContent, text=message, text_color="red", height=13)
-        Error.place(x=200, y=3)
+        # Create error label with word wrapping
+        Error = CTkLabel(OutputEditContent, text=message, text_color="red", height=13,width=200,  wraplength=200)  # Enable word wrapping
+        # Center the error message horizontally and keep it near the top
+        Error.place(relx=0.5, y=3, anchor='n')
+        viewederror = 1
+
+def show_success_message(message):
+    success_label = CTkLabel(OutputEditContent, text=message, text_color="green", height=13,width=200, wraplength=200)  # Enable word wrapping
+    success_label.place(relx=0.5, y=3, anchor='n')
+    OutputEditContent.after(3000, success_label.destroy)
+
+def show_error_message(message):
+    global ErrorBoolean, Error, viewederror
+    if viewederror == 0:
+        ErrorBoolean = True
+        Error = CTkLabel(OutputEditContent, text=message,  text_color="red", height=13,width=200, wraplength=200)  # Enable word wrapping
+        Error.place(relx=0.5, y=3, anchor='n')
         viewederror = 1
 
 def clear_entry_and_button(choice, button):
@@ -866,11 +1006,18 @@ def clear_entry_and_button(choice, button):
     elif choice == "Donation":
         AddDonationEntryBox.place_forget()
         AddDonationTypeBox.place_forget()
+        if 'DonationNameEntryBox' in globals() and DonationNameEntryBox is not None:
+            DonationNameEntryBox.place_forget()  # Add this line
+    elif choice == "Branch ID":
+        if mode == "add":
+            AddBranchIDEntryBox.place_forget()
+        else:
+            EditBranchIDEntryBox.place_forget()
     button.destroy()
 
 def handleadddonator():
     global ErrorBoolean, Error, viewederror
-    global DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag
+    global DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaBranchFlag
     
     donator_name = DonatorNameBox.get().strip()
     
@@ -880,30 +1027,40 @@ def handleadddonator():
         
     if diffvalue > 0:
         all_valid = (DonaAddressFlag and DonaPhoneFlag and 
-                    DonaOrgFlag and DonaDonationFlag)
+                    DonaOrgFlag and DonaDonationFlag and DonaBranchFlag)
         
         if all_valid:
             try:
                 # Begin transaction
                 cur.execute("BEGIN")
                 
-                # Insert donator
-                cur.execute("""
-                    INSERT INTO Donator (DonatorName, DonatorAddress, DonatorPhoneNumber, OrganizationName)
-                    VALUES (%s, %s, %s, %s) RETURNING DonatorID
-                """, (donator_name, AddressHolder, PhoneHolder, OrgHolder))
+                # Generate new inventory ID
+                cur.execute("SELECT MAX(InventoryId) FROM Inventory")
+                max_inv_id = cur.fetchone()[0]
+                new_inv_id = 1 if max_inv_id is None else max_inv_id + 1
                 
-                donator_id = cur.fetchone()[0]
-                
-                # Insert donation details
+                # Insert inventory record
+                inventory_name = 'Funds' if DonationTypeHolder == 'Funds' else DonNameHolder
                 cur.execute("""
-                    INSERT INTO Donation_Details (DonatorID, Donation, DonationType)
-                    VALUES (%s, %s, %s)
-                """, (donator_id, DonationHolder, DonationTypeHolder))
+                    INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (new_inv_id, inventory_name, float(DonationHolder) if DonationTypeHolder == 'Funds' else 0, 
+                      DonationTypeHolder, BranchIDHolder, 'donation'))  # Assuming BranchId 1 exists
+                
+                # Generate new donator ID
+                cur.execute("SELECT MAX(DonatorID) FROM Donator")
+                max_don_id = cur.fetchone()[0]
+                new_don_id = 1 if max_don_id is None else max_don_id + 1
+                
+                # Insert donator with reference to inventory
+                cur.execute("""
+                    INSERT INTO Donator (DonatorID, DonatorName, DonatorAddress, DonatorPhoneNumber, DonatorOrganization, DonationID)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                """, (new_don_id, donator_name, AddressHolder, PhoneHolder, OrgHolder, new_inv_id))
                 
                 cur.execute("COMMIT")
                 clear_ui_elements()
-                show_success_message("Donator added successfully")
+                show_success_message("Donator and donation added successfully")
                 
             except Exception as e:
                 cur.execute("ROLLBACK")
@@ -923,33 +1080,32 @@ def handleeditdonator():
     try:
         cur.execute("BEGIN")
         
+        # Update donator information
+        update_fields = []
+        update_values = []
+        
         if DonaAddressFlag:
-            cur.execute("""
-                UPDATE Donator 
-                SET DonatorAddress = %s 
-                WHERE DonatorID = %s
-            """, (AddressHolder, donator_id))
-            
+            update_fields.append("DonatorAddress = %s")
+            update_values.append(AddressHolder)
         if DonaPhoneFlag:
-            cur.execute("""
-                UPDATE Donator 
-                SET DonatorPhoneNumber = %s 
-                WHERE DonatorID = %s
-            """, (PhoneHolder, donator_id))
-            
+            update_fields.append("DonatorPhoneNumber = %s")
+            update_values.append(PhoneHolder)
         if DonaOrgFlag:
-            cur.execute("""
-                UPDATE Donator 
-                SET OrganizationName = %s 
-                WHERE DonatorID = %s
-            """, (OrgHolder, donator_id))
-            
+            update_fields.append("DonatorOrganization = %s")
+            update_values.append(OrgHolder)
         if DonaDonationFlag:
-            cur.execute("""
-                UPDATE Donation_Details 
-                SET Donation = %s, DonationType = %s 
-                WHERE DonatorID = %s
-            """, (DonationHolder, DonationTypeHolder, donator_id))
+            update_fields.append("DonationID = %s")
+            update_values.append(DonationIDHolder)
+            
+        if update_fields:
+            query = f"UPDATE Donator SET {', '.join(update_fields)} WHERE DonatorID = %s"
+            update_values.append(donator_id)
+            cur.execute(query, tuple(update_values))
+            
+            if cur.rowcount == 0:
+                cur.execute("ROLLBACK")
+                show_error("Donator ID not found")
+                return
         
         cur.execute("COMMIT")
         clear_ui_elements()
@@ -1021,16 +1177,16 @@ def clear_ui_elements():
         pass
 
 def show_success_message(message):
-    success_label = CTkLabel(OutputEditContent, text=message, text_color="green", height=13)
-    success_label.place(x=200, y=3)
+    success_label = CTkLabel(OutputEditContent, text=message, text_color="green", height=13,width=200, wraplength=200)  # Enable word wrapping
+    success_label.place(relx=0.5, y=3, anchor='n')
     OutputEditContent.after(3000, success_label.destroy)
 
 def show_error_message(message):
     global ErrorBoolean, Error, viewederror
     if viewederror == 0:
         ErrorBoolean = True
-        Error = CTkLabel(OutputEditContent, text=message, text_color="red", height=13)
-        Error.place(x=200, y=3)
+        Error = CTkLabel(OutputEditContent, text=message, text_color="red", height=13,width=200,  wraplength=200)  # Enable word wrapping
+        Error.place(relx=0.5, y=3, anchor='n')
         viewederror = 1
 
 # Initialize main window

@@ -1,3 +1,31 @@
+-- Drop existing tables if they exist
+DROP TABLE IF EXISTS Donator;
+DROP TABLE IF EXISTS Donation_Details;
+DROP TABLE IF EXISTS Inventory;
+
+-- Create Inventory table first as it's referenced by Donator
+CREATE TABLE Inventory(
+    InventoryId INT PRIMARY KEY,
+    InventoryName VARCHAR(200) NOT NULL,
+    InventoryValue FLOAT NOT NULL,
+    InventoryType VARCHAR(10),
+    BranchId INT NOT NULL,
+    GoodsStatus VARCHAR(7),
+    FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
+);
+
+-- Create Donator table with new structure
+CREATE TABLE Donator (
+    DonatorID INT PRIMARY KEY,
+    DonatorName VARCHAR(200) NOT NULL,
+    DonatorAddress VARCHAR(200),
+    DonatorPhoneNumber VARCHAR(15),
+    DonatorOrganization VARCHAR(200),
+	DonationID INT NOT NULL,
+	FOREIGN KEY (DonationID) REFERENCES Inventory(InventoryId)
+);
+
+
 CREATE TABLE transactionTable(
 transactionId int not null, 
 transactorFrom varchar(30) not null,
@@ -16,24 +44,15 @@ CREATE TABLE transactionType (
     PRIMARY KEY(transactionTypeId),
     FOREIGN KEY(balanceID) REFERENCES balance(balanceID),
     FOREIGN KEY(InventoryId) REFERENCES inventory(InventoryId)
-)
+);
 
-SELECT * FROM BALANCE
+SELECT * FROM BALANCE;
 
-DROP TABLE transactionType
-DROP TABLE Balance
-DROP TABLE transactionTable
-DROP TABLE Inventory
-CREATE TABLE Inventory(
-InventoryId int not null,
-InventoryName varchar(200) not null,
-InventoryValue float not null,
-InventoryType varchar(10),
-BranchId int not null,
-GoodsStatus varchar(7),--Bought, sold, or donate	
-PRIMARY KEY(InventoryId),
-FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
-)
+DROP TABLE transactionType;
+DROP TABLE Balance;
+DROP TABLE transactionTable;
+DROP TABLE Inventory;
+
 CREATE TABLE Balance(
 BalanceID int not null,
 BalanceAmount float,
@@ -41,14 +60,22 @@ DateOfChange DATE,
 BranchId int not null,
 PRIMARY KEY (BalanceID),
 FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
-)
+);
 
 INSERT INTO Inventory VALUES (0,0,0,0,0,0);
-INSERT INTO Balance VALUES (0, 0,null,0)
-
-
+INSERT INTO Balance VALUES (0, 0,null,0);
 
 CREATE TABLE ALREADYCREATEDKEYS(
     keyId_T int not null,
     keyId_IorB int not null
-)
+);
+
+CREATE TABLE Donator (
+    DonatorID INT PRIMARY KEY,
+    DonatorName VARCHAR(200) NOT NULL,
+    DonatorAddress VARCHAR(200),
+    DonatorPhoneNumber VARCHAR(15),
+    DonatorOrganization VARCHAR(200),
+	DonationID INT NOT NULL,
+	FOREIGN KEY (DonationID) REFERENCES Inventory(InventoryId)
+);
