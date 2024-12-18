@@ -935,19 +935,44 @@ def confirmyourchoice(choice, SearchBoxEnter):
             else:
                 show_error("Branch ID must be a number")
 
-    elif choice == "edit":
+    elif mode == "edit":
         if choice == "Name":
             DonatorNameHolder = EditNameEntryBox.get()
-            DonaNameFlag = True
+            if DonatorNameHolder:
+                DonaNameFlag = True
+                clear_entry_and_button(choice, SearchBoxEnter)
+            else:
+                show_error("Please enter a name")
+                return
+
         elif choice == "Address":
             AddressHolder = EditAddressEntryBox.get()
-            DonaAddressFlag = True
+            if AddressHolder:
+                DonaAddressFlag = True
+                clear_entry_and_button(choice, SearchBoxEnter)
+            else:
+                show_error("Please enter an address")
+                return
+
         elif choice == "Phone Number":
             PhoneHolder = EditPhoneEntryBox.get()
-            DonaPhoneFlag = True
+            if PhoneHolder.isdigit() and len(PhoneHolder) >= 5 and len(PhoneHolder) <= 15:
+                DonaPhoneFlag = True
+                clear_entry_and_button(choice, SearchBoxEnter)
+            else:
+                if not PhoneHolder.isdigit():
+                    show_error("Phone number must be a number")
+                else:
+                    show_error("Phone number must be between 5 and 15 digits")
+                return
+
         elif choice == "Organization":
             OrgHolder = EditOrgEntryBox.get()
-            DonaOrgFlag = True 
+            if OrgHolder == "":
+                OrgHolder = "N/A"
+            DonaOrgFlag = True
+            clear_entry_and_button(choice, SearchBoxEnter)
+
         elif choice == "Donation ID":
             donation_id = EditDonationIDEntryBox.get()
             if donation_id.isdigit():
@@ -958,8 +983,11 @@ def confirmyourchoice(choice, SearchBoxEnter):
                     clear_entry_and_button(choice, SearchBoxEnter)
                 else:
                     show_error("Donation ID does not exist")
+                    return
             else:
                 show_error("Donation ID must be a number")
+                return
+
         elif choice == "Branch ID":
             branch_id = EditBranchIDEntryBox.get()
             if branch_id.isdigit():
@@ -967,11 +995,22 @@ def confirmyourchoice(choice, SearchBoxEnter):
                 if cur.fetchone():
                     BranchIDHolder = branch_id
                     DonaBranchFlag = True
+                    clear_entry_and_button(choice, SearchBoxEnter)
                 else:
                     show_error("Branch ID does not exist")
+                    return
             else:
                 show_error("Branch ID must be a number")
-        
+                return
+
+        # Clear any existing error messages after successful confirmation
+        try:
+            if ErrorBoolean:
+                Error.destroy()
+                viewederror = 0
+                ErrorBoolean = False
+        except Exception:
+            pass
 
 def show_error(message):
     global ErrorBoolean, Error, viewederror
@@ -1015,6 +1054,63 @@ def clear_entry_and_button(choice, button):
             EditBranchIDEntryBox.place_forget()
     button.destroy()
 
+# Add these global variables after the existing globals
+keyCreatedChecker = False  # For checking if key creation is successful
+InvBalIDHolder = 0  # For inventory/balance ID
+DonatorIDHolder = 0  # For donator ID
+
+def get_random_integer(min_value, max_value):
+    return random.randint(min_value, max_value)
+
+def donatorIDcreator():
+    global keyCreatedChecker, InvBalIDHolder, DonatorIDHolder
+    
+    if mode == "add":
+        ID = []  # donator id
+        RID = []  # inventory id
+
+        # Generate Donator ID
+        idCharLimit = 5
+        while idCharLimit >= 0:
+            I = get_random_integer(0, 9)
+            RandInt = str(I)
+            idCharLimit = idCharLimit - 1
+            ID.append(RandInt)
+        DonatorIDHolder = ''.join(ID)
+        
+        # Generate Inventory ID
+        idCharLimit2 = 5
+        while idCharLimit2 >= 0:
+            N = get_random_integer(0, 9)
+            idCharLimit2 = idCharLimit2 - 1
+            RandInt = str(N)
+            RID.append(RandInt)
+        InvBalIDHolder = ''.join(RID)
+
+        # Check if IDs already exist
+        cur.execute("""SELECT * FROM ALREADYCREATEDKEYS""")
+        results = cur.fetchall()
+        
+        if not results:
+            keyCreatedChecker = True
+        else:
+            for row in results:
+                if len(row) < 3:
+                    print("Invalid row in ALREADYCREATEDKEYS")
+                    keyCreatedChecker = True
+                    continue
+                if row[1] == DonatorIDHolder or row[2] == InvBalIDHolder:
+                    keyCreatedChecker = False
+                    break
+        
+        if keyCreatedChecker:
+            cur.execute("""INSERT INTO ALREADYCREATEDKEYS (keyId_T, keyId_IorB)
+            VALUES (%s, %s)""", (DonatorIDHolder, InvBalIDHolder))
+            return True
+        else:
+            return donatorIDcreator()  # Try again with new IDs
+
+# Modify handleadddonator() to use the new ID creation
 def handleadddonator():
     global ErrorBoolean, Error, viewederror
     global DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaBranchFlag
@@ -1034,29 +1130,23 @@ def handleadddonator():
                 # Begin transaction
                 cur.execute("BEGIN")
                 
-                # Generate new inventory ID
-                cur.execute("SELECT MAX(InventoryId) FROM Inventory")
-                max_inv_id = cur.fetchone()[0]
-                new_inv_id = 1 if max_inv_id is None else max_inv_id + 1
+                # Generate IDs using the new method
+                if not donatorIDcreator():
+                    raise Exception("Failed to create unique IDs")
                 
                 # Insert inventory record
                 inventory_name = 'Funds' if DonationTypeHolder == 'Funds' else DonNameHolder
                 cur.execute("""
                     INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus)
                     VALUES (%s, %s, %s, %s, %s, %s)
-                """, (new_inv_id, inventory_name, float(DonationHolder) if DonationTypeHolder == 'Funds' else 0, 
-                      DonationTypeHolder, BranchIDHolder, 'donation'))  # Assuming BranchId 1 exists
-                
-                # Generate new donator ID
-                cur.execute("SELECT MAX(DonatorID) FROM Donator")
-                max_don_id = cur.fetchone()[0]
-                new_don_id = 1 if max_don_id is None else max_don_id + 1
+                """, (InvBalIDHolder, inventory_name, float(DonationHolder) if DonationTypeHolder == 'Funds' else 0, 
+                      DonationTypeHolder, BranchIDHolder, 'donation'))
                 
                 # Insert donator with reference to inventory
                 cur.execute("""
                     INSERT INTO Donator (DonatorID, DonatorName, DonatorAddress, DonatorPhoneNumber, DonatorOrganization, DonationID)
                     VALUES (%s, %s, %s, %s, %s, %s)
-                """, (new_don_id, donator_name, AddressHolder, PhoneHolder, OrgHolder, new_inv_id))
+                """, (DonatorIDHolder, donator_name, AddressHolder, PhoneHolder, OrgHolder, InvBalIDHolder))
                 
                 cur.execute("COMMIT")
                 clear_ui_elements()
@@ -1071,49 +1161,165 @@ def handleadddonator():
         show_error("Please select additional information")
 
 def handleeditdonator():
+    global ErrorBoolean, Error, viewederror, TrueInventoryIDFlag, successful_transaction
+    global DonaIDFlag, DonaNameFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaBranchFlag
+    
     donator_id = DonatorIDEdit.get().strip()
     
-    if not donator_id.isdigit():
-        show_error("Please enter valid donator ID")
-        return
-        
-    try:
-        cur.execute("BEGIN")
-        
-        # Update donator information
-        update_fields = []
-        update_values = []
-        
-        if DonaAddressFlag:
-            update_fields.append("DonatorAddress = %s")
-            update_values.append(AddressHolder)
-        if DonaPhoneFlag:
-            update_fields.append("DonatorPhoneNumber = %s")
-            update_values.append(PhoneHolder)
-        if DonaOrgFlag:
-            update_fields.append("DonatorOrganization = %s")
-            update_values.append(OrgHolder)
-        if DonaDonationFlag:
-            update_fields.append("DonationID = %s")
-            update_values.append(DonationIDHolder)
+    # Check if ID is provided
+    if donator_id:
+        try:
+            # Check if donator exists
+            cur.execute("""
+                SELECT EXISTS(SELECT 1 FROM Donator WHERE DonatorID = %s)
+            """, (donator_id,))
+            result = cur.fetchone()
             
-        if update_fields:
-            query = f"UPDATE Donator SET {', '.join(update_fields)} WHERE DonatorID = %s"
-            update_values.append(donator_id)
-            cur.execute(query, tuple(update_values))
-            
-            if cur.rowcount == 0:
-                cur.execute("ROLLBACK")
-                show_error("Donator ID not found")
+            if result and result[0]:
+                DonaIDFlag = True
+                DonatorIDHolder = donator_id
+                # Clear any existing error
+                try:
+                    if ErrorBoolean:
+                        Error.destroy()
+                        viewederror = 0
+                        ErrorBoolean = False
+                except Exception:
+                    pass
+            else:
+                show_error_message("Donator ID does not exist")
                 return
-        
-        cur.execute("COMMIT")
-        clear_ui_elements()
-        show_success_message("Donator updated successfully")
-        
-    except Exception as e:
-        cur.execute("ROLLBACK")
-        show_error(f"Error updating donator: {str(e)}")
+                
+        except Exception as e:
+            show_error_message(f"Database error: {str(e)}")
+            return
+            
+        if diffvalue > 0:  # Check if user has selected something to edit
+            try:
+                cur.execute("BEGIN")
+                updates_made = False
+                
+                # Handle simple text updates
+                if DonaNameFlag:
+                    cur.execute("""
+                        UPDATE Donator 
+                        SET DonatorName = %s 
+                        WHERE DonatorID = %s
+                    """, (DonatorNameHolder, donator_id))
+                    updates_made = True
+                    
+                if DonaAddressFlag:
+                    cur.execute("""
+                        UPDATE Donator 
+                        SET DonatorAddress = %s 
+                        WHERE DonatorID = %s
+                    """, (AddressHolder, donator_id))
+                    updates_made = True
+                    
+                if DonaPhoneFlag:
+                    cur.execute("""
+                        UPDATE Donator 
+                        SET DonatorPhoneNumber = %s 
+                        WHERE DonatorID = %s
+                    """, (PhoneHolder, donator_id))
+                    updates_made = True
+                    
+                if DonaOrgFlag:
+                    cur.execute("""
+                        UPDATE Donator 
+                        SET DonatorOrganization = %s 
+                        WHERE DonatorID = %s
+                    """, (OrgHolder, donator_id))
+                    updates_made = True
+                
+                # Handle ID-based updates
+                if DonaDonationFlag:
+                    # Verify donation exists in inventory
+                    cur.execute("""
+                        SELECT EXISTS(
+                            SELECT 1 FROM Inventory 
+                            WHERE InventoryId = %s
+                        )
+                    """, (DonationIDHolder,))
+                    if cur.fetchone()[0]:
+                        cur.execute("""
+                            UPDATE Donator 
+                            SET DonationID = %s 
+                            WHERE DonatorID = %s
+                        """, (DonationIDHolder, donator_id))
+                        updates_made = True
+                    else:
+                        cur.execute("ROLLBACK")
+                        show_error_message("Invalid Donation ID")
+                        return
+                        
+                if DonaBranchFlag:
+                    # Verify branch exists
+                    cur.execute("""
+                        SELECT EXISTS(
+                            SELECT 1 FROM goodwillbranch 
+                            WHERE BranchId = %s
+                        )
+                    """, (BranchIDHolder,))
+                    if cur.fetchone()[0]:
+                        cur.execute("""
+                            UPDATE Donator 
+                            SET BranchID = %s 
+                            WHERE DonatorID = %s
+                        """, (BranchIDHolder, donator_id))
+                        updates_made = True
+                    else:
+                        cur.execute("ROLLBACK")
+                        show_error_message("Invalid Branch ID")
+                        return
+                
+                if updates_made:
+                    cur.execute("COMMIT")
+                    successful_transaction = True
+                    
+                    # Clear UI elements including combobox entries
+                    if Donator_inputbutton.winfo_exists():
+                        Donator_inputbutton.destroy()
+                    try:
+                        DonatorIDEdit.place_forget()
+                        Donator_combobox.destroy()
+                    except Exception as e:
+                        print(f"Error destroying Donator_combobox and DonatorIDEdit: {e}")
+
+                    try:
+                        try:
+                            for widget in [Donator_inputbutton, EditSearchBoxEnter]:
+                                if widget.winfo_exists():
+                                    widget.place_forget()
+                            if diffvalue == 1:
+                                EditNameEntryBox.place_forget()
+                            elif diffvalue == 2:
+                                EditAddressEntryBox.place_forget()
+                            elif diffvalue == 3:
+                                EditPhoneEntryBox.place_forget()
+                            elif diffvalue == 4:
+                                EditOrgEntryBox.place_forget()
+                            elif diffvalue == 5:
+                                EditDonationIDEntryBox.place_forget()
+                            elif diffvalue == 6:
+                                EditBranchIDEntryBox.place_forget()
+                        except Exception as e:
+                            print(f"Error destroying widgets: {e}")
+                    except Exception as e:
+                        print(f"ERROR:{e}")
+                        
+                    show_success_message("Donator updated successfully")
+                else:
+                    cur.execute("ROLLBACK")
+                    show_error_message("No changes made")
+                    
+            except Exception as e:
+                cur.execute("ROLLBACK")
+                show_error_message(f"Error updating donator: {str(e)}")
+        else:
+            show_error_message("Please select at least one field to update")
+    else:
+        show_error_message("Please enter a Donator ID")
 
 def handledeletedonator(DonatorIDDelete, deleteinputbutton):
     donator_id = DonatorIDDelete.get().strip()
@@ -1123,10 +1329,8 @@ def handledeletedonator(DonatorIDDelete, deleteinputbutton):
         return
         
     try:
+        print(donator_id)
         cur.execute("BEGIN")
-        
-        # Delete donation details first (foreign key constraint)
-        cur.execute("DELETE FROM Donation_Details WHERE DonatorID = %s", (donator_id,))
         
         # Delete donator
         cur.execute("DELETE FROM Donator WHERE DonatorID = %s", (donator_id,))
