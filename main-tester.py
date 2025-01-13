@@ -1,7 +1,6 @@
 from customtkinter import *
 import psycopg2
 import threading
-from CTkTable import *
 #https://github.com/Akascape/CTkTable
 
 import math

@@ -14,6 +14,17 @@ CREATE TABLE Inventory(
     FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 );
 
+CREATE TABLE Budget{
+    BudgetId INT PRIMARY KEY,
+    BudgetItem VARCHAR(200) NOT NULL, --Budget NAME
+    BudgetAmount FLOAT NOT NULL,
+    BudgetValue FLOAT NOT NULL, --Budget Value
+    DateIssued DATE,
+    DateDeadline DATE,
+    BranchId INT NOT NULL,
+    FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
+}
+
 -- Create Donator table with new structure
 CREATE TABLE Donator (
     DonatorID INT PRIMARY KEY,

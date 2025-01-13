@@ -1,5 +1,4 @@
 from customtkinter import *
-from CTkTable import *
 import psycopg2
 import random
 import tkinter as tk
