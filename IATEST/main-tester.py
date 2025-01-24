@@ -73,7 +73,10 @@ def show_page(page, loginaccess):
     elif page == CalculatorPage:
         LoginPage.pack_forget()
         calculatorpage(CalculatorPage)
-   
+    elif page == BudgetPage:
+        LoginPage.pack_forget()
+        from BudgetPage import budgetpage  # Updated import path
+        budgetpage(BudgetPage)
         
 
          
@@ -790,7 +793,7 @@ def admittedAccess(loginaccess):
         TransactionsTab.configure(command=lambda: button_event(TransactionsPage,loginaccess))
         ClientTab.configure(command=lambda: button_event(ClientPage,loginaccess))
         InventoryTab.configure(command=lambda: button_event(InventoryPage,loginaccess))
-        BudgetTab.configure(command=lambda: button_event(InventoryPage,loginaccess))
+        BudgetTab.configure(command=lambda: button_event(BudgetPage,loginaccess))
         
 
 

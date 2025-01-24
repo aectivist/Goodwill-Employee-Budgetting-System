@@ -1,57 +1,73 @@
--- Drop existing tables if they exist
-DROP TABLE IF EXISTS Donator;
-DROP TABLE IF EXISTS Donation_Details;
-DROP TABLE IF EXISTS Inventory;
+DROP TABLE IF EXISTS Donator;C
+DROP TABLE IF EXISTS Donation_Details;C
+DROP TABLE IF EXISTS Inventory;C
+DROP TABLE IF EXISTS goodwillBranch;C
+DROP TABLE IF EXISTS transactionTable;C
+DROP TABLE IF EXISTS transactionType;C
+DROP TABLE IF EXISTS balance;C
+DROP TABLE IF EXISTS Budget;C
+
+
+CREATE TABLE goodwillBranch(
+BranchId bigint not null,
+branchName varchar (200) not null,
+branchAddress varchar(200) not null,
+branchPhoneNumber bigint,
+PRIMARY KEY (branchId)
+)
 
 -- Create Inventory table first as it's referenced by Donator
 CREATE TABLE Inventory(
-    InventoryId INT PRIMARY KEY,
+    InventoryId bigint PRIMARY KEY,
     InventoryName VARCHAR(200) NOT NULL,
     InventoryValue FLOAT NOT NULL,
     InventoryType VARCHAR(10),
-    BranchId INT NOT NULL,
+    BranchId bigint NOT NULL,
     GoodsStatus VARCHAR(7),
     FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 );
 
-CREATE TABLE Budget{
-    BudgetId INT PRIMARY KEY,
+CREATE TABLE Budget(
+    BudgetId bigint PRIMARY KEY,
     BudgetItem VARCHAR(200) NOT NULL, --Budget NAME
     BudgetAmount FLOAT NOT NULL,
     BudgetValue FLOAT NOT NULL, --Budget Value
     DateIssued DATE,
     DateDeadline DATE,
-    BranchId INT NOT NULL,
+    BranchId bigint NOT NULL,
     FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
-}
+);
 
--- Create Donator table with new structure
-CREATE TABLE Donator (
-    DonatorID INT PRIMARY KEY,
-    DonatorName VARCHAR(200) NOT NULL,
-    DonatorAddress VARCHAR(200),
-    DonatorPhoneNumber VARCHAR(15),
-    DonatorOrganization VARCHAR(200),
-	DonationID INT NOT NULL,
-	FOREIGN KEY (DonationID) REFERENCES Inventory(InventoryId)
+CREATE TABLE archived(
+    a_BudgetItem VARCHAR(200) NOT NULL, --Budget NAME
+    a_BudgetAmount FLOAT NOT NULL,
+    a_BudgetValue FLOAT NOT NULL, --Budget Value
+    a_DateIssued DATE,
+    a_DateDeadline DATE,
+    a_BranchId bigint NOT NULL,
+    DateArchived DATE,
+    MethodOfArchival VARCHAR(200) NOT NULL,
+    FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 );
 
 
+
+
 CREATE TABLE transactionTable(
-transactionId int not null, 
+transactionId bigint not null, 
 transactorFrom varchar(200) not null,
 transactionTo varchar(200) not null, 
 transactionDate DATE,
 transactiontype varchar(5), --- CASH/ ITEM
-transactionTypeId int not null,
+transactionTypeId bigint not null,
 PRIMARY KEY (transactionId),
 FOREIGN KEY (transactionTypeId) REFERENCES transactionType(transactionTypeId)
 );
 
 CREATE TABLE transactionType (
-    transactionTypeId INT NOT NULL,
-    balanceID INT NOT NULL,
-    InventoryId INT NOT NULL,
+    transactionTypeId bigint NOT NULL,
+    balanceID bigint NOT NULL,
+    InventoryId bigint NOT NULL,
     PRIMARY KEY(transactionTypeId),
     FOREIGN KEY(balanceID) REFERENCES balance(balanceID),
     FOREIGN KEY(InventoryId) REFERENCES inventory(InventoryId)
@@ -59,34 +75,55 @@ CREATE TABLE transactionType (
 
 SELECT * FROM BALANCE;
 
-DROP TABLE transactionType;
-DROP TABLE Balance;
-DROP TABLE transactionTable;
-DROP TABLE Inventory;
 
 CREATE TABLE Balance(
-BalanceID int not null,
+BalanceID bigint not null,
 BalanceAmount float,
 DateOfChange DATE,
-BranchId int not null,
+BranchId bigint not null,
 PRIMARY KEY (BalanceID),
 FOREIGN KEY(BranchId) REFERENCES goodwillbranch(BranchId)
 );
 
-INSERT INTO Inventory VALUES (0,0,0,0,0,0);
-INSERT INTO Balance VALUES (0, 0,null,0);
 
 CREATE TABLE ALREADYCREATEDKEYS(
-    keyId_T int not null,
-    keyId_IorB int not null
+    keyId_T smallint not null,
+    keyId_IorB smallint not null
 );
 
+
+-- Create Donator table with new structure
 CREATE TABLE Donator (
-    DonatorID INT PRIMARY KEY,
+    DonatorID bigint PRIMARY KEY,
     DonatorName VARCHAR(200) NOT NULL,
     DonatorAddress VARCHAR(200),
     DonatorPhoneNumber VARCHAR(15),
     DonatorOrganization VARCHAR(200),
-	DonationID INT NOT NULL,
+	DonationID bigint NOT NULL,
 	FOREIGN KEY (DonationID) REFERENCES Inventory(InventoryId)
 );
+
+CREATE TABLE Donation_Details(
+    DonationId bigint PRIMARY KEY,
+    DonatorId bigint NOT NULL,
+    InventoryId bigint NOT NULL,
+    DonationDate DATE NOT NULL,
+    DonationAmount FLOAT NOT NULL,
+    FOREIGN KEY (DonatorId) REFERENCES Donator(DonatorId),
+    FOREIGN KEY (InventoryId) REFERENCES Inventory(InventoryId)
+);
+
+
+select * from goodwillbranch
+
+CREATE TABLE notes (
+    noteid bigint NOT NULL;
+    note text NOT NULL;
+    notename varchar(255) NOT NULL; 
+);
+
+select * FROM goodwillbranch 
+INSERT INTO Inventory VALUES (0,0,0,0,0,0);
+INSERT INTO goodwillBranch 
+(branchid, branchname, branchaddress, branchphonenumber)
+VALUES (0,'n/a','n/a',0);

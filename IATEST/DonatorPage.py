@@ -1,5 +1,4 @@
 from customtkinter import *
-from CTkTable import *
 import psycopg2
 import random
 import tkinter as tk
@@ -94,7 +93,7 @@ enteronce = 0
 enteronceforcombo = 0
 mode = ""
 
-def show_page(page):
+def D_show_page(page):
     page.pack(fill=BOTH, expand=True)
     window.update_idletasks()
     if page == DonatorPage:
@@ -162,13 +161,13 @@ def donatorpage(page):
         EditLabelRequest = CTkLabel(EditsRequestContent, text="EDITS", font=EditFont)
         EditLabelRequest.grid(row=0, column=0)
 
-        AddButtonRequest = CTkButton(EditsRequestContent, text="ADD", corner_radius=0,command=lambda: outputContentGivenButtons(OutputEditContent, 1),font=BTNFont, text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        AddButtonRequest = CTkButton(EditsRequestContent, text="ADD", corner_radius=0,command=lambda: D_outputContentGivenButtons(OutputEditContent, 1),font=BTNFont, text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1, hover_color='#e6e6e6')
         AddButtonRequest.grid(row=1, column=0, padx=10, pady=4, sticky='nsew')
 
-        EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT", corner_radius=0,command=lambda: outputContentGivenButtons(OutputEditContent, 2),font=BTNFont, fg_color='#FFFFFF', text_color='#000000',border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT", corner_radius=0,command=lambda: D_outputContentGivenButtons(OutputEditContent, 2),font=BTNFont, fg_color='#FFFFFF', text_color='#000000',border_color='#000000', border_width=1, hover_color='#e6e6e6')
         EditButtonRequest.grid(row=2, column=0, padx=10, pady=1, sticky='nsew')
 
-        DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE", corner_radius=0,command=lambda: outputContentGivenButtons(OutputEditContent, 3),font=BTNFont, fg_color='#FFFFFF', text_color='#000000',border_color='#000000', border_width=1, hover_color='#e6e6e6')
+        DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE", corner_radius=0,command=lambda: D_outputContentGivenButtons(OutputEditContent, 3),font=BTNFont, fg_color='#FFFFFF', text_color='#000000',border_color='#000000', border_width=1, hover_color='#e6e6e6')
         DeleteButtonRequest.grid(row=3, column=0, padx=10, pady=2, sticky='nsew')
 
         # Setup Search section
@@ -332,7 +331,7 @@ def DonatorSearch(SearchEntry):
         error_label = CTkLabel(OutputTableScrollbarContent, text=f"An error occurred: {str(e)}", text_color="red")
         error_label.grid(row=0, column=0, sticky="nsew")
 
-def outputContentGivenButtons(OutputEditContent, value):
+def D_outputContentGivenButtons(OutputEditContent, value):
     global vieweditemflag, A_vieweditemflag, E_vieweditemflag, D_vieweditemflag, currentmode, mode
     if value == 1:
         mode = "add"
@@ -344,21 +343,21 @@ def outputContentGivenButtons(OutputEditContent, value):
     if currentmode == mode:
         return
         
-    clearcurrentmode()
+    D_clearcurrentmode()
     
     if currentmode == "":
         vieweditemflag = 0
         
     if mode == "add":
-        addmodeui()
+        D_addmodeui()
     elif mode == "edit":
-        editmodeui()
+        D_editmodeui()
     elif mode == "delete":
-        deletemodeui()
+        D_deletemodeui()
         
     currentmode = mode
 
-def clearcurrentmode():
+def D_clearcurrentmode():
     global DonAddExist, DonEditExist, DonDeleteExist, diffvalue, viewederror, ErrorBoolean
     global Donator_inputbutton, DonatorNameBox, Donator_combobox
     global AddAddressEntryBox, AddPhoneEntryBox, AddOrgEntryBox, AddDonationEntryBox, AddDonationTypeBox
@@ -474,7 +473,7 @@ def clearcurrentmode():
     except Exception:
         pass
 
-def addmodeui():
+def D_addmodeui():
     global DonAddExist, DonatorNameBox, Donator_inputbutton, Donator_combobox, successful_transaction
     global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder
     
@@ -503,17 +502,17 @@ def addmodeui():
     DonatorNameBox.place(x=5, y=25)
 
     comboVal = StringVar(value="Select")
-    Donator_combobox = CTkComboBox(OutputEditContent, values=["Address", "Phone Number", "Organization", "Donation", "Date", "Branch ID"], command=callback, variable=comboVal, height=25, corner_radius=1, width=110)
+    Donator_combobox = CTkComboBox(OutputEditContent, values=["Address", "Phone Number", "Organization", "Donation", "Date", "Branch ID"], command=D_callback, variable=comboVal, height=25, corner_radius=1, width=110)
     Donator_combobox.set("Select")
     Donator_combobox.place(x=5, y=53)
     Donator_combobox.configure(state="readonly")
 
-    Donator_inputbutton = CTkButton(OutputEditContent, text="Add",  corner_radius=0, command=lambda: handleadddonator(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000',border_width=1, hover_color='#e6e6e6',width=100, height=27)
+    Donator_inputbutton = CTkButton(OutputEditContent, text="Add",  corner_radius=0, command=lambda: D_handleadddonator(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000',border_width=1, hover_color='#e6e6e6',width=100, height=27)
     Donator_inputbutton.place(x=295, y=82)
 
     DonAddExist = True
 
-def editmodeui():
+def D_editmodeui():
     global DonEditExist, DonatorIDEdit, Donator_combobox, Donator_inputbutton, successful_transaction
     global DonatorIDHolder, DonatorNameHolder, AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder,DonationIDHolder
     
@@ -548,26 +547,26 @@ def editmodeui():
 
     
     comboVal = StringVar(value="Select")
-    Donator_combobox = CTkComboBox(OutputEditContent,values=["Name", "Address", "Phone Number", "Organization", "Donation ID", "Branch ID"], command=callback, variable=comboVal, height=25, corner_radius=1, width=110)
+    Donator_combobox = CTkComboBox(OutputEditContent,values=["Name", "Address", "Phone Number", "Organization", "Donation ID", "Branch ID"], command=D_callback, variable=comboVal, height=25, corner_radius=1, width=110)
     Donator_combobox.set("Select")
     Donator_combobox.place(x=5, y=53)
     Donator_combobox.configure(state="readonly")
 
-    Donator_inputbutton = CTkButton(OutputEditContent, text="Edit",corner_radius=0, command=lambda: handleeditdonator(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6',width=100, height=27)
+    Donator_inputbutton = CTkButton(OutputEditContent, text="Edit",corner_radius=0, command=lambda: D_handleeditdonator(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6',width=100, height=27)
     Donator_inputbutton.place(x=295, y=82)
 
     DonEditExist = True
 
-def deletemodeui():
+def D_deletemodeui():
     global DonDeleteExist, DonatorIDDelete, Donator_inputbutton
     DonatorIDDelete = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Enter Donator ID to delete",width=390, height=25)
     DonatorIDDelete.place(x=5, y=25)
 
-    Donator_inputbutton = CTkButton(OutputEditContent, text="Delete", command=lambda: handledeletedonator(DonatorIDDelete, Donator_inputbutton), corner_radius=0, font=BTNFont,text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height=27)
+    Donator_inputbutton = CTkButton(OutputEditContent, text="Delete", command=lambda: D_handledeletedonator(DonatorIDDelete, Donator_inputbutton), corner_radius=0, font=BTNFont,text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height=27)
     Donator_inputbutton.place(x=295, y=82)
     DonDeleteExist = True
 
-def callback(choice):
+def D_callback(choice):
     global enteronce, enteronceforcombo, diffvalue
     global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder
     global ErrorBoolean, Error, viewederror
@@ -592,7 +591,7 @@ def callback(choice):
             enteronce = 1
             
         if enteronce == 1:
-            AddSearchBoxEnter = CTkButton(OutputEditContent, text="Confirm", corner_radius=0, font=BTNFont,command=lambda: confirmyourchoice(choice, AddSearchBoxEnter),text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1,hover_color='#e6e6e6', width=100, height=27)
+            AddSearchBoxEnter = CTkButton(OutputEditContent, text="Confirm", corner_radius=0, font=BTNFont,command=lambda: D_confirmyourchoice(choice, AddSearchBoxEnter),text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1,hover_color='#e6e6e6', width=100, height=27)
             AddSearchBoxEnter.place(x=190, y=82)
 
         # Clear previous entries
@@ -615,7 +614,7 @@ def callback(choice):
             enteronce = 1
             
         if enteronce == 1:
-            EditSearchBoxEnter = CTkButton(OutputEditContent, text="Confirm", corner_radius=0, font=BTNFont,command=lambda: confirmyourchoice(choice, EditSearchBoxEnter),text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1,hover_color='#e6e6e6', width=100, height=27)
+            EditSearchBoxEnter = CTkButton(OutputEditContent, text="Confirm", corner_radius=0, font=BTNFont,command=lambda: D_confirmyourchoice(choice, EditSearchBoxEnter),text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1,hover_color='#e6e6e6', width=100, height=27)
             EditSearchBoxEnter.place(x=190, y=82)
 
         # Clear previous entries
@@ -864,7 +863,7 @@ def CreateBranchIDEntry():
     if BranchIDHolder:
         AddBranchIDEntryBox.insert(0, BranchIDHolder)
 
-def confirmyourchoice(choice, SearchBoxEnter):
+def D_confirmyourchoice(choice, SearchBoxEnter):
     global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder, DonatorNameHolder, DateHolder, DonatorIDHolder,DonationIDHolder, BranchIDHolder
     global DonaNameFlag, DonaIDFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaIDFlag, DonaBranchFlag
     
@@ -1087,6 +1086,10 @@ def donatorIDcreator():
             RID.append(RandInt)
         InvBalIDHolder = ''.join(RID)
 
+        # Ensure IDs are within the allowed length
+        DonatorIDHolder = DonatorIDHolder[:7]
+        InvBalIDHolder = InvBalIDHolder[:7]
+
         # Check if IDs already exist
         cur.execute("""SELECT * FROM ALREADYCREATEDKEYS""")
         results = cur.fetchall()
@@ -1095,13 +1098,14 @@ def donatorIDcreator():
             keyCreatedChecker = True
         else:
             for row in results:
-                if len(row) < 3:
+                if len(row) < 2:
                     print("Invalid row in ALREADYCREATEDKEYS")
-                    keyCreatedChecker = True
                     continue
-                if row[1] == DonatorIDHolder or row[2] == InvBalIDHolder:
+                if row[0] == DonatorIDHolder or row[1] == InvBalIDHolder:
                     keyCreatedChecker = False
                     break
+            else:
+                keyCreatedChecker = True
         
         if keyCreatedChecker:
             cur.execute("""INSERT INTO ALREADYCREATEDKEYS (keyId_T, keyId_IorB)
@@ -1110,8 +1114,7 @@ def donatorIDcreator():
         else:
             return donatorIDcreator()  # Try again with new IDs
 
-# Modify handleadddonator() to use the new ID creation
-def handleadddonator():
+def D_handleadddonator():
     global ErrorBoolean, Error, viewederror
     global DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaBranchFlag
     
@@ -1160,7 +1163,7 @@ def handleadddonator():
     else:
         show_error("Please select additional information")
 
-def handleeditdonator():
+def D_handleeditdonator():
     global ErrorBoolean, Error, viewederror, TrueInventoryIDFlag, successful_transaction
     global DonaIDFlag, DonaNameFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaBranchFlag
     
@@ -1321,7 +1324,7 @@ def handleeditdonator():
     else:
         show_error_message("Please enter a Donator ID")
 
-def handledeletedonator(DonatorIDDelete, deleteinputbutton):
+def D_handledeletedonator(DonatorIDDelete, deleteinputbutton):
     donator_id = DonatorIDDelete.get().strip()
     
     if not donator_id:
@@ -1348,7 +1351,7 @@ def handledeletedonator(DonatorIDDelete, deleteinputbutton):
         cur.execute("ROLLBACK")
         show_error(f"Error deleting donator: {str(e)}")
 
-def clear_ui_elements():
+def D_clear_ui_elements():
     global viewederror, ErrorBoolean
     
     # Clear mode-specific widgets
@@ -1394,5 +1397,5 @@ def show_error_message(message):
         viewederror = 1
 
 # Initialize main window
-show_page(DonatorPage)
+D_show_page(DonatorPage)
 window.mainloop()

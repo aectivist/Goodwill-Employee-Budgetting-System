@@ -4,6 +4,7 @@ import random
 import tkinter as tk
 from tkinter import ttk
 from datetime import datetime
+from errorHandler import execute_safe_query, show_error_window, show_success_message
 
 # Database connection
 conn = psycopg2.connect(host="localhost", dbname="postgres", user="postgres", 
@@ -72,7 +73,7 @@ mode = ""
 # For ID creation
 keyCreatedChecker = False
 
-def show_page(page):
+def I_show_page(page):
     """Initialize and show the specified page"""
     page.pack(fill=BOTH, expand=True)
     window.update_idletasks()
@@ -154,19 +155,19 @@ def inventorypage(page):
         EditLabelRequest.grid(row=0, column=0)
 
         AddButtonRequest = CTkButton(EditsRequestContent, text="ADD", corner_radius=0,
-                                   command=lambda: outputContentGivenButtons(OutputEditContent, 1),
+                                   command=lambda: I_outputContentGivenButtons(OutputEditContent, 1),
                                    font=BTNFont, text_color='#000000', fg_color='#FFFFFF',
                                    border_color='#000000', border_width=1, hover_color='#e6e6e6')
         AddButtonRequest.grid(row=1, column=0, padx=10, pady=4, sticky='nsew')
 
         EditButtonRequest = CTkButton(EditsRequestContent, text="EDIT", corner_radius=0,
-                                    command=lambda: outputContentGivenButtons(OutputEditContent, 2),
+                                    command=lambda: I_outputContentGivenButtons(OutputEditContent, 2),
                                     font=BTNFont, fg_color='#FFFFFF', text_color='#000000',
                                     border_color='#000000', border_width=1, hover_color='#e6e6e6')
         EditButtonRequest.grid(row=2, column=0, padx=10, pady=1, sticky='nsew')
 
         DeleteButtonRequest = CTkButton(EditsRequestContent, text="DELETE", corner_radius=0,
-                                      command=lambda: outputContentGivenButtons(OutputEditContent, 3),
+                                      command=lambda: I_outputContentGivenButtons(OutputEditContent, 3),
                                       font=BTNFont, fg_color='#FFFFFF', text_color='#000000',
                                       border_color='#000000', border_width=1, hover_color='#e6e6e6')
         DeleteButtonRequest.grid(row=3, column=0, padx=10, pady=2, sticky='nsew')
@@ -253,7 +254,11 @@ def InventorySearch(SearchEntry):
                 params['like_value'] = f"%{search_value}%"
             base_query += f" AND {condition}"
 
-        cur.execute(base_query, params)
+        success, error = execute_safe_query(cur, base_query, params)
+        if not success:
+            show_error_window(error)
+            return
+
         rows = cur.fetchall()
 
         if rows:
@@ -310,7 +315,7 @@ def InventorySearch(SearchEntry):
                              text_color="red")
         error_label.grid(row=0, column=0, sticky="nsew")
 
-def outputContentGivenButtons(OutputEditContent, value):
+def I_outputContentGivenButtons(OutputEditContent, value):
     """Handle button clicks for Add/Edit/Delete operations"""
     global vieweditemflag, currentmode, mode
     
@@ -324,84 +329,141 @@ def outputContentGivenButtons(OutputEditContent, value):
     if currentmode == mode:
         return
         
-    clearcurrentmode()
+    I_clearcurrentmode()
     
     if currentmode == "":
         vieweditemflag = 0
         
     if mode == "add":
-        addmodeui()
+        I_addmodeui()
     elif mode == "edit":
-        editmodeui()
+        I_editmodeui()
     elif mode == "delete":
-        deletemodeui()
+        I_deletemodeui()
         
     currentmode = mode
 
-def clearcurrentmode():
+def clear_previous_entries():
+    """Clear previous entry widgets based on mode and diffvalue"""
+    try:
+        # Define all possible widgets that need to be cleared
+        all_widgets = {
+            'add': {
+                1: ['InvValueEntryBox'],
+                2: ['InvTypeCombobox'],
+                3: ['BranchIDEntryBox'],
+                4: ['StatusCombobox']
+            },
+            'edit': {
+                1: ['EditNameEntryBox'],
+                2: ['EditValueEntryBox'],
+                3: ['EditTypeCombobox'],
+                4: ['EditBranchIDEntryBox'],
+                5: ['EditStatusCombobox']
+            }
+        }
+
+        # Get the widgets to clear based on current mode and diffvalue
+        mode_widgets = all_widgets.get(mode, {})
+        widgets_to_clear = mode_widgets.get(diffvalue, [])
+
+        # Clear the specified widgets
+        for widget_name in widgets_to_clear:
+            if widget_name in globals() and globals()[widget_name] is not None:
+                try:
+                    widget = globals()[widget_name]
+                    if hasattr(widget, 'winfo_exists') and widget.winfo_exists():
+                        widget.place_forget()
+                except Exception:
+                    pass
+
+        # Additional cleanup for specific widgets
+        common_widgets = [
+            'AddSearchBoxEnter', 'EditSearchBoxEnter',
+            'inventorytypebox', 'statusbox'
+        ]
+        
+        for widget_name in common_widgets:
+            if widget_name in globals() and globals()[widget_name] is not None:
+                try:
+                    widget = globals()[widget_name]
+                    if hasattr(widget, 'winfo_exists') and widget.winfo_exists():
+                        if widget_name.endswith('BoxEnter'):
+                            widget.destroy()
+                        else:
+                            widget.place_forget()
+                except Exception:
+                    pass
+                    
+    except Exception as e:
+        print(f"Error clearing entries: {e}")
+
+def I_clearcurrentmode():
     """Clean up UI elements when switching modes"""
-    global InvAddExist, InvEditExist, InvDeleteExist, diffvalue, viewederror, ErrorBoolean
-    global Inventory_inputbutton, InventoryNameBox, Inventory_combobox, EditSearchBoxEnter, ItemTypeCombobox
+    global InvAddExist, InvEditExist, InvDeleteExist, diffvalue
+    global viewederror, ErrorBoolean
+    global Inventory_inputbutton, InventoryNameBox, Inventory_combobox, SearchComboChoices
 
-    # Handle Add mode cleanup
-    if InvAddExist:
-        try:
-            if 'InventoryNameBox' in globals() and InventoryNameBox is not None:
-                InventoryNameBox.place_forget()
-            if 'Inventory_combobox' in globals() and Inventory_combobox is not None:
-                Inventory_combobox.place_forget()
-            if 'ItemTypeCombobox' in globals() and ItemTypeCombobox is not None:  # Add this
-                ItemTypeCombobox.place_forget()
-        except Exception as e:
-            print(f"Add cleanup error: {e}")
+    # List of all possible widgets to clean up
+    widgets_to_cleanup = {
+        'add': [
+            ('InventoryNameBox', 'place_forget'),
+            ('Inventory_combobox', 'place_forget'),
+            ('ItemTypeCombobox', 'place_forget'),
+            ('InvValueEntryBox', 'place_forget'),
+            ('InvTypeCombobox', 'place_forget'),
+            ('BranchIDEntryBox', 'place_forget'),
+            ('StatusCombobox', 'place_forget'),
+            ('AddSearchBoxEnter', 'destroy'),
+            ('Inventory_inputbutton', 'destroy')  # Added Inventory_inputbutton
+        ],
+        'edit': [
+            ('InventoryIDEdit', 'destroy'),
+            ('Inventory_combobox', 'destroy'),
+            ('EditNameEntryBox', 'place_forget'),
+            ('EditValueEntryBox', 'place_forget'),
+            ('EditTypeCombobox', 'place_forget'),
+            ('EditBranchIDEntryBox', 'place_forget'),
+            ('EditStatusCombobox', 'place_forget'),
+            ('EditSearchBoxEnter', 'destroy'),
+            ('Inventory_inputbutton', 'destroy')  # Added Inventory_inputbutton
+        ],
+        'delete': [
+            ('InventoryIDDelete', 'destroy'),
+            ('Inventory_inputbutton', 'destroy')  # Added Inventory_inputbutton
+        ]
+    }
 
-        try:
-            if ErrorBoolean and 'Error' in globals():
-                Error.destroy()
-                viewederror = 0
-                ErrorBoolean = False
-        except Exception:
-            pass
+    # Clean up mode-specific widgets
+    current_mode = 'add' if InvAddExist else 'edit' if InvEditExist else 'delete' if InvDeleteExist else None
+    if current_mode:
+        for widget_name, action in widgets_to_cleanup[current_mode]:
+            try:
+                if widget_name in globals() and globals()[widget_name] is not None:
+                    widget = globals()[widget_name]
+                    if hasattr(widget, 'winfo_exists') and widget.winfo_exists():
+                        getattr(widget, action)()
+            except Exception as e:
+                print(f"Error cleaning up {widget_name}: {e}")
 
-        # Clear entry boxes based on diffvalue
-        try:
-            if diffvalue == 1 and 'InvValueEntryBox' in globals():
-                InvValueEntryBox.place_forget()
-            elif diffvalue == 2 and 'InvTypeCombobox' in globals():
-                InvTypeCombobox.place_forget()
-            elif diffvalue == 3 and 'BranchIDEntryBox' in globals():
-                BranchIDEntryBox.place_forget()
-            elif diffvalue == 4 and 'StatusCombobox' in globals():
-                StatusCombobox.place_forget()
-            if diffvalue > 0 and 'AddSearchBoxEnter' in globals():
-                AddSearchBoxEnter.destroy()
-        except Exception as e:
-            print(f"Entry cleanup error: {e}")
+    # Reset state flags
+    InvAddExist = False
+    InvEditExist = False
+    InvDeleteExist = False
 
-        InvAddExist = False
+    # Clear error state
+    try:
+        if ErrorBoolean and 'Error' in globals() and Error.winfo_exists():
+            Error.destroy()
+            viewederror = 0
+            ErrorBoolean = False
+    except Exception:
+        pass
 
-    # Handle Edit mode cleanup
-    if InvEditExist:
-        try:
-            if 'InventoryIDEdit' in globals() and InventoryIDEdit is not None:
-                InventoryIDEdit.destroy()
-            if 'Inventory_combobox' in globals() and Inventory_combobox is not None:
-                Inventory_combobox.destroy()
-        except Exception as e:
-            print(f"Edit cleanup error: {e}")
+    # Reset diffvalue
+    diffvalue = 0
 
-        InvEditExist = False
-
-    # Handle Delete mode cleanup
-    if InvDeleteExist:
-        try:
-            if 'InventoryIDDelete' in globals() and InventoryIDDelete is not None:
-                InventoryIDDelete.destroy()
-        except Exception:
-            pass
-        InvDeleteExist = False
-
-def addmodeui():
+def I_addmodeui():
     """Initialize add mode interface"""
     global InvAddExist, InventoryNameBox, Inventory_inputbutton, Inventory_combobox
     global InvNameHolder, InvValueHolder, InvTypeHolder, BranchIDHolder, StatusHolder
@@ -448,7 +510,7 @@ def addmodeui():
     comboVal = StringVar(value="Select")
     Inventory_combobox = CTkComboBox(OutputEditContent, 
                                    values=["Value", "Type", "Branch ID", "Status"],
-                                   command=callback, variable=comboVal, height=25,
+                                   command=I_callback, variable=comboVal, height=25,
                                    corner_radius=1, width=110)
     Inventory_combobox.set("Select")
     Inventory_combobox.place(x=5, y=82)  # Changed y position
@@ -456,7 +518,7 @@ def addmodeui():
 
     Inventory_inputbutton = CTkButton(OutputEditContent, text="Add",
                                     corner_radius=0,
-                                    command=lambda: handleaddinventory(),
+                                    command=lambda: I_handleaddinventory(),
                                     font=BTNFont, text_color='#000000',
                                     fg_color='#FFFFFF',
                                     border_color='#000000', border_width=1,
@@ -476,7 +538,7 @@ def handle_item_type_change(choice):
         InventoryNameBox.delete(0, END)
         InventoryNameBox.configure(placeholder_text="Inventory Name")
 
-def editmodeui():
+def I_editmodeui():
     """Initialize edit mode interface"""
     global InvEditExist, InventoryIDEdit, Inventory_combobox, Inventory_inputbutton
     global InvIDHolder, InvNameHolder, InvValueHolder, InvTypeHolder, BranchIDHolder, StatusHolder
@@ -512,7 +574,7 @@ def editmodeui():
     comboVal = StringVar(value="Select")
     Inventory_combobox = CTkComboBox(OutputEditContent,
                                    values=["Name", "Value", "Type", "Branch ID", "Status"],
-                                   command=callback, variable=comboVal, height=25,
+                                   command=I_callback, variable=comboVal, height=25,
                                    corner_radius=1, width=110)
     Inventory_combobox.set("Select")
     Inventory_combobox.place(x=5, y=53)
@@ -520,7 +582,7 @@ def editmodeui():
 
     Inventory_inputbutton = CTkButton(OutputEditContent, text="Edit",
                                     corner_radius=0,
-                                    command=lambda: handleeditinventory(),
+                                    command=lambda: I_handleeditinventory(),
                                     font=BTNFont, text_color='#000000',
                                     fg_color='#FFFFFF',
                                     border_color='#000000', border_width=1,
@@ -529,7 +591,87 @@ def editmodeui():
 
     InvEditExist = True
 
-def handleeditinventory():
+# Update the get_next_inventory_id function to generate 5-digit IDs
+def get_next_inventory_id():
+    """Get next available 5-digit inventory ID"""
+    while True:
+        next_id = random.randint(10000, 99999)
+        success, error = execute_safe_query(cur, """
+            SELECT EXISTS(SELECT 1 FROM Inventory WHERE InventoryId = %s)
+        """, (next_id,))
+        if not success:
+            show_error_window(error)
+            return None
+        if not cur.fetchone()[0]:
+            return next_id
+
+def I_handleaddinventory():
+    """Handle adding new inventory items"""
+    # Validate inventory name
+    inv_name = InventoryNameBox.get().strip()
+    if not inv_name:
+        show_error_window("Inventory name is required")
+        return
+        
+    # Validate required fields
+    if not all([InvValueFlag, InvTypeFlag, BranchIDFlag, StatusFlag]):
+        show_error_window("Please fill in all required fields")
+        return
+
+    try:
+        # Get next ID
+        next_id = get_next_inventory_id()
+        if next_id is None:
+            return
+
+        # Begin transaction
+        success, error = execute_safe_query(cur, "BEGIN")
+        if not success:
+            show_error_window(error)
+            return
+            
+        # Insert new inventory
+        success, error = execute_safe_query(
+            cur,
+            """
+            INSERT INTO Inventory (
+                InventoryId, InventoryName, InventoryValue, 
+                InventoryType, BranchId, GoodsStatus
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+            """,
+            (
+                next_id,
+                inv_name,
+                float(InvValueHolder),
+                InvTypeHolder,
+                int(BranchIDHolder),
+                StatusHolder
+            )
+        )
+        
+        if not success:
+            execute_safe_query(cur, "ROLLBACK")
+            show_error_window(error)
+            return
+
+        # Commit transaction
+        success, error = execute_safe_query(cur, "COMMIT")
+        if not success:
+            show_error_window(error)
+            return
+            
+        # Clear UI and show success
+        I_clear_ui_elements()
+        show_success_message("Inventory item added successfully", OutputEditContent)
+        
+    except ValueError:
+        execute_safe_query(cur, "ROLLBACK")
+        show_error_window("Please enter valid numeric values")
+    except Exception as e:
+        execute_safe_query(cur, "ROLLBACK")
+        show_error_window(f"Error adding inventory: {str(e)}")
+
+def I_handleeditinventory():
     """Handle the inventory edit operation"""
     global ErrorBoolean, Error, viewederror, successful_transaction
     
@@ -539,9 +681,12 @@ def handleeditinventory():
     if inventory_id:
         try:
             # Check if inventory exists
-            cur.execute("""
+            success, error = execute_safe_query(cur, """
                 SELECT EXISTS(SELECT 1 FROM Inventory WHERE InventoryId = %s)
             """, (inventory_id,))
+            if not success:
+                show_error_window(error)
+                return
             result = cur.fetchone()
             
             if result and result[0]:
@@ -556,93 +701,117 @@ def handleeditinventory():
                 except Exception:
                     pass
             else:
-                show_error_message("Inventory ID does not exist")
+                show_error_window("Inventory ID does not exist")
                 return
                 
         except Exception as e:
-            show_error_message(f"Database error: {str(e)}")
+            show_error_window(f"Database error: {str(e)}")
             return
             
         if diffvalue > 0:  # Check if user has selected something to edit
             try:
-                cur.execute("BEGIN")
+                success, error = execute_safe_query(cur, "BEGIN")
+                if not success:
+                    show_error_window(error)
+                    return
                 updates_made = False
                 
                 # Handle updates based on what was edited
                 if InvNameFlag:
-                    cur.execute("""
+                    success, error = execute_safe_query(cur, """
                         UPDATE Inventory 
                         SET InventoryName = %s 
                         WHERE InventoryId = %s
                     """, (InvNameHolder, inventory_id))
+                    if not success:
+                        show_error_window(error)
+                        return
                     updates_made = True
                     
                 if InvValueFlag:
                     if not InvValueHolder.replace('.', '').isdigit():
-                        show_error_message("Value must be a number")
-                        cur.execute("ROLLBACK")
+                        show_error_window("Value must be a number")
+                        execute_safe_query(cur, "ROLLBACK")
                         return
-                    cur.execute("""
+                    success, error = execute_safe_query(cur, """
                         UPDATE Inventory 
                         SET InventoryValue = %s 
                         WHERE InventoryId = %s
                     """, (float(InvValueHolder), inventory_id))
+                    if not success:
+                        show_error_window(error)
+                        return
                     updates_made = True
                     
                 if InvTypeFlag:
-                    cur.execute("""
+                    success, error = execute_safe_query(cur, """
                         UPDATE Inventory 
                         SET InventoryType = %s 
                         WHERE InventoryId = %s
                     """, (InvTypeHolder, inventory_id))
+                    if not success:
+                        show_error_window(error)
+                        return
                     updates_made = True
                 
                 if BranchIDFlag:
                     # Verify branch exists
-                    cur.execute("""
+                    success, error = execute_safe_query(cur, """
                         SELECT EXISTS(
                             SELECT 1 FROM goodwillbranch 
                             WHERE BranchId = %s
                         )
                     """, (BranchIDHolder,))
+                    if not success:
+                        show_error_window(error)
+                        return
                     if cur.fetchone()[0]:
-                        cur.execute("""
+                        success, error = execute_safe_query(cur, """
                             UPDATE Inventory 
                             SET BranchId = %s 
                             WHERE InventoryId = %s
                         """, (BranchIDHolder, inventory_id))
+                        if not success:
+                            show_error_window(error)
+                            return
                         updates_made = True
                     else:
-                        cur.execute("ROLLBACK")
-                        show_error_message("Invalid Branch ID")
+                        execute_safe_query(cur, "ROLLBACK")
+                        show_error_window("Invalid Branch ID")
                         return
                         
                 if StatusFlag:
-                    cur.execute("""
+                    success, error = execute_safe_query(cur, """
                         UPDATE Inventory 
                         SET GoodsStatus = %s 
                         WHERE InventoryId = %s
                     """, (StatusHolder, inventory_id))
+                    if not success:
+                        show_error_window(error)
+                        return
                     updates_made = True
                 
                 if updates_made:
-                    cur.execute("COMMIT")
+                    success, error = execute_safe_query(cur, "COMMIT")
+                    if not success:
+                        show_error_window(error)
+                        return
                     successful_transaction = True
-                    clear_ui_elements()
-                    show_success_message("Inventory updated successfully")
+                    I_clear_ui_elements()
+                    show_success_message("Inventory updated successfully", OutputEditContent)
                 else:
-                    cur.execute("ROLLBACK")
-                    show_error_message("No changes made")
+                    execute_safe_query(cur, "ROLLBACK")
+                    show_error_window("No changes made")
                     
             except Exception as e:
-                cur.execute("ROLLBACK")
-                show_error_message(f"Error updating inventory: {str(e)}")
+                execute_safe_query(cur, "ROLLBACK")
+                show_error_window(f"Error updating inventory: {str(e)}")
         else:
-            show_error_message("Please select at least one field to update")
+            show_error_window("Please select at least one field to update")
     else:
-        show_error_message("Please enter an Inventory ID")
+        show_error_window("Please enter an Inventory ID")
 
-def deletemodeui():
+def I_deletemodeui():
     """Initialize delete mode interface"""
     global InvDeleteExist, InventoryIDDelete, Inventory_inputbutton
     InventoryIDDelete = CTkEntry(OutputEditContent, corner_radius=0,
@@ -652,7 +821,7 @@ def deletemodeui():
     InventoryIDDelete.place(x=5, y=25)
 
     Inventory_inputbutton = CTkButton(OutputEditContent, text="Delete",
-                                    command=lambda: handledeleteinventory(InventoryIDDelete, Inventory_inputbutton),
+                                    command=lambda: I_handledeleteinventory(InventoryIDDelete, Inventory_inputbutton),
                                     corner_radius=0, font=BTNFont,
                                     text_color='#000000', fg_color='#FFFFFF',
                                     border_color='#000000', border_width=1,
@@ -660,7 +829,7 @@ def deletemodeui():
     Inventory_inputbutton.place(x=295, y=82)
     InvDeleteExist = True
 
-def callback(choice):
+def I_callback(choice):
     """Handle combobox selection"""
     global enteronce, enteronceforcombo, diffvalue
     global InvNameHolder, InvValueHolder, InvTypeHolder, BranchIDHolder, StatusHolder
@@ -688,7 +857,7 @@ def callback(choice):
         if enteronce == 1:
             AddSearchBoxEnter = CTkButton(OutputEditContent, text="Confirm",
                                         corner_radius=0, font=BTNFont,
-                                        command=lambda: confirmyourchoice(choice, AddSearchBoxEnter),
+                                        command=lambda: I_confirmyourchoice(choice, AddSearchBoxEnter),
                                         text_color='#000000', fg_color='#FFFFFF',
                                         border_color='#000000', border_width=1,
                                         hover_color='#e6e6e6', width=100, height=27)
@@ -715,7 +884,7 @@ def callback(choice):
         if enteronce == 1:
             EditSearchBoxEnter = CTkButton(OutputEditContent, text="Confirm",
                                         corner_radius=0, font=BTNFont,
-                                        command=lambda: confirmyourchoice(choice, EditSearchBoxEnter),
+                                        command=lambda: I_confirmyourchoice(choice, EditSearchBoxEnter),
                                         text_color='#000000', fg_color='#FFFFFF',
                                         border_color='#000000', border_width=1,
                                         hover_color='#e6e6e6', width=100, height=27)
@@ -767,10 +936,7 @@ def create_entry_widget(choice):
 def create_value_entry():
     """Create value entry widget for add mode"""
     global InvValueEntryBox
-    InvValueEntryBox = CTkEntry(OutputEditContent, corner_radius=0,
-                               border_color='#000000', border_width=1,
-                               placeholder_text="Inventory Value",
-                               width=275, height=25)
+    InvValueEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Inventory Value",width=275, height=25)
     InvValueEntryBox.place(x=120, y=53)
     if InvValueHolder:
         InvValueEntryBox.insert(0, InvValueHolder)
@@ -895,13 +1061,13 @@ def clear_previous_entries():
     except Exception as e:
         print(f"Error clearing entries: {e}")
 
-def clear_ui_elements():
+def I_clear_ui_elements():
     """Clear all UI elements and reset error states"""
     global viewederror, ErrorBoolean
     
     # Clear mode-specific widgets
     if mode == "add":
-        widgets_to_clear = [InventoryNameBox, Inventory_combobox, Inventory_inputbutton]
+        widgets_to_clear = [InventoryNameBox, Inventory_combobox, Inventory_inputbutton, ItemTypeCombobox]  # Added ItemTypeCombobox
         for widget in widgets_to_clear:
             try:
                 widget.place_forget()
@@ -930,45 +1096,20 @@ def clear_ui_elements():
         viewederror = 0
         ErrorBoolean = False
 
-def show_error_message(message):
-    """Display error message in UI"""
-    global ErrorBoolean, Error, viewederror
-    if viewederror == 0:
-        ErrorBoolean = True
-        Error = CTkLabel(OutputEditContent, 
-                        text=message,
-                        text_color="red", 
-                        height=13,
-                        width=200,
-                        wraplength=200)
-        Error.place(relx=0.5, y=3, anchor='n')
-        viewederror = 1
-
-def show_success_message(message):
-    """Display success message in UI"""
-    success_label = CTkLabel(OutputEditContent, 
-                           text=message,
-                           text_color="green", 
-                           height=13,
-                           width=200,
-                           wraplength=200)
-    success_label.place(relx=0.5, y=3, anchor='n')
-    OutputEditContent.after(3000, success_label.destroy)
-
-def confirmyourchoice(choice, SearchBoxEnter):
+def I_confirmyourchoice(choice, SearchBoxEnter):
     """Handle confirmation of entry values"""
     global InvNameHolder, InvValueHolder, InvTypeHolder, BranchIDHolder, StatusHolder
     global InvNameFlag, InvValueFlag, InvTypeFlag, BranchIDFlag, StatusFlag
     
     if mode == "add":
         if choice == "Value":
-            value = InvValueEntryBox.get()
-            if value.replace('.', '', 1).isdigit():
+            value = InvValueEntryBox.get().strip()
+            if value and value.replace('.', '', 1).isdigit():
                 InvValueHolder = value
                 InvValueFlag = True
                 clear_entry_and_button(choice, SearchBoxEnter)
             else:
-                show_error_message("Value must be a number")
+                show_error_window("Value must be a valid number")
 
         elif choice == "Type":
             InvTypeHolder = InvTypeCombobox.get()
@@ -976,69 +1117,155 @@ def confirmyourchoice(choice, SearchBoxEnter):
             clear_entry_and_button(choice, SearchBoxEnter)
 
         elif choice == "Branch ID":
-            branch_id = BranchIDEntryBox.get()
-            if branch_id.isdigit():
-                cur.execute("SELECT EXISTS(SELECT 1 FROM goodwillbranch WHERE BranchId = %s)",
-                          (branch_id,))
+            branch_id = BranchIDEntryBox.get().strip()
+            if branch_id and branch_id.isdigit():
+                # Verify branch exists
+                success, error = execute_safe_query(
+                    cur,
+                    "SELECT EXISTS(SELECT 1 FROM goodwillbranch WHERE BranchId = %s)",
+                    (branch_id,)
+                )
+                if not success:
+                    show_error_window(error)
+                    return
+                    
                 if cur.fetchone()[0]:
                     BranchIDHolder = branch_id
                     BranchIDFlag = True
                     clear_entry_and_button(choice, SearchBoxEnter)
                 else:
-                    show_error_message("Branch ID does not exist")
+                    show_error_window("Branch ID does not exist")
             else:
-                show_error_message("Branch ID must be a number")
+                show_error_window("Branch ID must be a number")
 
         elif choice == "Status":
             StatusHolder = StatusCombobox.get()
             StatusFlag = True
             clear_entry_and_button(choice, SearchBoxEnter)
+    elif mode == "edit":
+        if choice == "Name":
+            InvNameHolder = EditNameEntryBox.get().strip()
+            if InvNameHolder:
+                InvNameFlag = True
+                clear_entry_and_button(choice, SearchBoxEnter)
+            else:
+                show_error_window("Name cannot be empty")
+
+        elif choice == "Value":
+            value = EditValueEntryBox.get().strip()
+            if value and value.replace('.', '', 1).isdigit():
+                InvValueHolder = value
+                InvValueFlag = True
+                clear_entry_and_button(choice, SearchBoxEnter)
+            else:
+                show_error_window("Value must be a valid number")
+
+        elif choice == "Type":
+            InvTypeHolder = EditTypeCombobox.get()
+            InvTypeFlag = True
+            clear_entry_and_button(choice, SearchBoxEnter)
+
+        elif choice == "Branch ID":
+            branch_id = EditBranchIDEntryBox.get().strip()
+            if branch_id and branch_id.isdigit():
+                success, error = execute_safe_query(
+                    cur,
+                    "SELECT EXISTS(SELECT 1 FROM goodwillbranch WHERE BranchId = %s)",
+                    (branch_id,)
+                )
+                if not success:
+                    show_error_window(error)
+                    return
+                    
+                if cur.fetchone()[0]:
+                    BranchIDHolder = branch_id
+                    BranchIDFlag = True
+                    clear_entry_and_button(choice, SearchBoxEnter)
+                else:
+                    show_error_window("Branch ID does not exist")
+            else:
+                show_error_window("Branch ID must be a number")
+
+        elif choice == "Status":
+            StatusHolder = EditStatusCombobox.get()
+            StatusFlag = True
+            clear_entry_and_button(choice, SearchBoxEnter)
 
 def clear_entry_and_button(choice, button):
     """Clear specific entry widget and confirmation button"""
-    if choice == "Value":
-        InvValueEntryBox.place_forget()
-    elif choice == "Type":
-        InvTypeCombobox.place_forget()
-    elif choice == "Branch ID":
-        BranchIDEntryBox.place_forget()
-    elif choice == "Status":
-        StatusCombobox.place_forget()
+    if mode == "add":
+        if choice == "Value":
+            InvValueEntryBox.place_forget()
+        elif choice == "Type":
+            InvTypeCombobox.place_forget()
+        elif choice == "Branch ID":
+            BranchIDEntryBox.place_forget()
+        elif choice == "Status":
+            StatusCombobox.place_forget()
+    elif mode == "edit":
+        if choice == "Name":
+            EditNameEntryBox.place_forget()
+        elif choice == "Value":
+            EditValueEntryBox.place_forget()
+        elif choice == "Type":
+            EditTypeCombobox.place_forget()
+        elif choice == "Branch ID":
+            EditBranchIDEntryBox.place_forget()
+        elif choice == "Status":
+            EditStatusCombobox.place_forget()
+    
     button.destroy()
 
-def handledeleteinventory(InventoryIDDelete, deleteinputbutton):
+# Update the delete function to fix the SQL syntax error
+def I_handledeleteinventory(InventoryIDDelete, deleteinputbutton):
     """Handle the inventory deletion operation"""
     inventory_id = InventoryIDDelete.get().strip()
     
     if not inventory_id:
-        show_error_message("Please enter inventory ID")
+        show_error_window("Please enter inventory ID")
+        return
+    
+    if inventory_id == 0:
+        show_error_window("Inventory ID cannot be deleted.")
         return
         
     try:
-        cur.execute("BEGIN")
+        success, error = execute_safe_query(cur, "BEGIN")
+        if not success:
+            show_error_window(error)
+            return
         
         # Check if inventory exists and can be deleted
-        cur.execute("""
+        success, error = execute_safe_query(cur, """
             SELECT EXISTS(
                 SELECT 1 FROM Inventory 
                 WHERE InventoryId = %s 
-                AND GoodsStatus = 'Sold'  # Only allow deletion of sold items
+                AND GoodsStatus = 'Sold'
             )
         """, (inventory_id,))
+        if not success:
+            show_error_window(error)
+            return
         
         if cur.fetchone()[0]:
-            cur.execute("DELETE FROM Inventory WHERE InventoryId = %s", (inventory_id,))
-            cur.execute("COMMIT")
-            clear_ui_elements()
-            show_success_message("Inventory deleted successfully")
+            success, error = execute_safe_query(cur, "DELETE FROM Inventory WHERE InventoryId = %s", (inventory_id,))
+            if not success:
+                show_error_window(error)
+                return
+            success, error = execute_safe_query(cur, "COMMIT")
+            if not success:
+                show_error_window(error)
+                return
+            I_clear_ui_elements()
+            show_success_message("Inventory deleted successfully", OutputEditContent)
         else:
-            cur.execute("ROLLBACK")
-            show_error_message("Inventory not found or must be sold before deletion")
+            execute_safe_query(cur, "ROLLBACK")
+            show_error_window("Inventory not found or must be sold before deletion")
             
     except Exception as e:
-        cur.execute("ROLLBACK")
-        show_error_message(f"Error deleting inventory: {str(e)}")
+        execute_safe_query(cur, "ROLLBACK")
+        show_error_window(f"Error deleting inventory: {str(e)}")
 
 
-show_page(InventoryPage)  # Pass the frame instead of the function
+I_show_page(InventoryPage)  # Pass the frame instead of the function
 window.mainloop()
