@@ -5,59 +5,66 @@ import tkinter as tk
 from tkinter import ttk
 from datetime import datetime
 from errorHandler import execute_safe_query, show_error_window, show_success_message
+
+
+
+#Database connection
+conn = None
+cur = None
+
+def init_db(db_conn, db_cur):
+    """Initialize database connection"""
+    global conn, cur
+    conn = db_conn
+    cur = db_cur
+
+
+#REQUIRED DATATYPES _------------------------------------------------------------------- 
+#SQL
+InvBalIDHolder = 0 #Create INV/BAL ID HOLDER
+GenTransID = 0 #Create General Transaction ID
         
-conn=psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
-cur = conn.cursor()
+#checks if items has been viewed
+vieweditemflag = False
+A_vieweditemflag = 0 #for add
+E_vieweditemflag = 0#for edit
+D_vieweditemflag = 0 #for delete
+viewederror = 0 #This is for the error
 
-#https://github.com/Akascape/CTkTable
+ErrorBoolean = False #If error statement has already been set
 
-
-
-window = CTk()
-window.title("BUDGET")
-window.geometry("600x400") #fml
-window.resizable(0,0) #disable resize
-set_appearance_mode("light")
-
+#to check whether or not an item had a successful transaction
+sucessful_transaction = False
 
 
+#for knowing which mode the user is currently on
+currentmode = ""
 
-#++++++++++++++++++++++++++++++ {PAGES} ++++++++++++++++++++++++++++++++++++++
+TransAddExist = False #Allows us to know the existence, whether or not add is being accessed, edit or delete similarly.
+TransEditExist = False
+TransDeleteExist = False
 
+TrueInventoryIDFlag = False #Checks for EDIT PANEL if the GOODS and TYPE are interdependent amongst each other. You can find it most notably on handleedittrans
 
-# Create frames for each page
-TABFRAME = CTkFrame(window, height=51, width=600, fg_color="#1E1E1E", corner_radius=0)
-TABFRAME.pack(anchor=CENTER, fill=X)
+ConfirmedChoiceForSearch = "" #Confirmed for choice for search is used to see whether or not the user has confirmed their choice for search. If they have, then it will be used to search for the item.
 
+keyCreatedChecker = False#For the key creation to see whether or not it has been created or not. If it is created, the checker stays false. Else if it is true, then it will continue to add the keys.
 
-#These are the individual pages, or rather, the frames
-TransactionsPage = CTkFrame(window)
-TransactionsPage.pack(fill=BOTH, expand=True)
-
-
-
-
-# Create a list to hold all the pages
-pages = [TransactionsPage]
-
+#FOR SEARCH
+ErrorLabelBoolean = False #NOTE: This is for the error label. If the error label is already set, then it will not be set again. This is to prevent multiple error labels from being set.
 
 # Function to show a page
-def T_show_page(page):
-    page.pack(fill=BOTH, expand=True)
-    window.update_idletasks()  # Update the UI
-    if page == TransactionsPage:
-        transactionpage(TransactionsPage)
-       
-
-
-         
-#++++++++++++++++++++++++++++++ {PAGE FUNCTIONS} ++++++++++++++++++++++++++++++++++++++
-
-
-#def clientpage(page):
-#def assetpage(page):
-#def calculator(page):
-
+def T_show_page(parent, page_frame):
+    """Initialize and show the donator page"""
+    global TransactionsPagePost
+    
+    # Show the page
+    page_frame.pack(fill=BOTH, expand=True)
+    parent.update_idletasks()
+    
+    # Initialize content only once
+    if TransactionsPagePost == 0:
+        transactionpage(page_frame)
 
 
 
@@ -67,6 +74,7 @@ EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 BTNFont = CTkFont(family="Oswald", size=13)
 ErrorFont = CTkFont( size=10)
 TransactionsPagePost = 0 #so the page only posts once and not multiple times
+
 
 def transactionpage(page): #TO BE UPDATED
     global TransactionsPagePost, OutputEditContent, SearchRequestContent
@@ -169,40 +177,6 @@ def transactionpage(page): #TO BE UPDATED
         print("Page has already been outputted!")
 
 
-#REQUIRED DATATYPES _------------------------------------------------------------------- 
-#SQL
-InvBalIDHolder = 0 #Create INV/BAL ID HOLDER
-GenTransID = 0 #Create General Transaction ID
-        
-#checks if items has been viewed
-vieweditemflag = False
-A_vieweditemflag = 0 #for add
-E_vieweditemflag = 0#for edit
-D_vieweditemflag = 0 #for delete
-viewederror = 0 #This is for the error
-
-ErrorBoolean = False #If error statement has already been set
-
-#to check whether or not an item had a successful transaction
-sucessful_transaction = False
-
-
-#for knowing which mode the user is currently on
-currentmode = ""
-
-TransAddExist = False #Allows us to know the existence, whether or not add is being accessed, edit or delete similarly.
-TransEditExist = False
-TransDeleteExist = False
-
-TrueInventoryIDFlag = False #Checks for EDIT PANEL if the GOODS and TYPE are interdependent amongst each other. You can find it most notably on handleedittrans
-
-ConfirmedChoiceForSearch = "" #Confirmed for choice for search is used to see whether or not the user has confirmed their choice for search. If they have, then it will be used to search for the item.
-
-keyCreatedChecker = False#For the key creation to see whether or not it has been created or not. If it is created, the checker stays false. Else if it is true, then it will continue to add the keys.
-
-#FOR SEARCH
-ErrorLabelBoolean = False #NOTE: This is for the error label. If the error label is already set, then it will not be set again. This is to prevent multiple error labels from being set.
-#+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 def TransactionSearch_ComboCallback(choice):
     global ConfirmedChoiceForSearch
     
@@ -1570,6 +1544,7 @@ def T_handleedittrans():
             print(viewederror)
 
 
+        
 def T_clear_ui_elements():
     global viewederror, ErrorBoolean
     if mode == "add":
@@ -1593,14 +1568,4 @@ def T_clear_ui_elements():
         Error.place_forget()
         viewederror = 0
         ErrorBoolean = False
-
-# Function to handle button clicks
-def button_event(page):
-    salespage(page)
-SalesTab = CTkButton(TABFRAME, text="Sales", width=20)
-SalesTab.grid(row=0, column=1, pady=10, padx=10, sticky="nsew")
-SalesTab.configure(command=lambda: button_event(TransactionsPage))
-# Show the first page by default
-T_show_page(TransactionsPage)    
-window.mainloop()
 

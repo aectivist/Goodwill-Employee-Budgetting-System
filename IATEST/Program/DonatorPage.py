@@ -5,23 +5,18 @@ import tkinter as tk
 from tkinter import ttk
 from datetime import datetime
 
-conn = psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
-cur = conn.cursor()
+from errorHandler import execute_safe_query, show_error_window, show_success_message
 
-window = CTk()
-window.title("DONATOR")
-window.geometry("600x400")
-window.resizable(0, 0)
-set_appearance_mode("light")
+# Database connection
+conn = None
+cur = None
 
-# Create frames
-TABFRAME = CTkFrame(window, height=51, width=600, fg_color="#1E1E1E", corner_radius=0)
-TABFRAME.pack(anchor=CENTER, fill=X)
+def init_db(db_conn, db_cur):
+    """Initialize database connection"""
+    global conn, cur
+    conn = db_conn
+    cur = db_cur
 
-DonatorPage = CTkFrame(window)
-DonatorPage.pack(fill=BOTH, expand=True)
-
-pages = [DonatorPage]
 
 # Global variables
 TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
@@ -93,11 +88,17 @@ enteronce = 0
 enteronceforcombo = 0
 mode = ""
 
-def D_show_page(page):
-    page.pack(fill=BOTH, expand=True)
-    window.update_idletasks()
-    if page == DonatorPage:
-        donatorpage(DonatorPage)
+def D_show_page(parent, page_frame):
+    """Initialize and show the donator page"""
+    global DonatorPagePost
+    
+    # Show the page
+    page_frame.pack(fill=BOTH, expand=True)
+    parent.update_idletasks()
+    
+    # Initialize content only once
+    if DonatorPagePost == 0:
+        donatorpage(page_frame)
 
 def donatorpage(page):
     global DonatorPagePost, OutputEditContent, SearchRequestContent
@@ -1020,19 +1021,32 @@ def show_error(message):
         # Center the error message horizontally and keep it near the top
         Error.place(relx=0.5, y=3, anchor='n')
         viewederror = 1
-
 def show_success_message(message):
-    success_label = CTkLabel(OutputEditContent, text=message, text_color="green", height=13,width=200, wraplength=200)  # Enable word wrapping
-    success_label.place(relx=0.5, y=3, anchor='n')
-    OutputEditContent.after(3000, success_label.destroy)
+    try:
+        success_label = CTkLabel(OutputEditContent, text=message, text_color="green", height=13,width=200, wraplength=200)
+        success_label.place(relx=0.5, y=3, anchor='n')
+        OutputEditContent.after(3000, lambda: safe_destroy(success_label))
+    except Exception as e:
+        print(f"Error showing success message: {e}")
 
 def show_error_message(message):
     global ErrorBoolean, Error, viewederror
-    if viewederror == 0:
-        ErrorBoolean = True
-        Error = CTkLabel(OutputEditContent, text=message,  text_color="red", height=13,width=200, wraplength=200)  # Enable word wrapping
-        Error.place(relx=0.5, y=3, anchor='n')
-        viewederror = 1
+    try:
+        if viewederror == 0:
+            ErrorBoolean = True
+            Error = CTkLabel(OutputEditContent, text=message, text_color="red", height=13,width=200, wraplength=200)
+            Error.place(relx=0.5, y=3, anchor='n')
+            viewederror = 1
+    except Exception as e:
+        print(f"Error showing error message: {e}")
+
+def safe_destroy(widget):
+    """Safely destroy a widget if it exists and is valid"""
+    try:
+        if widget and widget.winfo_exists():
+            widget.destroy()
+    except Exception as e:
+        print(f"Error destroying widget: {e}")
 
 def clear_entry_and_button(choice, button):
     if choice == "Address":
@@ -1125,7 +1139,7 @@ def D_handleadddonator():
         return
         
     if diffvalue > 0:
-        all_valid = (DonaAddressFlag and DonaPhoneFlag and 
+        all_valid = (DonaAddressFlag and DonaPhoneFlag and
                     DonaOrgFlag and DonaDonationFlag and DonaBranchFlag)
         
         if all_valid:
@@ -1142,7 +1156,7 @@ def D_handleadddonator():
                 cur.execute("""
                     INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus)
                     VALUES (%s, %s, %s, %s, %s, %s)
-                """, (InvBalIDHolder, inventory_name, float(DonationHolder) if DonationTypeHolder == 'Funds' else 0, 
+                """, (InvBalIDHolder, inventory_name, float(DonationHolder) if DonationTypeHolder == 'Funds' else 0,
                       DonationTypeHolder, BranchIDHolder, 'donation'))
                 
                 # Insert donator with reference to inventory
@@ -1205,32 +1219,32 @@ def D_handleeditdonator():
                 # Handle simple text updates
                 if DonaNameFlag:
                     cur.execute("""
-                        UPDATE Donator 
-                        SET DonatorName = %s 
+                        UPDATE Donator
+                        SET DonatorName = %s
                         WHERE DonatorID = %s
                     """, (DonatorNameHolder, donator_id))
                     updates_made = True
                     
                 if DonaAddressFlag:
                     cur.execute("""
-                        UPDATE Donator 
-                        SET DonatorAddress = %s 
+                        UPDATE Donator
+                        SET DonatorAddress = %s
                         WHERE DonatorID = %s
                     """, (AddressHolder, donator_id))
                     updates_made = True
                     
                 if DonaPhoneFlag:
                     cur.execute("""
-                        UPDATE Donator 
-                        SET DonatorPhoneNumber = %s 
+                        UPDATE Donator
+                        SET DonatorPhoneNumber = %s
                         WHERE DonatorID = %s
                     """, (PhoneHolder, donator_id))
                     updates_made = True
                     
                 if DonaOrgFlag:
                     cur.execute("""
-                        UPDATE Donator 
-                        SET DonatorOrganization = %s 
+                        UPDATE Donator
+                        SET DonatorOrganization = %s
                         WHERE DonatorID = %s
                     """, (OrgHolder, donator_id))
                     updates_made = True
@@ -1240,14 +1254,14 @@ def D_handleeditdonator():
                     # Verify donation exists in inventory
                     cur.execute("""
                         SELECT EXISTS(
-                            SELECT 1 FROM Inventory 
+                            SELECT 1 FROM Inventory
                             WHERE InventoryId = %s
                         )
                     """, (DonationIDHolder,))
                     if cur.fetchone()[0]:
                         cur.execute("""
-                            UPDATE Donator 
-                            SET DonationID = %s 
+                            UPDATE Donator
+                            SET DonationID = %s
                             WHERE DonatorID = %s
                         """, (DonationIDHolder, donator_id))
                         updates_made = True
@@ -1260,14 +1274,14 @@ def D_handleeditdonator():
                     # Verify branch exists
                     cur.execute("""
                         SELECT EXISTS(
-                            SELECT 1 FROM goodwillbranch 
+                            SELECT 1 FROM goodwillbranch
                             WHERE BranchId = %s
                         )
                     """, (BranchIDHolder,))
                     if cur.fetchone()[0]:
                         cur.execute("""
-                            UPDATE Donator 
-                            SET BranchID = %s 
+                            UPDATE Donator
+                            SET BranchID = %s
                             WHERE DonatorID = %s
                         """, (BranchIDHolder, donator_id))
                         updates_made = True
@@ -1332,70 +1346,95 @@ def D_handledeletedonator(DonatorIDDelete, deleteinputbutton):
         return
         
     try:
-        print(donator_id)
+        # Begin transaction
         cur.execute("BEGIN")
         
-        # Delete donator
-        cur.execute("DELETE FROM Donator WHERE DonatorID = %s", (donator_id,))
+        # First check if donator exists
+        cur.execute("""
+            SELECT DonatorID, DonationID
+            FROM Donator
+            WHERE DonatorID = %s
+        """, (donator_id,))
         
-        if cur.rowcount == 0:
+        donator = cur.fetchone()
+        if not donator:
             cur.execute("ROLLBACK")
             show_error("Donator ID not found")
             return
             
+        donation_id = donator[1]
+        
+        # Delete from Donator table first (child table)
+        cur.execute("""
+            DELETE FROM Donator
+            WHERE DonatorID = %s
+        """, (donator_id,))
+        
+        # Then delete associated donation from Inventory table (parent table)
+        if donation_id:
+            cur.execute("""
+                DELETE FROM Inventory
+                WHERE InventoryId = %s
+            """, (donation_id,))
+            
+        # Delete from ALREADYCREATEDKEYS to free up the IDs
+        cur.execute("""
+            DELETE FROM ALREADYCREATEDKEYS
+            WHERE keyId_T = %s OR keyId_IorB = %s
+        """, (donator_id, donation_id))
+        
         cur.execute("COMMIT")
         clear_ui_elements()
-        show_success_message("Donator deleted successfully")
+        show_success_message("Donator and associated records deleted successfully")
         
     except Exception as e:
         cur.execute("ROLLBACK")
         show_error(f"Error deleting donator: {str(e)}")
 
 def D_clear_ui_elements():
-    global viewederror, ErrorBoolean
+    """Safely clear UI elements based on current mode"""
+    global viewederror, ErrorBoolean, mode
     
-    # Clear mode-specific widgets
-    if mode == "add":
-        for widget in [DonatorNameBox, Donator_combobox, Donator_inputbutton]:
-            try:
-                widget.place_forget()
-            except Exception:
-                pass
-    elif mode == "edit":
-        for widget in [DonatorIDEdit, Donator_combobox, Donator_inputbutton]:
-            try:
-                widget.destroy()
-            except Exception:
-                pass
-    elif mode == "delete":
-        for widget in [DonatorIDDelete, Donator_inputbutton]:
-            try:
-                widget.destroy()
-            except Exception:
-                pass
-                
-    # Clear any error messages
     try:
-        if ErrorBoolean:
-            Error.destroy()
-            viewederror = 0
-            ErrorBoolean = False
-    except Exception:
-        pass
-
-def show_success_message(message):
-    success_label = CTkLabel(OutputEditContent, text=message, text_color="green", height=13,width=200, wraplength=200)  # Enable word wrapping
-    success_label.place(relx=0.5, y=3, anchor='n')
-    OutputEditContent.after(3000, success_label.destroy)
-
-def show_error_message(message):
-    global ErrorBoolean, Error, viewederror
-    if viewederror == 0:
-        ErrorBoolean = True
-        Error = CTkLabel(OutputEditContent, text=message, text_color="red", height=13,width=200,  wraplength=200)  # Enable word wrapping
-        Error.place(relx=0.5, y=3, anchor='n')
-        viewederror = 1
-
-# Initialize main window
-D_show_page(DonatorPage)
-window.mainloop()
+        # Define widget groups for each mode
+        mode_widgets = {
+            "add": [
+                (DonatorNameBox, "place_forget"),
+                (Donator_combobox, "place_forget"),
+                (Donator_inputbutton, "place_forget")
+            ],
+            "edit": [
+                (DonatorIDEdit, "destroy"),
+                (Donator_combobox, "destroy"),
+                (Donator_inputbutton, "destroy")
+            ],
+            "delete": [
+                (DonatorIDDelete, "destroy"),
+                (Donator_inputbutton, "destroy")
+            ]
+        }
+        
+        # Clear mode-specific widgets
+        if mode in mode_widgets:
+            for widget, action in mode_widgets[mode]:
+                try:
+                    if widget and widget.winfo_exists():
+                        if action == "place_forget":
+                            widget.place_forget()
+                        else:
+                            widget.destroy()
+                except Exception as e:
+                    print(f"Error clearing widget in {mode} mode: {e}")
+        
+        # Clear error message if it exists
+        try:
+            if ErrorBoolean and 'Error' in globals() and Error and Error.winfo_exists():
+                Error.destroy()
+                viewederror = 0
+                ErrorBoolean = False
+        except Exception as e:
+            print(f"Error clearing error message: {e}")
+            
+    except Exception as e:
+        print(f"Error in clear_ui_elements: {e}")
+# Remove duplicate functions - we already have better versions with error handling

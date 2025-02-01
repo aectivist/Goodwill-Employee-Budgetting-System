@@ -1,5 +1,4 @@
 from customtkinter import *
-import psycopg2
 import random
 import tkinter as tk
 from tkinter import ttk
@@ -7,25 +6,14 @@ from datetime import datetime
 from errorHandler import execute_safe_query, show_error_window, show_success_message
 
 # Database connection
-conn = psycopg2.connect(host="localhost", dbname="postgres", user="postgres", 
-                       password="12345", port=5432)
-cur = conn.cursor()
+conn = None
+cur = None
 
-# Main window setup
-window = CTk()
-window.title("INVENTORY")
-window.geometry("600x400")
-window.resizable(0, 0)
-set_appearance_mode("light")
-
-# Create main frames
-TABFRAME = CTkFrame(window, height=51, width=600, fg_color="#1E1E1E", corner_radius=0)
-TABFRAME.pack(anchor=CENTER, fill=X)
-
-InventoryPage = CTkFrame(window)
-InventoryPage.pack(fill=BOTH, expand=True)
-
-pages = [InventoryPage]
+def init_db(db_conn, db_cur):
+    """Initialize database connection"""
+    global conn, cur
+    conn = db_conn
+    cur = db_cur
 
 # Font configurations
 TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
@@ -73,12 +61,17 @@ mode = ""
 # For ID creation
 keyCreatedChecker = False
 
-def I_show_page(page):
-    """Initialize and show the specified page"""
-    page.pack(fill=BOTH, expand=True)
-    window.update_idletasks()
-    if page == InventoryPage:
-        inventorypage(InventoryPage)
+def I_show_page(parent, page_frame):
+    """Initialize and show the inventory page"""
+    global InventoryPagePost
+    
+    # Show the page
+    page_frame.pack(fill=BOTH, expand=True)
+    parent.update_idletasks()
+    
+    # Initialize content only once
+    if InventoryPagePost == 0:
+        inventorypage(page_frame)
 
 def inventorypage(page):
     """Create and initialize the inventory page layout"""
@@ -1266,6 +1259,3 @@ def I_handledeleteinventory(InventoryIDDelete, deleteinputbutton):
         execute_safe_query(cur, "ROLLBACK")
         show_error_window(f"Error deleting inventory: {str(e)}")
 
-
-I_show_page(InventoryPage)  # Pass the frame instead of the function
-window.mainloop()
