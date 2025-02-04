@@ -127,3 +127,34 @@ INSERT INTO Inventory VALUES (0,0,0,0,0,0);
 INSERT INTO goodwillBranch 
 (branchid, branchname, branchaddress, branchphonenumber)
 VALUES (0,'n/a','n/a',0);
+
+
+-- Create table for logging user login attempts
+-- Create login activity logs table
+CREATE TABLE user_login_logs (
+    log_id SERIAL PRIMARY KEY,                    -- Unique identifier for each log entry
+    username VARCHAR(50) NOT NULL,                -- Username attempting login
+    action_type VARCHAR(20) NOT NULL,             -- Type of action (LOGIN_SUCCESS or LOGIN_FAILED)
+    action_timestamp TIMESTAMP WITH TIME ZONE      -- When the action occurred
+        DEFAULT CURRENT_TIMESTAMP,
+    ip_address VARCHAR(45),                       -- IP address of login attempt (optional)
+    user_agent TEXT                               -- Browser/client info (optional)
+);
+
+-- Create index for faster searches
+CREATE INDEX idx_login_logs_username ON user_login_logs(username);
+CREATE INDEX idx_login_logs_timestamp ON user_login_logs(action_timestamp);
+CREATE INDEX idx_login_logs_action_type ON user_login_logs(action_type);
+
+-- Add comments for documentation
+COMMENT ON TABLE user_login_logs IS 'Tracks all login attempts and their outcomes';
+COMMENT ON COLUMN user_login_logs.log_id IS 'Unique identifier for each log entry';
+COMMENT ON COLUMN user_login_logs.username IS 'Username that attempted to login';
+COMMENT ON COLUMN user_login_logs.action_type IS 'Type of action (LOGIN_SUCCESS or LOGIN_FAILED)';
+COMMENT ON COLUMN user_login_logs.action_timestamp IS 'When the login attempt occurred';
+COMMENT ON COLUMN user_login_logs.ip_address IS 'IP address of the login attempt';
+COMMENT ON COLUMN user_login_logs.user_agent IS 'Browser/client information of the login attempt';
+
+-- Grant appropriate permissions
+GRANT INSERT ON user_login_logs TO postgres;
+GRANT SELECT ON user_login_logs TO postgres;

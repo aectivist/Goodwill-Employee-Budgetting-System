@@ -1,6 +1,20 @@
 from customtkinter import *
 import psycopg2
 import threading
+import sys
+import os
+
+# Add Program directory to Python path
+program_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(os.path.dirname(program_dir))
+if parent_dir not in sys.path:
+    sys.path.append(parent_dir)
+
+from IATEST.Admin.init_login import init_login_db
+from loginpage import LoginPage
+
+# Initialize login database
+init_login_db()
 # Imports for pages will be done when needed to avoid circular dependencies
 #https://github.com/Akascape/CTkTable
 
@@ -29,7 +43,6 @@ def get_db():
     return conn, cur
 
 loginaccess = False
-LOGIN = None
 EDITFLAG = False #FOR EDITTING
 window = CTk()
 window.title("BUDGET")
@@ -58,7 +71,7 @@ DonatorPage = CTkFrame(window, corner_radius=0)  # Changed from ClientPage to Do
 InventoryPage = CTkFrame(window, corner_radius=0)
 BudgetPage = CTkFrame(window, corner_radius=0)
 CalculatorPage = CTkFrame(window, corner_radius=0)
-LoginPage = CTkFrame(window, corner_radius=0, bg_color='#0053A0')
+LoginPageFrame = CTkFrame(window, corner_radius=0, bg_color='#0053A0')
 
 # Create a list to hold all the pages
 pages = [HomePage, TransactionsPage, DonatorPage, InventoryPage, BudgetPage, CalculatorPage]  # Updated list with DonatorPage
@@ -75,25 +88,28 @@ def show_page(page, loginaccess):
     
     # Store currently visible page if any
     current_page = None
-    for p in pages:
+    for p in pages + [LoginPageFrame]:  # Include login frame in check
         if str(p.winfo_viewable()) == "1":  # Check if page is visible
             current_page = p
             break
+
+    # Check if trying to access restricted page without login
+    if loginaccess == False and page != HomePage:
+        # Only show login page if it's not already visible
+        if str(LoginPageFrame.winfo_viewable()) != "1":
+            if current_page:
+                current_page.pack_forget()
+                window.update_idletasks()
+            loginpage(LoginPageFrame, loginaccess)
+        return  # Exit early to prevent showing other pages
     
     # Hide current page if exists
     if current_page:
         current_page.pack_forget()
-        window.update_idletasks()  # Force update to ensure page is hidden
-    
-    # Hide login page if it exists and is visible
-    if LoginPage is not None and str(LoginPage.winfo_viewable()) == "1":
-        LoginPage.pack_forget()
         window.update_idletasks()
     
-    # Show the requested page
-    if loginaccess == False and page == LoginPage and page != HomePage:
-        loginpage(LoginPage, loginaccess)
-    elif page == HomePage:
+    # Show requested page
+    if page == HomePage:
         if not HomePagePost:
             homepage(HomePage)
             HomePage.post_flag = 1
@@ -547,14 +563,7 @@ def homepage(page):
 
     AddNoteButton.configure(command=lambda: addnotecommand(AddedNotesScrollbar, EditTextBox, EditNoteButton, NoteBoxPadding, EditTitleLabel)) #c
     retrievenotebuttons(AddedNotesScrollbar,EditTextBox, EditNoteButton, NoteBoxPadding, EditTitleLabel)
-    
-    changelogid = 3.14159 #I made the changelog id pi because it's a unique number, which is great if we're making it into an id because most of the ids are just counting numbers, also making decimals impossible to configure as a proper note id
-    Changelog = CTkButton(AddedNotesScrollbar, height=30, width=140, corner_radius=0, text="Changelog", command=lambda: verifyclick(changelogid, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar, EditTitleLabel))
-    Changelog.grid(row=100, columnspan=2, pady=2, sticky='ew') 
-
-
-
-
+    #ADD NOTE BUTTON FUNCTIONS
 
 
 #ADD NOTE BUTTON FUNCTIONS
@@ -588,43 +597,12 @@ def retrievenotebuttons(AddedNotesScrollbar, EditTextBox, EditNoteButton, NoteBo
 
 TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
 
-def verifyclick(button_id, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar, EditTitleLabel):
-    global EDITFLAG
-    button_clicked(button_id, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar, EditTitleLabel)
-    button_idEvt(button_id, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar)
-    if button_id == 3.14159 and EDITFLAG == FALSE: 
-        EditTitleLabel.configure(font=TitleFont, text="Changelog")
-        changelognotes(button_id, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar) #this is for changelogs
-    
-
 def button_clicked(button_id, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar, EditTitleLabel): #clickity click click
     global EDITFLAG
     EditTitleLabel.configure(font=TitleFont,text="Notes")
-    print(f"Button {button_id} clicked") 
+    print(f"Button {button_id} clicked")
     if EDITFLAG == FALSE:
         retrieveNote(button_id, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar) #this calls on so edit functions may work
-        
-    
-def button_idEvt(button_id, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar):
-    changelognotes(button_id, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar)
-
-
-def changelognotes(id, EditTextBox, EditNoteButton, NoteBoxPadding, AddedNotesScrollbar):
-    global EDITFLAG
-    if id == 3.14159 and EDITFLAG == False:
-        cur.execute("""SELECT MAX(version) FROM changelog""")
-        version = cur.fetchone()
-        EditTextBox.configure(state=NORMAL) #configure so the editbox can be editable
-        EditTextBox.delete(1.0, END)
-        cur.execute("""SELECT changelog FROM changelog WHERE version = %s""", version)
-        notefeedback = cur.fetchone()
-        if str(notefeedback[0]) == "None": #basically just checks if given is null, then don't post
-            EditTextBox.insert("0.0", ' ')
-        else:
-            EditTextBox.insert("0.0", str(notefeedback[0]))
-        EditTextBox.configure(state=DISABLED)
-    else: 
-        print("gg")
 
 
 
@@ -747,59 +725,26 @@ def printcannotretrieve():
 
 #++++++++++++++++++++++++++++++ {LOGIN FUNCTIONS} ++++++++++++++++++++++++++++++++++++++
 
-#submit function
-def RecieveUser(Username, Password, loginaccess, page):
-    cur.execute("SELECT * FROM loginpaswd WHERE loginid = %(username)s AND password = %(password)s", {'username': Username.get(), 'password': Password.get()})
-    for row in cur.fetchall():
-        print(row)
-        loginaccess=True
-    
-    if loginaccess == True:
-        admittedAccess(True)
-    else:
-        print("no go, hombre :(") #MAKE SURE TO ADD ERROR SIGN HERE
+# Initialize login page handler
+login_handler = None
 
-    conn.commit()
-
-
-#LOGIN PAGE
-def loginpage(page,loginaccess):
-    global LOGIN
-    LOGINFONT = CTkFont(family="Oswald", size=30, weight='bold')
-
-    if loginaccess == False and not LOGIN and page != HomePage:
+def loginpage(page, loginaccess):
+    global login_handler
+    if loginaccess == False and page != HomePage:
+        # Hide current pages first
+        for p in [LoginPageFrame] + pages:
+            if str(p.winfo_viewable()) == "1":
+                p.pack_forget()
+        window.update_idletasks()
+        
+        # Show login page
         page.configure(fg_color='#0053A0')
-        LOGIN = CTkFrame(page, width=600, height=400, corner_radius=0, fg_color='#FFFFFF')
-        LOGIN.pack (expand=True)
-
-        loginlabel = CTkLabel(master=LOGIN, font=LOGINFONT, text="LOGIN")
-        loginlabel.grid(row=0,column=0, pady=10)
-        Account = CTkEntry(master=LOGIN, width=400, corner_radius=0, placeholder_text="Username")
-        Account.grid(row=1, column=0, padx=25, pady=5)
-
-        Password = CTkEntry(master=LOGIN, width=400, corner_radius=0, show="●",placeholder_text="Password")
-        Password.grid(row=2, column=0, padx=25, pady=5)
-
-        SubmitLog = CTkButton(master=LOGIN, width=400, corner_radius=0, text="SUBMIT", fg_color='#424242', hover_color='#231F20', command=lambda: RecieveUser(Account, Password,loginaccess, page))
-        SubmitLog.grid(row=3, column=0, padx=25, pady=30)
-        SubmitLog.configure()
-    elif loginaccess == True:
-        destroyloginitems(LOGIN)
-    else:
-        print("it happened dawg")
-
-def destroyloginitems(LOGIN):
-    LOGIN.pack_forget()
-
-LoadedFont = CTkFont(family="Oswald", size=20, weight='bold')
-def loadedpage(page):
-    AccessContent = CTkFrame(page, width=600, height=355, fg_color="#0053A0", corner_radius=0)
-    AccessLabel = CTkLabel(AccessContent, font=LoadedFont, text="You now have access! Click on a tab to get started.", text_color='#FFFFFF', justify="center")
-    AccessContent.grid_propagate(0)
-
-    AccessContent.grid(pady = 0, padx = 0)
-    AccessLabel.place(relx=0.5, rely=0.5, anchor="center")
-
+        page.pack(fill=BOTH, expand=True)
+        
+        # Initialize login handler if needed
+        if not login_handler:
+            login_handler = LoginPage(page, conn, cur)
+        login_handler.show_login(lambda success: admittedAccess(success))
 #++++++++++++++++++++++++++++++ {TAB FUNCTIONS} ++++++++++++++++++++++++++++++++++++++
 
 # Function to handle button clicks
@@ -829,16 +774,48 @@ BudgetTab.grid(row=0, column=4, pady=10, padx=6, sticky="nsew")
 
 Calculatortab = CTkButton(TABFRAME, text="Calculator", width=20, corner_radius=0, command=lambda: button_event(CalculatorPage,loginaccess))
 Calculatortab.grid(row=0, column=5, pady=10, padx=6, sticky="nsew")
-def admittedAccess(loginaccess):
-    if loginaccess == True:
-        destroyloginitems(LOGIN)
-        loadedpage(LoginPage)
-        TransactionsTab.configure(command=lambda: button_event(TransactionsPage,loginaccess))
-        DonatorTab.configure(command=lambda: button_event(DonatorPage,loginaccess))
-        InventoryTab.configure(command=lambda: button_event(InventoryPage,loginaccess))
-        BudgetTab.configure(command=lambda: button_event(BudgetPage,loginaccess))
+def admittedAccess(success):
+    global loginaccess, HomePagePost
+    if success:
+        loginaccess = True
         
-
+        # Hide all pages first
+        for page in [LoginPageFrame] + pages:
+            if str(page.winfo_viewable()) == "1":
+                page.pack_forget()
+        window.update_idletasks()
+        
+        # Initialize HomePage if needed
+        if not HomePagePost:
+            homepage(HomePage)
+            HomePage.post_flag = 1
+            
+        # Create and show success page
+        SuccessPage = CTkFrame(window, corner_radius=0, fg_color='#0053A0')
+        SuccessPage.pack(fill=BOTH, expand=True)
+        
+        AccessContainer = CTkFrame(SuccessPage, corner_radius=0, fg_color='transparent')
+        AccessContainer.pack(expand=True)
+        
+        AccessLabel = CTkLabel(
+            AccessContainer,
+            font=CTkFont(family="Oswald", size=20, weight='bold'),
+            text="You now have access!\nClick on a tab to get started.",
+            text_color='#FFFFFF',
+            justify="center"
+        )
+        AccessLabel.pack(expand=True)
+        
+        # Switch to Home page after 2 seconds
+        window.after(2000, lambda: [SuccessPage.pack_forget(), show_page(HomePage, True)])
+        
+        # Enable restricted tabs
+        TransactionsTab.configure(command=lambda: button_event(TransactionsPage, loginaccess))
+        DonatorTab.configure(command=lambda: button_event(DonatorPage, loginaccess))
+        InventoryTab.configure(command=lambda: button_event(InventoryPage, loginaccess))
+        BudgetTab.configure(command=lambda: button_event(BudgetPage, loginaccess))
+        
+    
 
 # Show the first page by default
 show_page(HomePage, loginaccess)

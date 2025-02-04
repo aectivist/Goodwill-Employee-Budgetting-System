@@ -1144,33 +1144,37 @@ def D_handleadddonator():
         
         if all_valid:
             try:
-                # Begin transaction
-                cur.execute("BEGIN")
-                
-                # Generate IDs using the new method
-                if not donatorIDcreator():
-                    raise Exception("Failed to create unique IDs")
-                
-                # Insert inventory record
-                inventory_name = 'Funds' if DonationTypeHolder == 'Funds' else DonNameHolder
-                cur.execute("""
-                    INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (InvBalIDHolder, inventory_name, float(DonationHolder) if DonationTypeHolder == 'Funds' else 0,
-                      DonationTypeHolder, BranchIDHolder, 'donation'))
-                
-                # Insert donator with reference to inventory
-                cur.execute("""
-                    INSERT INTO Donator (DonatorID, DonatorName, DonatorAddress, DonatorPhoneNumber, DonatorOrganization, DonationID)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                """, (DonatorIDHolder, donator_name, AddressHolder, PhoneHolder, OrgHolder, InvBalIDHolder))
-                
-                cur.execute("COMMIT")
-                clear_ui_elements()
-                show_success_message("Donator and donation added successfully")
-                
+                def transaction():
+                    # Generate IDs using the new method
+                    if not donatorIDcreator():
+                        raise Exception("Failed to create unique IDs")
+                    
+                    # Insert inventory record
+                    inventory_name = 'Funds' if DonationTypeHolder == 'Funds' else DonNameHolder
+                    inventory_value = float(DonationHolder) if DonationTypeHolder == 'Funds' else 0
+                    
+                    cur.execute("""
+                        INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        RETURNING InventoryId
+                    """, (InvBalIDHolder, inventory_name, inventory_value, DonationTypeHolder, BranchIDHolder, 'donation'))
+                    
+                    inventory_id = cur.fetchone()[0]
+                    
+                    # Insert donator with reference to inventory
+                    cur.execute("""
+                        INSERT INTO Donator (DonatorID, DonatorName, DonatorAddress, DonatorPhoneNumber, DonatorOrganization, DonationID)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                    """, (DonatorIDHolder, donator_name, AddressHolder, PhoneHolder, OrgHolder, inventory_id))
+                    
+                    return True
+
+                if execute_safe_query(transaction):
+                    clear_ui_elements()
+                    show_success_message("Donator and donation added successfully")
+                else:
+                    show_error("Failed to add donator and donation")
             except Exception as e:
-                cur.execute("ROLLBACK")
                 show_error(f"Error adding donator: {str(e)}")
         else:
             show_error("Please complete all fields")
@@ -1178,165 +1182,88 @@ def D_handleadddonator():
         show_error("Please select additional information")
 
 def D_handleeditdonator():
-    global ErrorBoolean, Error, viewederror, TrueInventoryIDFlag, successful_transaction
+    global ErrorBoolean, Error, viewederror, successful_transaction
     global DonaIDFlag, DonaNameFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaBranchFlag
     
     donator_id = DonatorIDEdit.get().strip()
     
-    # Check if ID is provided
-    if donator_id:
-        try:
-            # Check if donator exists
-            cur.execute("""
-                SELECT EXISTS(SELECT 1 FROM Donator WHERE DonatorID = %s)
-            """, (donator_id,))
-            result = cur.fetchone()
-            
-            if result and result[0]:
-                DonaIDFlag = True
-                DonatorIDHolder = donator_id
-                # Clear any existing error
-                try:
-                    if ErrorBoolean:
-                        Error.destroy()
-                        viewederror = 0
-                        ErrorBoolean = False
-                except Exception:
-                    pass
-            else:
-                show_error_message("Donator ID does not exist")
-                return
-                
-        except Exception as e:
-            show_error_message(f"Database error: {str(e)}")
-            return
-            
-        if diffvalue > 0:  # Check if user has selected something to edit
-            try:
-                cur.execute("BEGIN")
-                updates_made = False
-                
-                # Handle simple text updates
-                if DonaNameFlag:
-                    cur.execute("""
-                        UPDATE Donator
-                        SET DonatorName = %s
-                        WHERE DonatorID = %s
-                    """, (DonatorNameHolder, donator_id))
-                    updates_made = True
-                    
-                if DonaAddressFlag:
-                    cur.execute("""
-                        UPDATE Donator
-                        SET DonatorAddress = %s
-                        WHERE DonatorID = %s
-                    """, (AddressHolder, donator_id))
-                    updates_made = True
-                    
-                if DonaPhoneFlag:
-                    cur.execute("""
-                        UPDATE Donator
-                        SET DonatorPhoneNumber = %s
-                        WHERE DonatorID = %s
-                    """, (PhoneHolder, donator_id))
-                    updates_made = True
-                    
-                if DonaOrgFlag:
-                    cur.execute("""
-                        UPDATE Donator
-                        SET DonatorOrganization = %s
-                        WHERE DonatorID = %s
-                    """, (OrgHolder, donator_id))
-                    updates_made = True
-                
-                # Handle ID-based updates
-                if DonaDonationFlag:
-                    # Verify donation exists in inventory
-                    cur.execute("""
-                        SELECT EXISTS(
-                            SELECT 1 FROM Inventory
-                            WHERE InventoryId = %s
-                        )
-                    """, (DonationIDHolder,))
-                    if cur.fetchone()[0]:
-                        cur.execute("""
-                            UPDATE Donator
-                            SET DonationID = %s
-                            WHERE DonatorID = %s
-                        """, (DonationIDHolder, donator_id))
-                        updates_made = True
-                    else:
-                        cur.execute("ROLLBACK")
-                        show_error_message("Invalid Donation ID")
-                        return
-                        
-                if DonaBranchFlag:
-                    # Verify branch exists
-                    cur.execute("""
-                        SELECT EXISTS(
-                            SELECT 1 FROM goodwillbranch
-                            WHERE BranchId = %s
-                        )
-                    """, (BranchIDHolder,))
-                    if cur.fetchone()[0]:
-                        cur.execute("""
-                            UPDATE Donator
-                            SET BranchID = %s
-                            WHERE DonatorID = %s
-                        """, (BranchIDHolder, donator_id))
-                        updates_made = True
-                    else:
-                        cur.execute("ROLLBACK")
-                        show_error_message("Invalid Branch ID")
-                        return
-                
-                if updates_made:
-                    cur.execute("COMMIT")
-                    successful_transaction = True
-                    
-                    # Clear UI elements including combobox entries
-                    if Donator_inputbutton.winfo_exists():
-                        Donator_inputbutton.destroy()
-                    try:
-                        DonatorIDEdit.place_forget()
-                        Donator_combobox.destroy()
-                    except Exception as e:
-                        print(f"Error destroying Donator_combobox and DonatorIDEdit: {e}")
-
-                    try:
-                        try:
-                            for widget in [Donator_inputbutton, EditSearchBoxEnter]:
-                                if widget.winfo_exists():
-                                    widget.place_forget()
-                            if diffvalue == 1:
-                                EditNameEntryBox.place_forget()
-                            elif diffvalue == 2:
-                                EditAddressEntryBox.place_forget()
-                            elif diffvalue == 3:
-                                EditPhoneEntryBox.place_forget()
-                            elif diffvalue == 4:
-                                EditOrgEntryBox.place_forget()
-                            elif diffvalue == 5:
-                                EditDonationIDEntryBox.place_forget()
-                            elif diffvalue == 6:
-                                EditBranchIDEntryBox.place_forget()
-                        except Exception as e:
-                            print(f"Error destroying widgets: {e}")
-                    except Exception as e:
-                        print(f"ERROR:{e}")
-                        
-                    show_success_message("Donator updated successfully")
-                else:
-                    cur.execute("ROLLBACK")
-                    show_error_message("No changes made")
-                    
-            except Exception as e:
-                cur.execute("ROLLBACK")
-                show_error_message(f"Error updating donator: {str(e)}")
-        else:
-            show_error_message("Please select at least one field to update")
-    else:
+    if not donator_id:
         show_error_message("Please enter a Donator ID")
+        return
+
+    if diffvalue == 0:
+        show_error_message("Please select at least one field to update")
+        return
+
+    try:
+        def transaction():
+            nonlocal donator_id
+            # Verify donator exists
+            cur.execute("SELECT EXISTS(SELECT 1 FROM Donator WHERE DonatorID = %s)", (donator_id,))
+            if not cur.fetchone()[0]:
+                raise ValueError("Donator ID does not exist")
+
+            updates = []
+            params = []
+            
+            # Build update query dynamically
+            if DonaNameFlag:
+                updates.append("DonatorName = %s")
+                params.append(DonatorNameHolder)
+            
+            if DonaAddressFlag:
+                updates.append("DonatorAddress = %s")
+                params.append(AddressHolder)
+                
+            if DonaPhoneFlag:
+                updates.append("DonatorPhoneNumber = %s")
+                params.append(PhoneHolder)
+                
+            if DonaOrgFlag:
+                updates.append("DonatorOrganization = %s")
+                params.append(OrgHolder)
+                
+            if DonaDonationFlag:
+                # Verify donation exists
+                cur.execute("SELECT EXISTS(SELECT 1 FROM Inventory WHERE InventoryId = %s)", (DonationIDHolder,))
+                if not cur.fetchone()[0]:
+                    raise ValueError("Invalid Donation ID")
+                updates.append("DonationID = %s")
+                params.append(DonationIDHolder)
+                
+            if DonaBranchFlag:
+                # Verify branch exists
+                cur.execute("SELECT EXISTS(SELECT 1 FROM goodwillbranch WHERE BranchId = %s)", (BranchIDHolder,))
+                if not cur.fetchone()[0]:
+                    raise ValueError("Invalid Branch ID")
+                updates.append("BranchID = %s")
+                params.append(BranchIDHolder)
+                
+            if not updates:
+                return False
+                
+            # Execute update
+            query = f"""
+                UPDATE Donator
+                SET {', '.join(updates)}
+                WHERE DonatorID = %s
+            """
+            params.append(donator_id)
+            cur.execute(query, tuple(params))
+            
+            return True
+
+        if execute_safe_query(transaction):
+            successful_transaction = True
+            clear_ui_elements()
+            show_success_message("Donator updated successfully")
+        else:
+            show_error_message("No changes made")
+            
+    except ValueError as ve:
+        show_error_message(str(ve))
+    except Exception as e:
+        show_error_message(f"Error updating donator: {str(e)}")
 
 def D_handledeletedonator(DonatorIDDelete, deleteinputbutton):
     donator_id = DonatorIDDelete.get().strip()
@@ -1344,51 +1271,54 @@ def D_handledeletedonator(DonatorIDDelete, deleteinputbutton):
     if not donator_id:
         show_error("Please enter donator ID")
         return
-        
+    
     try:
-        # Begin transaction
-        cur.execute("BEGIN")
-        
-        # First check if donator exists
-        cur.execute("""
-            SELECT DonatorID, DonationID
-            FROM Donator
-            WHERE DonatorID = %s
-        """, (donator_id,))
-        
-        donator = cur.fetchone()
-        if not donator:
-            cur.execute("ROLLBACK")
-            show_error("Donator ID not found")
-            return
-            
-        donation_id = donator[1]
-        
-        # Delete from Donator table first (child table)
-        cur.execute("""
-            DELETE FROM Donator
-            WHERE DonatorID = %s
-        """, (donator_id,))
-        
-        # Then delete associated donation from Inventory table (parent table)
-        if donation_id:
+        def transaction():
+            # First verify donator exists and get related IDs
             cur.execute("""
-                DELETE FROM Inventory
-                WHERE InventoryId = %s
-            """, (donation_id,))
+                SELECT d.DonatorID, d.DonationID
+                FROM Donator d
+                WHERE d.DonatorID = %s
+            """, (donator_id,))
             
-        # Delete from ALREADYCREATEDKEYS to free up the IDs
-        cur.execute("""
-            DELETE FROM ALREADYCREATEDKEYS
-            WHERE keyId_T = %s OR keyId_IorB = %s
-        """, (donator_id, donation_id))
-        
-        cur.execute("COMMIT")
-        clear_ui_elements()
-        show_success_message("Donator and associated records deleted successfully")
-        
+            donator = cur.fetchone()
+            if not donator:
+                raise ValueError("Donator ID not found")
+                
+            donation_id = donator[1]
+            
+            # Delete from Donator table first (child table)
+            cur.execute("""
+                DELETE FROM Donator
+                WHERE DonatorID = %s
+                RETURNING DonationID
+            """, (donator_id,))
+            
+            # Then delete associated donation from Inventory table (parent table) if exists
+            if donation_id:
+                cur.execute("""
+                    DELETE FROM Inventory
+                    WHERE InventoryId = %s
+                """, (donation_id,))
+            
+            # Clean up ALREADYCREATEDKEYS
+            cur.execute("""
+                DELETE FROM ALREADYCREATEDKEYS
+                WHERE keyId_T = %s
+                OR (keyId_IorB = %s AND %s IS NOT NULL)
+            """, (donator_id, donation_id, donation_id))
+            
+            return True
+
+        if execute_safe_query(transaction):
+            clear_ui_elements()
+            show_success_message("Donator and associated records deleted successfully")
+        else:
+            show_error("Failed to delete donator")
+            
+    except ValueError as ve:
+        show_error(str(ve))
     except Exception as e:
-        cur.execute("ROLLBACK")
         show_error(f"Error deleting donator: {str(e)}")
 
 def D_clear_ui_elements():

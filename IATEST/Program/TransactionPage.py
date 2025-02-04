@@ -688,6 +688,27 @@ def DeleteSQL(ItemToDelete):
         print(f"An error occurred: {e}")
         conn.rollback()
 
+def boolforinvtypcheck(value):
+    """Handle inventory type selection"""
+    global InvTypHolder
+    InvTypHolder = value
+    print(f"Inventory type set to: {InvTypHolder}")
+
+def boolfortypecheck(value):
+    """Handle type selection"""
+    global TypeHolder, TypeChecker, typewaschecked
+    TypeHolder = value
+    TypeChecker = value == "Item"
+    typewaschecked = True
+    print(f"Type set to: {TypeHolder} (TypeChecker: {TypeChecker})")
+
+def boolforstatuscheck(value):
+    """Handle status selection"""
+    global StatusHolder, StatusChecker
+    StatusHolder = value
+    StatusChecker = {"Bought": 1, "Sold": 2, "Donation": 3}[value]
+    print(f"Status set to: {StatusHolder} (StatusChecker: {StatusChecker})")
+
 def T_callback(choice): #COMBO BOX FUNCTIONALITIES
     global enteronce, enteronceforcombo, inventorytypebox, diffvalue, typebox
     global DateHolder, GoodsHolder, TransIDHolder, BranchHolder, TypeHolder, AmountHolder, InvTypHolder, typewaschecked
@@ -1545,6 +1566,145 @@ def T_handleedittrans():
 
 
         
+def transactionIDcreator():
+    """Create a new transaction and its associated records"""
+    global GoodsIDHolder, BranchHolder, TypeHolder, TransactorFromHolder, TransactorToHolder, DateHolder
+    global AmountHolder, InvTypHolder, StatusHolder, TransIDHolder, sucessful_transaction
+    
+    try:
+        # Begin transaction
+        success, error = execute_safe_query(cur, "BEGIN")
+        if not success:
+            show_error_window(error)
+            return
+
+        # Create transaction type record
+        if mode == "add":
+            # First create the appropriate record in Balance or Inventory table
+            if TypeHolder == "Cash":
+                # Create balance record
+                success, error = execute_safe_query(cur, """
+                    INSERT INTO Balance (balanceAmount, branchId)
+                    VALUES (%s, %s)
+                    RETURNING balanceId
+                """, (AmountHolder, BranchHolder))
+                if not success:
+                    show_error_window(error)
+                    return
+                balanceId = cur.fetchone()[0]
+                inventoryId = None
+            else:  # Item
+                # Create inventory record
+                success, error = execute_safe_query(cur, """
+                    INSERT INTO Inventory (inventoryName, inventoryValue, inventoryType, goodsStatus, branchId)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING inventoryId
+                """, (GoodsHolder, AmountHolder, InvTypHolder, StatusHolder, BranchHolder))
+                if not success:
+                    show_error_window(error)
+                    return
+                inventoryId = cur.fetchone()[0]
+                balanceId = None
+
+            # Create transaction type record linking to the appropriate record
+            success, error = execute_safe_query(cur, """
+                INSERT INTO transactionType (balanceId, inventoryId)
+                VALUES (%s, %s)
+                RETURNING transactionTypeId
+            """, (balanceId, inventoryId))
+            if not success:
+                show_error_window(error)
+                return
+            transactionTypeId = cur.fetchone()[0]
+
+            # Create main transaction record
+            success, error = execute_safe_query(cur, """
+                INSERT INTO transactionTable (
+                    transactionTypeId,
+                    transactorFrom,
+                    transactionTo,
+                    transactionDate,
+                    transactiontype
+                )
+                VALUES (%s, %s, %s, %s, %s)
+            """, (transactionTypeId, TransactorFromHolder, TransactorToHolder, DateHolder, TypeHolder))
+            if not success:
+                show_error_window(error)
+                return
+
+        elif mode == "edit":
+            # Get the transaction type ID for the current transaction
+            success, error = execute_safe_query(cur, """
+                SELECT tt.transactionTypeId, tt.balanceId, tt.inventoryId, t.transactiontype
+                FROM transactionTable t
+                JOIN transactionType tt ON t.transactionTypeId = tt.transactionTypeId
+                WHERE t.transactionId = %s
+            """, (TransIDHolder,))
+            if not success:
+                show_error_window(error)
+                return
+            
+            result = cur.fetchone()
+            if not result:
+                show_error_window("Transaction not found")
+                return
+                
+            transactionTypeId, old_balanceId, old_inventoryId, old_type = result
+
+            # Update the appropriate record based on type
+            if old_type == "Cash" and old_balanceId:
+                success, error = execute_safe_query(cur, """
+                    UPDATE Balance
+                    SET balanceAmount = %s,
+                        branchId = %s
+                    WHERE balanceId = %s
+                """, (AmountHolder, BranchHolder, old_balanceId))
+                if not success:
+                    show_error_window(error)
+                    return
+            elif old_type == "Item" and old_inventoryId:
+                success, error = execute_safe_query(cur, """
+                    UPDATE Inventory
+                    SET inventoryName = %s,
+                        inventoryValue = %s,
+                        inventoryType = %s,
+                        goodsStatus = %s,
+                        branchId = %s
+                    WHERE inventoryId = %s
+                """, (GoodsHolder, AmountHolder, InvTypHolder, StatusHolder, BranchHolder, old_inventoryId))
+                if not success:
+                    show_error_window(error)
+                    return
+
+            # Update main transaction record
+            success, error = execute_safe_query(cur, """
+                UPDATE transactionTable
+                SET transactorFrom = COALESCE(%s, transactorFrom),
+                    transactionTo = COALESCE(%s, transactionTo),
+                    transactionDate = COALESCE(%s, transactionDate)
+                WHERE transactionId = %s
+            """, (TransactorFromHolder, TransactorToHolder, DateHolder, TransIDHolder))
+            if not success:
+                show_error_window(error)
+                return
+
+        # Commit the transaction
+        success, error = execute_safe_query(cur, "COMMIT")
+        if not success:
+            show_error_window(error)
+            return
+
+        show_success_message("Transaction completed successfully", OutputEditContent)
+        sucessful_transaction = True
+
+    except Exception as e:
+        success, error = execute_safe_query(cur, "ROLLBACK")
+        if not success:
+            show_error_window(error)
+            return
+        show_error_window(f"Transaction failed: {str(e)}")
+        sucessful_transaction = False
+
 def T_clear_ui_elements():
     global viewederror, ErrorBoolean
     if mode == "add":
