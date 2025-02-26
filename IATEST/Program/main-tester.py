@@ -10,11 +10,24 @@ parent_dir = os.path.dirname(os.path.dirname(program_dir))
 if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
+# Global variables for user tracking
+current_user = None
+current_employee_id = None
+
+def set_current_user(username, employee_id):
+    global current_user, current_employee_id
+    current_user = username
+    current_employee_id = employee_id
+
 from IATEST.Admin.init_login import init_login_db
+from IATEST.Admin.activity_logger import ActivityLogger
 from loginpage import LoginPage
 
 # Initialize login database
 init_login_db()
+
+# Initialize activity logger
+activity_logger = ActivityLogger()
 # Imports for pages will be done when needed to avoid circular dependencies
 #https://github.com/Akascape/CTkTable
 
@@ -82,7 +95,7 @@ def show_page(page, loginaccess):
     
     # Page initialization states
     global ViewedPost  # For Calculator
-    global HomePagePost
+    global HomePagePost, login_handler, current_user, current_employee_id
     HomePagePost = getattr(HomePage, 'post_flag', 0)
     BudgetPagePost = getattr(BudgetPage, 'post_flag', 0)
     
@@ -93,14 +106,34 @@ def show_page(page, loginaccess):
             current_page = p
             break
 
+    # Get page name for logging
+    page_names = {
+        HomePage: "Home Page",
+        TransactionsPage: "Transactions Page",
+        DonatorPage: "Donator Page",
+        InventoryPage: "Inventory Page",
+        BudgetPage: "Budget Page",
+        CalculatorPage: "Calculator Page"
+    }
+    page_name = page_names.get(page, "Unknown Page")
+
     # Check if trying to access restricted page without login
-    if loginaccess == False and page != HomePage:
-        # Only show login page if it's not already visible
-        if str(LoginPageFrame.winfo_viewable()) != "1":
+    if loginaccess == False and page not in [HomePage, CalculatorPage]:
+        # Check if login page exists and is not visible
+        login_exists = login_handler is not None
+        login_visible = str(LoginPageFrame.winfo_viewable()) == "1"
+        
+        if not login_visible:
             if current_page:
                 current_page.pack_forget()
                 window.update_idletasks()
-            loginpage(LoginPageFrame, loginaccess)
+            # If login handler exists, just show the frame without creating new handler
+            if login_exists:
+                LoginPageFrame.configure(fg_color='#0053A0')
+                LoginPageFrame.pack(fill=BOTH, expand=True)
+                login_handler.show_login(lambda success: admittedAccess(success))
+            else:
+                loginpage(LoginPageFrame, loginaccess)
         return  # Exit early to prevent showing other pages
     
     # Hide current page if exists
@@ -136,6 +169,15 @@ def show_page(page, loginaccess):
         from TransactionPage import T_show_page, init_db as init_transactions_db
         init_transactions_db(conn, cur)  # Initialize database connection
         T_show_page(window, TransactionsPage)  # Pass both window and frame
+        
+    # Log page access if user is logged in
+    if loginaccess and current_user and page not in [LoginPageFrame]:
+        activity_logger.log_page_access(
+            current_employee_id,
+            current_user,
+            page_names.get(page, "Unknown Page"),
+            f"Accessed {page_names.get(page, 'Unknown Page')}"
+        )
     
     print(f"Showing page: {page}")
     window.update_idletasks()  # Update the UI
@@ -730,21 +772,24 @@ login_handler = None
 
 def loginpage(page, loginaccess):
     global login_handler
-    if loginaccess == False and page != HomePage:
-        # Hide current pages first
-        for p in [LoginPageFrame] + pages:
-            if str(p.winfo_viewable()) == "1":
-                p.pack_forget()
-        window.update_idletasks()
-        
-        # Show login page
-        page.configure(fg_color='#0053A0')
-        page.pack(fill=BOTH, expand=True)
-        
-        # Initialize login handler if needed
-        if not login_handler:
-            login_handler = LoginPage(page, conn, cur)
-        login_handler.show_login(lambda success: admittedAccess(success))
+    if loginaccess == False and page not in [HomePage, CalculatorPage]:
+        # Only proceed if login page is not visible
+        if str(LoginPageFrame.winfo_viewable()) != "1":
+            # Hide current pages first
+            for p in [LoginPageFrame] + pages:
+                if str(p.winfo_viewable()) == "1":
+                    p.pack_forget()
+            window.update_idletasks()
+            
+            # Show login page
+            page.configure(fg_color='#0053A0')
+            page.pack(fill=BOTH, expand=True)
+            
+            # Initialize login handler only if it doesn't exist
+            if not login_handler:
+                login_handler = LoginPage(page, conn, cur)
+                login_handler.show_login(lambda success, username=None, employee_id=None:
+                    admittedAccess(success, username, employee_id))
 #++++++++++++++++++++++++++++++ {TAB FUNCTIONS} ++++++++++++++++++++++++++++++++++++++
 
 # Function to handle button clicks
@@ -774,10 +819,19 @@ BudgetTab.grid(row=0, column=4, pady=10, padx=6, sticky="nsew")
 
 Calculatortab = CTkButton(TABFRAME, text="Calculator", width=20, corner_radius=0, command=lambda: button_event(CalculatorPage,loginaccess))
 Calculatortab.grid(row=0, column=5, pady=10, padx=6, sticky="nsew")
-def admittedAccess(success):
+def admittedAccess(success, username=None, employee_id=None):
     global loginaccess, HomePagePost
     if success:
         loginaccess = True
+        
+        # Set user info and log successful login
+        set_current_user(username or "Unknown", employee_id or "UNKNOWN")
+        activity_logger.log_login(
+            employee_id,
+            username,
+            True,
+            "User logged in successfully"
+        )
         
         # Hide all pages first
         for page in [LoginPageFrame] + pages:

@@ -137,8 +137,8 @@ CREATE TABLE user_login_logs (
     action_type VARCHAR(20) NOT NULL,             -- Type of action (LOGIN_SUCCESS or LOGIN_FAILED)
     action_timestamp TIMESTAMP WITH TIME ZONE      -- When the action occurred
         DEFAULT CURRENT_TIMESTAMP,
-    ip_address VARCHAR(45),                       -- IP address of login attempt (optional)
-    user_agent TEXT                               -- Browser/client info (optional)
+    ip_address VARCHAR(45),                       
+    user_agent TEXT                               
 );
 
 -- Create index for faster searches
@@ -158,3 +158,15 @@ COMMENT ON COLUMN user_login_logs.user_agent IS 'Browser/client information of t
 -- Grant appropriate permissions
 GRANT INSERT ON user_login_logs TO postgres;
 GRANT SELECT ON user_login_logs TO postgres;
+2025-02-04 15:28:42,PASSWORD_CHANGE,Admin
+2025-02-04 15:29:54,PASSWORD_CHANGE,Admin
+2025-02-04 15:31:06,PASSWORD_CHANGE,Admin
+2025-02-05 11:13:19,PASSWORD_CHANGE,Admin
+2025-02-05 11:15:07,PASSWORD_CHANGE,Admin
+2025-02-05 11:19:49,PASSWORD_CHANGE,Admin
+2025-02-05 11:20:54,PASSWORD_CHANGE,Admin
+2025-02-05 11:44:44,PASSWORD_CHANGE,Admin
+2025-02-05 15:09:55,PASSWORD_CHANGE,Admin
+2025-02-05 15:15:30,PASSWORD_CHANGE,Admin
+2025-02-05 15:18:13,PASSWORD_CHANGE,Admin
+2025-02-05 15:24:40,PASSWORD_CHANGE,Admin

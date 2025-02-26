@@ -871,12 +871,10 @@ def T_callback(choice): #COMBO BOX FUNCTIONALITIES
                     AddGoodsEntryBox.configure(state="readonly")
                 
             elif TypeHolder != "" and diffvalue==3: #This is so that if type holder is not empty, and diff value chooses the type choice, then it'll input every data held. 
-                typebox.delete(0, END)
-                typebox.insert(0, TypeHolder)
+                typebox.set(TypeHolder)
                 amtinput.delete(0, END)
                 amtinput.insert(0, AmountHolder)
-                statusbox.delete(0, END)
-                statusbox.insert(0,StatusHolder)
+                statusbox.set(StatusHolder)
     else: #EDIT============================COMBO
         global PartyForEntryBox, PartyToEntryBox, EditDateEntryBox, EditGoodsEntryBox, EditBranchEntryBox, amtinputEdit, PartyForHolder, PartyToHolder,  EditSearchBoxEnter
         
@@ -1068,6 +1066,13 @@ def T_confirmyourchoice(choice, AddSearchBoxEnter):
 
         elif choice == "Object Name":  # GOODS ---------
             if TypeChecker:
+                if not AddGoodsEntryBox.get().strip():
+                    if viewederror == 0:
+                        ErrorBoolean = True
+                        Error = CTkLabel(OutputEditContent, text="Object Name cannot be empty", text_color="red", height=13)
+                        Error.place(x=200, y=3)
+                        viewederror = 1
+                    return
                 GoodsHolder = AddGoodsEntryBox.get()
                 InvTypHolder = inventorytypebox.get()
             else:
@@ -1595,9 +1600,17 @@ def transactionIDcreator():
                 inventoryId = None
             else:  # Item
                 # Create inventory record
+                if not GoodsHolder:  # Add validation
+                    show_error_window("Object Name is required for Item transactions")
+                    return
                 success, error = execute_safe_query(cur, """
-                    INSERT INTO Inventory (inventoryName, inventoryValue, inventoryType, goodsStatus, branchId)
-                    VALUES (%s, %s, %s, %s, %s)
+                    WITH new_inventory AS (
+                        SELECT COALESCE(MAX(inventoryId), 0) + 1 as next_id
+                        FROM Inventory
+                    )
+                    INSERT INTO Inventory (inventoryId, inventoryName, inventoryValue, inventoryType, goodsStatus, branchId)
+                    SELECT next_id, %s, %s, %s, %s, %s
+                    FROM new_inventory
                     RETURNING inventoryId
                 """, (GoodsHolder, AmountHolder, InvTypHolder, StatusHolder, BranchHolder))
                 if not success:
@@ -1608,25 +1621,60 @@ def transactionIDcreator():
 
             # Create transaction type record linking to the appropriate record
             success, error = execute_safe_query(cur, """
-                INSERT INTO transactionType (balanceId, inventoryId)
-                VALUES (%s, %s)
-                RETURNING transactionTypeId
+                WITH new_transaction_type AS (
+                    SELECT COALESCE(MAX(transactionTypeId), 0) + 1 as next_id
+                    FROM transactionType
+                )
+                INSERT INTO transactionType (transactionTypeId, balanceId, inventoryId)
+                SELECT next_id, %s, %s
+                FROM new_transaction_type
+                RETURNING transactionTypeId;
             """, (balanceId, inventoryId))
             if not success:
                 show_error_window(error)
+                cur.execute("ROLLBACK")
                 return
-            transactionTypeId = cur.fetchone()[0]
-
-            # Create main transaction record
+            result = cur.fetchone()
+            if not result:
+                show_error_window("Failed to create transaction type record")
+                cur.execute("ROLLBACK")
+                return
+            transactionTypeId = result[0]
+            
+            # Verify the transaction type was created with proper links
             success, error = execute_safe_query(cur, """
+                SELECT balanceId, inventoryId FROM transactionType
+                WHERE transactionTypeId = %s
+            """, (transactionTypeId,))
+            if not success:
+                show_error_window(error)
+                cur.execute("ROLLBACK")
+                return
+            verify = cur.fetchone()
+            if not verify or (TypeHolder == "Item" and not verify[1]) or (TypeHolder == "Cash" and not verify[0]):
+                show_error_window("Failed to properly link transaction type with inventory/balance")
+                cur.execute("ROLLBACK")
+                return
+
+            # Create main transaction record with generated ID
+            success, error = execute_safe_query(cur, """
+                WITH new_transaction AS (
+                    SELECT COALESCE(MAX(transactionId), 0) + 1 as next_id
+                    FROM transactionTable
+                )
                 INSERT INTO transactionTable (
+                    transactionId,
                     transactionTypeId,
                     transactorFrom,
                     transactionTo,
                     transactionDate,
                     transactiontype
                 )
-                VALUES (%s, %s, %s, %s, %s)
+                SELECT
+                    next_id,
+                    %s, %s, %s, %s, %s
+                FROM new_transaction
+                RETURNING transactionId
             """, (transactionTypeId, TransactorFromHolder, TransactorToHolder, DateHolder, TypeHolder))
             if not success:
                 show_error_window(error)
@@ -1677,7 +1725,8 @@ def transactionIDcreator():
                     return
 
             # Update main transaction record
-            success, error = execute_safe_query(cur, """
+            success, error = execute_safe_query(cur, """`
+                                                
                 UPDATE transactionTable
                 SET transactorFrom = COALESCE(%s, transactorFrom),
                     transactionTo = COALESCE(%s, transactionTo),

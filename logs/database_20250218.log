@@ -1,0 +1,284 @@
+2025-02-18 10:29:48,393 - INFO - Operation: Database Connection - Success
+2025-02-18 10:29:48,960 - INFO - Operation: Connection Test - Success
+2025-02-18 11:43:43,682 - INFO - Operation: Database Connection - Success
+2025-02-18 11:43:43,722 - INFO - Query: 
+    CREATE TABLE IF NOT EXISTS goodwillbranch (
+        branchid TEXT PRIMARY KEY,
+        branchname TEXT NOT NULL,
+        branchaddress TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS employeeTable (
+        employeeid TEXT PRIMARY KEY,
+        employeeName TEXT NOT NULL,
+        employeeNumber TEXT NOT NULL,
+        DateOfChange DATE NOT NULL,
+        OrganizationSector TEXT NOT NULL,
+        BranchId TEXT REFERENCES goodwillbranch(branchid)
+    );
+
+    CREATE TABLE IF NOT EXISTS loginpaswd (
+        employeeid TEXT PRIMARY KEY,
+        password TEXT NOT NULL,
+        FOREIGN KEY (employeeid) REFERENCES employeeTable(employeeid) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_login_logs (
+        log_id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL,
+        action_type TEXT NOT NULL,
+        action_timestamp TIMESTAMP NOT NULL
+    );
+
+2025-02-18 11:43:43,740 - INFO - Operation: Query Execute - Success
+2025-02-18 11:43:43,740 - INFO - Details: No rows fetched (execute only)
+2025-02-18 11:43:43,740 - INFO - Operation: Connection Close - Success
+2025-02-18 11:43:43,741 - INFO - Operation: Database Connection - Success
+2025-02-18 11:43:43,777 - INFO - Query: 
+    INSERT INTO goodwillbranch (branchid, branchname, branchaddress)
+    VALUES 
+        ('1', 'Main Branch', '123 Main St'),
+        ('2', 'Downtown Branch', '456 Downtown Ave')
+    ON CONFLICT (branchid) DO NOTHING;
+
+2025-02-18 11:43:43,825 - INFO - Operation: Query Execute - Success
+2025-02-18 11:43:43,825 - INFO - Details: No rows fetched (execute only)
+2025-02-18 11:43:43,826 - INFO - Operation: Connection Close - Success
+2025-02-18 11:43:43,826 - INFO - Operation: Database Connection - Success
+2025-02-18 11:43:43,863 - INFO - Query: 
+    INSERT INTO employeeTable
+    (employeeid, employeeName, employeeNumber, DateOfChange, OrganizationSector, BranchId)
+    VALUES
+        ('ADMIN1', 'Admin User', '001', CURRENT_DATE, 'Information technology', '1'),
+        ('1', 'John Doe', '002', CURRENT_DATE, 'Engineering', '1'),
+        ('2', 'Jane Smith', '003', CURRENT_DATE, 'Health care', '2')
+    ON CONFLICT (employeeid) DO NOTHING;
+
+2025-02-18 11:43:43,877 - INFO - Operation: Query Execute - Success
+2025-02-18 11:43:43,877 - INFO - Details: No rows fetched (execute only)
+2025-02-18 11:43:43,877 - INFO - Operation: Connection Close - Success
+2025-02-18 11:43:43,877 - INFO - Operation: Database Connection - Success
+2025-02-18 11:43:43,912 - INFO - Query: 
+    INSERT INTO loginpaswd (employeeid, password)
+    VALUES
+        ('ADMIN1', '12345'),
+        ('1', 'password1'),
+        ('2', 'password2')
+    ON CONFLICT (employeeid) DO NOTHING;
+
+2025-02-18 11:43:43,956 - INFO - Operation: Query Execute - Success
+2025-02-18 11:43:43,956 - INFO - Details: No rows fetched (execute only)
+2025-02-18 11:43:43,956 - INFO - Operation: Connection Close - Success
+2025-02-18 12:07:20,856 - INFO - Operation: Database Connection - Success
+2025-02-18 12:07:21,061 - INFO - Operation: Connection Test - Success
+2025-02-18 12:07:23,069 - INFO - Operation: Database Connection - Success
+2025-02-18 12:07:23,138 - INFO - Query: 
+    CREATE TABLE IF NOT EXISTS goodwillbranch (
+        branchid TEXT PRIMARY KEY,
+        branchname TEXT NOT NULL,
+        branchaddress TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS employeeTable (
+        employeeid TEXT PRIMARY KEY,
+        employeeName TEXT NOT NULL,
+        employeeNumber TEXT NOT NULL,
+        DateOfChange DATE NOT NULL,
+        OrganizationSector TEXT NOT NULL,
+        BranchId TEXT REFERENCES goodwillbranch(branchid)
+    );
+
+    CREATE TABLE IF NOT EXISTS loginpaswd (
+        employeeid TEXT PRIMARY KEY,
+        password TEXT NOT NULL,
+        FOREIGN KEY (employeeid) REFERENCES employeeTable(employeeid) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_login_logs (
+        log_id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL,
+        action_type TEXT NOT NULL,
+        action_timestamp TIMESTAMP NOT NULL
+    );
+
+2025-02-18 12:07:23,141 - INFO - Operation: Query Execute - Success
+2025-02-18 12:07:23,141 - INFO - Details: No rows fetched (execute only)
+2025-02-18 12:07:23,141 - INFO - Operation: Connection Close - Success
+2025-02-18 12:07:23,142 - INFO - Operation: Database Connection - Success
+2025-02-18 12:07:23,210 - INFO - Query: 
+    INSERT INTO goodwillbranch (branchid, branchname, branchaddress)
+    VALUES 
+        ('1', 'Main Branch', '123 Main St'),
+        ('2', 'Downtown Branch', '456 Downtown Ave')
+    ON CONFLICT (branchid) DO NOTHING;
+
+2025-02-18 12:07:23,217 - INFO - Operation: Query Execute - Success
+2025-02-18 12:07:23,217 - INFO - Details: No rows fetched (execute only)
+2025-02-18 12:07:23,217 - INFO - Operation: Connection Close - Success
+2025-02-18 12:07:23,218 - INFO - Operation: Database Connection - Success
+2025-02-18 12:07:23,384 - INFO - Query: 
+    INSERT INTO employeeTable
+    (employeeid, employeeName, employeeNumber, DateOfChange, OrganizationSector, BranchId)
+    VALUES
+        ('ADMIN1', 'Admin User', '001', CURRENT_DATE, 'Information technology', '1'),
+        ('1', 'John Doe', '002', CURRENT_DATE, 'Engineering', '1'),
+        ('2', 'Jane Smith', '003', CURRENT_DATE, 'Health care', '2')
+    ON CONFLICT (employeeid) DO NOTHING;
+
+2025-02-18 12:07:23,396 - INFO - Operation: Query Execute - Success
+2025-02-18 12:07:23,396 - INFO - Details: No rows fetched (execute only)
+2025-02-18 12:07:23,396 - INFO - Operation: Connection Close - Success
+2025-02-18 12:07:23,397 - INFO - Operation: Database Connection - Success
+2025-02-18 12:07:23,473 - INFO - Query: 
+    INSERT INTO loginpaswd (employeeid, password)
+    VALUES
+        ('ADMIN1', '12345'),
+        ('1', 'password1'),
+        ('2', 'password2')
+    ON CONFLICT (employeeid) DO NOTHING;
+
+2025-02-18 12:07:23,479 - INFO - Operation: Query Execute - Success
+2025-02-18 12:07:23,479 - INFO - Details: No rows fetched (execute only)
+2025-02-18 12:07:23,479 - INFO - Operation: Connection Close - Success
+2025-02-18 12:25:21,591 - INFO - Operation: Database Connection - Success
+2025-02-18 12:25:21,681 - INFO - Operation: Connection Test - Success
+2025-02-18 15:55:41,256 - INFO - Operation: Database Connection - Success
+2025-02-18 15:55:41,332 - INFO - Query: 
+    CREATE TABLE IF NOT EXISTS goodwillbranch (
+        branchid TEXT PRIMARY KEY,
+        branchname TEXT NOT NULL,
+        branchaddress TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS employeeTable (
+        employeeid TEXT PRIMARY KEY,
+        employeeName TEXT NOT NULL,
+        employeeNumber TEXT NOT NULL,
+        DateOfChange DATE NOT NULL,
+        OrganizationSector TEXT NOT NULL,
+        BranchId TEXT REFERENCES goodwillbranch(branchid)
+    );
+
+    CREATE TABLE IF NOT EXISTS loginpaswd (
+        employeeid TEXT PRIMARY KEY,
+        password TEXT NOT NULL,
+        FOREIGN KEY (employeeid) REFERENCES employeeTable(employeeid) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_login_logs (
+        log_id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL,
+        action_type TEXT NOT NULL,
+        action_timestamp TIMESTAMP NOT NULL
+    );
+
+2025-02-18 15:55:41,335 - INFO - Operation: Query Execute - Success
+2025-02-18 15:55:41,335 - INFO - Details: No rows fetched (execute only)
+2025-02-18 15:55:41,336 - INFO - Operation: Connection Close - Success
+2025-02-18 15:55:41,337 - INFO - Operation: Database Connection - Success
+2025-02-18 15:55:41,409 - INFO - Query: 
+    INSERT INTO goodwillbranch (branchid, branchname, branchaddress)
+    VALUES 
+        ('1', 'Main Branch', '123 Main St'),
+        ('2', 'Downtown Branch', '456 Downtown Ave')
+    ON CONFLICT (branchid) DO NOTHING;
+
+2025-02-18 15:55:41,411 - INFO - Operation: Query Execute - Success
+2025-02-18 15:55:41,411 - INFO - Details: No rows fetched (execute only)
+2025-02-18 15:55:41,412 - INFO - Operation: Connection Close - Success
+2025-02-18 15:55:41,412 - INFO - Operation: Database Connection - Success
+2025-02-18 15:55:41,484 - INFO - Query: 
+    INSERT INTO employeeTable
+    (employeeid, employeeName, employeeNumber, DateOfChange, OrganizationSector, BranchId)
+    VALUES
+        ('ADMIN1', 'Admin User', '001', CURRENT_DATE, 'Information technology', '1'),
+        ('1', 'John Doe', '002', CURRENT_DATE, 'Engineering', '1'),
+        ('2', 'Jane Smith', '003', CURRENT_DATE, 'Health care', '2')
+    ON CONFLICT (employeeid) DO NOTHING;
+
+2025-02-18 15:55:41,487 - INFO - Operation: Query Execute - Success
+2025-02-18 15:55:41,487 - INFO - Details: No rows fetched (execute only)
+2025-02-18 15:55:41,487 - INFO - Operation: Connection Close - Success
+2025-02-18 15:55:41,488 - INFO - Operation: Database Connection - Success
+2025-02-18 15:55:41,561 - INFO - Query: 
+    INSERT INTO loginpaswd (employeeid, password)
+    VALUES
+        ('ADMIN1', '12345'),
+        ('1', 'password1'),
+        ('2', 'password2')
+    ON CONFLICT (employeeid) DO NOTHING;
+
+2025-02-18 15:55:41,573 - INFO - Operation: Query Execute - Success
+2025-02-18 15:55:41,574 - INFO - Details: No rows fetched (execute only)
+2025-02-18 15:55:41,574 - INFO - Operation: Connection Close - Success
+2025-02-18 15:58:12,974 - INFO - Operation: Database Connection - Success
+2025-02-18 15:58:13,071 - INFO - Operation: Connection Test - Success
+2025-02-18 16:02:11,780 - INFO - Operation: Database Connection - Success
+2025-02-18 16:02:11,869 - INFO - Query: 
+    CREATE TABLE IF NOT EXISTS goodwillbranch (
+        branchid TEXT PRIMARY KEY,
+        branchname TEXT NOT NULL,
+        branchaddress TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS employeeTable (
+        employeeid TEXT PRIMARY KEY,
+        employeeName TEXT NOT NULL,
+        employeeNumber TEXT NOT NULL,
+        DateOfChange DATE NOT NULL,
+        OrganizationSector TEXT NOT NULL,
+        BranchId TEXT REFERENCES goodwillbranch(branchid)
+    );
+
+    CREATE TABLE IF NOT EXISTS loginpaswd (
+        employeeid TEXT PRIMARY KEY,
+        password TEXT NOT NULL,
+        FOREIGN KEY (employeeid) REFERENCES employeeTable(employeeid) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS user_login_logs (
+        log_id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL,
+        action_type TEXT NOT NULL,
+        action_timestamp TIMESTAMP NOT NULL
+    );
+
+2025-02-18 16:02:11,871 - INFO - Operation: Query Execute - Success
+2025-02-18 16:02:11,871 - INFO - Details: No rows fetched (execute only)
+2025-02-18 16:02:11,872 - INFO - Operation: Connection Close - Success
+2025-02-18 16:02:11,873 - INFO - Operation: Database Connection - Success
+2025-02-18 16:02:11,952 - INFO - Query: 
+    INSERT INTO goodwillbranch (branchid, branchname, branchaddress)
+    VALUES 
+        ('1', 'Main Branch', '123 Main St'),
+        ('2', 'Downtown Branch', '456 Downtown Ave')
+    ON CONFLICT (branchid) DO NOTHING;
+
+2025-02-18 16:02:11,961 - INFO - Operation: Query Execute - Success
+2025-02-18 16:02:11,962 - INFO - Details: No rows fetched (execute only)
+2025-02-18 16:02:11,962 - INFO - Operation: Connection Close - Success
+2025-02-18 16:02:11,963 - INFO - Operation: Database Connection - Success
+2025-02-18 16:02:12,034 - INFO - Query: 
+    INSERT INTO employeeTable
+    (employeeid, employeeName, employeeNumber, DateOfChange, OrganizationSector, BranchId)
+    VALUES
+        ('ADMIN1', 'Admin User', '001', CURRENT_DATE, 'Information technology', '1'),
+        ('1', 'John Doe', '002', CURRENT_DATE, 'Engineering', '1'),
+        ('2', 'Jane Smith', '003', CURRENT_DATE, 'Health care', '2')
+    ON CONFLICT (employeeid) DO NOTHING;
+
+2025-02-18 16:02:12,044 - INFO - Operation: Query Execute - Success
+2025-02-18 16:02:12,045 - INFO - Details: No rows fetched (execute only)
+2025-02-18 16:02:12,045 - INFO - Operation: Connection Close - Success
+2025-02-18 16:02:12,046 - INFO - Operation: Database Connection - Success
+2025-02-18 16:02:12,142 - INFO - Query: 
+    INSERT INTO loginpaswd (employeeid, password)
+    VALUES
+        ('ADMIN1', '12345'),
+        ('1', 'password1'),
+        ('2', 'password2')
+    ON CONFLICT (employeeid) DO NOTHING;
+
+2025-02-18 16:02:12,153 - INFO - Operation: Query Execute - Success
+2025-02-18 16:02:12,154 - INFO - Details: No rows fetched (execute only)
+2025-02-18 16:02:12,154 - INFO - Operation: Connection Close - Success

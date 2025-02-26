@@ -827,25 +827,26 @@ def CreateOrgEntry():
         AddOrgEntryBox.insert(0, OrgHolder)
 
 def CreateDonationEntry():
-    global AddDonationEntryBox, AddDonationTypeBox, DonationNameEntryBox, DonNameHolder
+    global AddDonationEntryBox, AddDonationTypeBox, DonationNameEntryBox, DonNameHolder, DonationHolder
     AddDonationEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation Amount/Item", width=132, height=25)
     AddDonationEntryBox.place(x=120, y=53)
-
        
     DonationNameEntryBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1,placeholder_text="Donation Name", width=132, height=25)
     DonationNameEntryBox.place(x=260, y=53)
     
-    if DonNameHolder:
-        DonationNameEntryBox.insert(0, DonNameHolder)
-    
-    comboVal = StringVar(value="Item")
+    comboVal = StringVar(value=DonationTypeHolder)
     AddDonationTypeBox = CTkComboBox(OutputEditContent,values=["Item", "Funds"],variable=comboVal,height=25, corner_radius=1, width=110)
     AddDonationTypeBox.place(x=5, y=82)
     AddDonationTypeBox.configure(state="readonly")
  
-    if DonationHolder == "":
+    # Display saved values
+    if DonationHolder:
         AddDonationEntryBox.delete(0, END)
-        AddDonationEntryBox.configure(placeholder_text="Donation Amount/Item")
+        AddDonationEntryBox.insert(0, DonationHolder)
+    
+    if DonNameHolder:
+        DonationNameEntryBox.delete(0, END)
+        DonationNameEntryBox.insert(0, DonNameHolder)
 
 def CreateDateEntry():
     global AddDateEntryBox, DateHolder
@@ -891,19 +892,30 @@ def D_confirmyourchoice(choice, SearchBoxEnter):
             OrgHolder = AddOrgEntryBox.get()
             if OrgHolder == "": #IF ORG HOLDER IS EMPTY
                 OrgHolder = "N/A"#THIS WILL RUN
-            DonaOrgFlag = True 
+            DonaOrgFlag = True
             clear_entry_and_button(choice, SearchBoxEnter)
             
         elif choice == "Donation":
-            DonationHolder = AddDonationEntryBox.get()
-            DonNameHolder = DonationNameEntryBox.get()  # Add this line
-            DonationTypeHolder = AddDonationTypeBox.get()
-            if DonationTypeHolder == "Funds" and not DonationHolder.isdigit():
-                show_error("Funds must be a number")
-                return
-            if DonationTypeHolder == "Item" and not DonNameHolder:  # Add validation
-                show_error("Please enter a name for the donation item")
-                return
+            global DonNameHolder  # Ensure we use the global variable
+            temp_donation = AddDonationEntryBox.get()
+            temp_name = DonationNameEntryBox.get()
+            temp_type = AddDonationTypeBox.get()
+            
+            # Validate based on donation type
+            if temp_type == "Funds":
+                if not temp_donation.isdigit():
+                    show_error("Funds must be a number")
+                    return
+                DonNameHolder = "Funds"  # For funds, use standard name
+            else:  # Item donation
+                if not temp_name:
+                    show_error("Please enter a name for the donation item")
+                    return
+                DonNameHolder = temp_name  # Set the donation name
+                
+            # After validation, set the holders
+            DonationHolder = temp_donation
+            DonationTypeHolder = temp_type
             DonaDonationFlag = True
             clear_entry_and_button(choice, SearchBoxEnter)
         
@@ -1144,36 +1156,80 @@ def D_handleadddonator():
         
         if all_valid:
             try:
-                def transaction():
-                    # Generate IDs using the new method
-                    if not donatorIDcreator():
-                        raise Exception("Failed to create unique IDs")
-                    
-                    # Insert inventory record
-                    inventory_name = 'Funds' if DonationTypeHolder == 'Funds' else DonNameHolder
-                    inventory_value = float(DonationHolder) if DonationTypeHolder == 'Funds' else 0
-                    
-                    cur.execute("""
-                        INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                        RETURNING InventoryId
-                    """, (InvBalIDHolder, inventory_name, inventory_value, DonationTypeHolder, BranchIDHolder, 'donation'))
-                    
-                    inventory_id = cur.fetchone()[0]
-                    
-                    # Insert donator with reference to inventory
-                    cur.execute("""
-                        INSERT INTO Donator (DonatorID, DonatorName, DonatorAddress, DonatorPhoneNumber, DonatorOrganization, DonationID)
-                        VALUES (%s, %s, %s, %s, %s, %s)
-                    """, (DonatorIDHolder, donator_name, AddressHolder, PhoneHolder, OrgHolder, inventory_id))
-                    
-                    return True
+                # Start transaction
+                success, error = execute_safe_query(cur, "BEGIN")
+                if not success:
+                    show_error_window(error)
+                    return
+                
+                # Generate IDs
+                if not donatorIDcreator():
+                    execute_safe_query(cur, "ROLLBACK")
+                    show_error("Failed to create unique IDs")
+                    return
 
-                if execute_safe_query(transaction):
-                    clear_ui_elements()
-                    show_success_message("Donator and donation added successfully")
-                else:
-                    show_error("Failed to add donator and donation")
+                try:
+                    # Handle inventory insertion based on donation type
+                    if DonationTypeHolder == 'Funds':
+                        try:
+                            inventory_value = float(DonationHolder)
+                            success, error = execute_safe_query(
+                                cur,
+                                """INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus)
+                                VALUES (%s, %s, %s, %s, %s, %s)
+                                RETURNING InventoryId""",
+                                [InvBalIDHolder, 'Funds', inventory_value, DonationTypeHolder, BranchIDHolder, 'donation']
+                            )
+                        except ValueError:
+                            execute_safe_query(cur, "ROLLBACK")
+                            show_error("Invalid fund amount")
+                            return
+                    else:  # Item donation
+                        if not DonNameHolder:
+                            execute_safe_query(cur, "ROLLBACK")
+                            show_error("Donation name is required for items")
+                            return
+                            
+                        # For items, store both name and description/amount
+                        success, error = execute_safe_query(
+                            cur,
+                            """INSERT INTO Inventory (InventoryId, InventoryName, InventoryValue, InventoryType, BranchId, GoodsStatus)
+                            VALUES (%s, %s, %s, %s, %s, %s)
+                            RETURNING InventoryId""",
+                            [InvBalIDHolder, DonNameHolder, 0, DonationTypeHolder, BranchIDHolder, 'donation']
+                        )
+                    
+                    if not success:
+                        execute_safe_query(cur, "ROLLBACK")
+                        show_error_window(error)
+                        return
+
+                    inventory_id = cur.fetchone()[0]
+
+                    # Insert donator with reference to inventory
+                    success, error = execute_safe_query(
+                        cur,
+                        """INSERT INTO Donator (DonatorID, DonatorName, DonatorAddress, DonatorPhoneNumber, DonatorOrganization, DonationID)
+                        VALUES (%s, %s, %s, %s, %s, %s)""",
+                        [DonatorIDHolder, donator_name, AddressHolder, PhoneHolder, OrgHolder, inventory_id]
+                    )
+                    
+                    if not success:
+                        execute_safe_query(cur, "ROLLBACK")
+                        show_error_window(error)
+                        return
+
+                    success, error = execute_safe_query(cur, "COMMIT")
+                    if success:
+                        D_clear_ui_elements()
+                        show_success_message("Donator and donation added successfully")
+                    else:
+                        execute_safe_query(cur, "ROLLBACK")
+                        show_error_window(error)
+
+                except Exception as e:
+                    execute_safe_query(cur, "ROLLBACK")
+                    show_error(f"Error processing donation: {str(e)}")
             except Exception as e:
                 show_error(f"Error adding donator: {str(e)}")
         else:

@@ -1,0 +1,32 @@
+2025-02-10 14:48:33,613 - INFO - Operation: Database Connection - Success
+2025-02-10 14:48:33,679 - INFO - Query: 
+        SELECT employeeid, employeeName, employeeNumber, 
+               DateOfChange, OrganizationSector, BranchId
+        FROM employeeTable
+        ORDER BY 
+            CASE 
+                WHEN employeeid LIKE 'ADMIN%' THEN 1 
+                ELSE 2 
+            END,
+            CASE 
+                WHEN employeeid LIKE 'ADMIN%' THEN employeeid 
+                ELSE CAST(
+                    CASE 
+                        WHEN employeeid ~ '^[0-9]+$' THEN employeeid 
+                        ELSE '0' 
+                    END 
+                AS INTEGER)::TEXT 
+            END
+    
+2025-02-10 14:48:33,685 - INFO - Operation: Query Execute - Success
+2025-02-10 14:48:33,686 - INFO - Details: Fetched 7 rows
+2025-02-10 14:48:33,686 - INFO - Operation: Connection Close - Success
+2025-02-10 14:48:33,694 - INFO - Operation: Database Connection - Success
+2025-02-10 14:48:33,861 - INFO - Query: 
+        SELECT branchid, branchname, branchaddress
+        FROM goodwillbranch
+        ORDER BY CAST(branchid AS INTEGER)
+    
+2025-02-10 14:48:33,864 - INFO - Operation: Query Execute - Success
+2025-02-10 14:48:33,864 - INFO - Details: Fetched 61 rows
+2025-02-10 14:48:33,865 - INFO - Operation: Connection Close - Success
