@@ -19,17 +19,9 @@ def set_current_user(username, employee_id):
     current_user = username
     current_employee_id = employee_id
 
-from IATEST.Admin.init_login import init_login_db
-from IATEST.Admin.activity_logger import ActivityLogger
+
 from loginpage import LoginPage
 
-# Initialize login database
-init_login_db()
-
-# Initialize activity logger
-activity_logger = ActivityLogger()
-# Imports for pages will be done when needed to avoid circular dependencies
-#https://github.com/Akascape/CTkTable
 
 import math
 from math import *
@@ -80,14 +72,14 @@ LoadingPage = CTkFrame(window, corner_radius=0) #implement later
 HomePage = CTkFrame(window, corner_radius=0)
 setattr(HomePage, 'post_flag', 0)
 TransactionsPage = CTkFrame(window, corner_radius=0)
-DonatorPage = CTkFrame(window, corner_radius=0)  # Changed from ClientPage to DonatorPage
+DonorPage = CTkFrame(window, corner_radius=0)  # Changed from ClientPage to DonorPage
 InventoryPage = CTkFrame(window, corner_radius=0)
 BudgetPage = CTkFrame(window, corner_radius=0)
 CalculatorPage = CTkFrame(window, corner_radius=0)
 LoginPageFrame = CTkFrame(window, corner_radius=0, bg_color='#0053A0')
 
 # Create a list to hold all the pages
-pages = [HomePage, TransactionsPage, DonatorPage, InventoryPage, BudgetPage, CalculatorPage]  # Updated list with DonatorPage
+pages = [HomePage, TransactionsPage, DonorPage, InventoryPage, BudgetPage, CalculatorPage]  # Updated list with DonorPage
 
 # Function to show a page
 def show_page(page, loginaccess):
@@ -110,7 +102,7 @@ def show_page(page, loginaccess):
     page_names = {
         HomePage: "Home Page",
         TransactionsPage: "Transactions Page",
-        DonatorPage: "Donator Page",
+        DonorPage: "Donor Page",
         InventoryPage: "Inventory Page",
         BudgetPage: "Budget Page",
         CalculatorPage: "Calculator Page"
@@ -161,29 +153,22 @@ def show_page(page, loginaccess):
         from InventoryPage import I_show_page, init_db as init_inventory_db
         init_inventory_db(conn, cur)  # Initialize database connection
         I_show_page(window, InventoryPage)  # Pass both window and frame
-    elif page == DonatorPage:
-        from DonatorPage import D_show_page, init_db as init_donator_db
-        init_donator_db(conn, cur)  # Initialize database connection
-        D_show_page(window, DonatorPage)  # Pass both window and frame
+    elif page == DonorPage:
+        from DonorPage import D_show_page, init_db as init_Donor_db
+        init_Donor_db(conn, cur)  # Initialize database connection
+        D_show_page(window, DonorPage)  # Pass both window and frame
     elif page == TransactionsPage:
         from TransactionPage import T_show_page, init_db as init_transactions_db
         init_transactions_db(conn, cur)  # Initialize database connection
         T_show_page(window, TransactionsPage)  # Pass both window and frame
         
     # Log page access if user is logged in
-    if loginaccess and current_user and page not in [LoginPageFrame]:
-        activity_logger.log_page_access(
-            current_employee_id,
-            current_user,
-            page_names.get(page, "Unknown Page"),
-            f"Accessed {page_names.get(page, 'Unknown Page')}"
-        )
     
     print(f"Showing page: {page}")
     window.update_idletasks()  # Update the UI
          
 #++++++++++++++++++++++++++++++ {PAGE FUNCTIONS} ++++++++++++++++++++++++++++++++++++++
-#DO NOT EDIT SPACE, WILL USE SPACE FOR THE OTHER PAGES
+#DO NOT EDIT SPACE, WILL USE SPACE FOR THE OTHER PAGESx
 
 
 #def clientpage(page):
@@ -808,8 +793,8 @@ HomeTab.grid(row=0, column=0, pady=10, padx=6, sticky="nsew")
 TransactionsTab = CTkButton(TABFRAME, text="Transactions", width=20, corner_radius=0, command=lambda: button_event(TransactionsPage,loginaccess))
 TransactionsTab.grid(row=0, column=1, pady=10, padx=6, sticky="nsew")
 
-DonatorTab = CTkButton(TABFRAME, text="Donator", width=20, corner_radius=0, command=lambda: button_event(DonatorPage,loginaccess))
-DonatorTab.grid(row=0, column=2, pady=10, padx=6, sticky="nsew")
+DonorTab = CTkButton(TABFRAME, text="Donor", width=20, corner_radius=0, command=lambda: button_event(DonorPage,loginaccess))
+DonorTab.grid(row=0, column=2, pady=10, padx=6, sticky="nsew")
 
 InventoryTab = CTkButton(TABFRAME, text="Inventory", width=20, corner_radius=0, command=lambda: button_event(InventoryPage,loginaccess))
 InventoryTab.grid(row=0, column=3, pady=10, padx=6, sticky="nsew")
@@ -823,15 +808,6 @@ def admittedAccess(success, username=None, employee_id=None):
     global loginaccess, HomePagePost
     if success:
         loginaccess = True
-        
-        # Set user info and log successful login
-        set_current_user(username or "Unknown", employee_id or "UNKNOWN")
-        activity_logger.log_login(
-            employee_id,
-            username,
-            True,
-            "User logged in successfully"
-        )
         
         # Hide all pages first
         for page in [LoginPageFrame] + pages:
@@ -865,7 +841,7 @@ def admittedAccess(success, username=None, employee_id=None):
         
         # Enable restricted tabs
         TransactionsTab.configure(command=lambda: button_event(TransactionsPage, loginaccess))
-        DonatorTab.configure(command=lambda: button_event(DonatorPage, loginaccess))
+        DonorTab.configure(command=lambda: button_event(DonorPage, loginaccess))
         InventoryTab.configure(command=lambda: button_event(InventoryPage, loginaccess))
         BudgetTab.configure(command=lambda: button_event(BudgetPage, loginaccess))
         

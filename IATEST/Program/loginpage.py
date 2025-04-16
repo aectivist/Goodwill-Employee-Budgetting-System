@@ -56,7 +56,14 @@ class LoginPage:
         # Clear any previous transaction
         self.conn.rollback()
         
-        try:
+        try: #Create loginpaswd table with foreign key
+            self.cur.execute("""
+                CREATE TABLE IF NOT EXISTS loginpaswd (
+                    employeeid VARCHAR(255) PRIMARY KEY,
+                    password VARCHAR(255) NOT NULL,
+                    FOREIGN KEY (employeeid) REFERENCES employeeTable(employeeid) ON DELETE CASCADE)
+                """)
+
             # First check if user exists
             self.cur.execute(
                 "SELECT employeeid FROM employeeTable WHERE employeeid = %s",
@@ -79,15 +86,6 @@ class LoginPage:
                 {'username': username, 'password': password}
             )
             login_successful = self.cur.fetchone() is not None
-            
-            # Log the attempt
-            action_type = 'LOGIN_SUCCESS' if login_successful else 'LOGIN_FAILED'
-            details = "Login successful" if login_successful else "Invalid password"
-            
-            self.cur.execute(
-                "INSERT INTO user_login_logs (employeeid, username, action_type, action_details) VALUES (%s, %s, %s, %s)",
-                (username, username, action_type, details)
-            )
             
             # Commit transaction
             self.conn.commit()

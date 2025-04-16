@@ -1,4 +1,4 @@
-DROP TABLE IF EXISTS Donator;C
+DROP TABLE IF EXISTS donor;C
 DROP TABLE IF EXISTS Donation_Details;C
 DROP TABLE IF EXISTS Inventory;C
 DROP TABLE IF EXISTS goodwillBranch;C
@@ -16,7 +16,7 @@ branchPhoneNumber bigint,
 PRIMARY KEY (branchId)
 )
 
--- Create Inventory table first as it's referenced by Donator
+-- Create Inventory table first as it's referenced by donor
 CREATE TABLE Inventory(
     InventoryId bigint PRIMARY KEY,
     InventoryName VARCHAR(200) NOT NULL,
@@ -92,24 +92,24 @@ CREATE TABLE ALREADYCREATEDKEYS(
 );
 
 
--- Create Donator table with new structure
-CREATE TABLE Donator (
-    DonatorID bigint PRIMARY KEY,
-    DonatorName VARCHAR(200) NOT NULL,
-    DonatorAddress VARCHAR(200),
-    DonatorPhoneNumber VARCHAR(15),
-    DonatorOrganization VARCHAR(200),
+-- Create donor table with new structure
+CREATE TABLE donor (
+    donorID bigint PRIMARY KEY,
+    donorName VARCHAR(200) NOT NULL,
+    donorAddress VARCHAR(200),
+    donorPhoneNumber VARCHAR(15),
+    donorOrganization VARCHAR(200),
 	DonationID bigint NOT NULL,
 	FOREIGN KEY (DonationID) REFERENCES Inventory(InventoryId)
 );
 
 CREATE TABLE Donation_Details(
     DonationId bigint PRIMARY KEY,
-    DonatorId bigint NOT NULL,
+    donorId bigint NOT NULL,
     InventoryId bigint NOT NULL,
     DonationDate DATE NOT NULL,
     DonationAmount FLOAT NOT NULL,
-    FOREIGN KEY (DonatorId) REFERENCES Donator(DonatorId),
+    FOREIGN KEY (donorId) REFERENCES donor(donorId),
     FOREIGN KEY (InventoryId) REFERENCES Inventory(InventoryId)
 );
 

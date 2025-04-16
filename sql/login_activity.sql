@@ -10,8 +10,6 @@ CREATE TABLE user_login_logs (
     action_details TEXT,                        -- Additional details about the action
     action_timestamp TIMESTAMP WITH TIME ZONE   -- When the action occurred
         DEFAULT CURRENT_TIMESTAMP,
-    ip_address VARCHAR(45),                    
-    user_agent TEXT,
     FOREIGN KEY (employeeid) REFERENCES employeeTable(employeeid) ON DELETE CASCADE
 );
 

@@ -55,7 +55,7 @@ ErrorLabelBoolean = False #NOTE: This is for the error label. If the error label
 
 # Function to show a page
 def T_show_page(parent, page_frame):
-    """Initialize and show the donator page"""
+    """Initialize and show the donor page"""
     global TransactionsPagePost
     
     # Show the page
@@ -209,40 +209,43 @@ def TransactionSearch(SearchEntry):
         
         # Base query with common transaction information
         base_query = """
-        SELECT 
+        SELECT
             t.TransactionId,
             t.TransactorFrom,
             t.TransactionTo,
             t.TransactionDate,
-            t.transactiontype
-            ,CASE 
-                WHEN t.transactiontype = 'Item' THEN i.InventoryId
-                WHEN t.transactiontype = 'Cash' THEN b.BalanceID
+            CASE
+                WHEN tt.InventoryId IS NOT NULL THEN 'Item'
+                WHEN tt.balanceId IS NOT NULL THEN 'Cash'
+            END as TransactionType,
+            CASE
+                WHEN tt.InventoryId IS NOT NULL THEN tt.InventoryId
+                WHEN tt.balanceId IS NOT NULL THEN tt.balanceId
             END as ID_inv_or_bal,
-            CASE 
-                WHEN t.transactiontype = 'Item' THEN i.InventoryName
-                WHEN t.transactiontype = 'Cash' THEN 'Balance'
+            CASE
+                WHEN tt.InventoryId IS NOT NULL THEN i.InventoryName
+                ELSE 'Balance'
             END as Name_or_Amount,
-            CASE 
-                WHEN t.transactiontype = 'Item' THEN CAST(i.InventoryValue AS VARCHAR)
-                WHEN t.transactiontype = 'Cash' THEN CAST(b.BalanceAmount AS VARCHAR)
+            CASE
+                WHEN tt.InventoryId IS NOT NULL THEN CAST(i.InventoryValue AS VARCHAR)
+                WHEN tt.balanceId IS NOT NULL THEN CAST(b.BalanceAmount AS VARCHAR)
             END as Value_or_Date,
-            CASE 
-                WHEN t.transactiontype = 'Item' THEN i.InventoryType
+            CASE
+                WHEN tt.InventoryId IS NOT NULL THEN i.InventoryType
                 ELSE 'N/A'
             END as Inv_Type,
-            CASE 
-                WHEN t.transactiontype = 'Item' THEN i.GoodsStatus
+            CASE
+                WHEN tt.InventoryId IS NOT NULL THEN i.GoodsStatus
                 ELSE 'N/A'
             END as Status,
-            CASE 
-                WHEN t.transactiontype = 'Item' THEN i.BranchId
-                WHEN t.transactiontype = 'Cash' THEN b.BranchID
+            CASE
+                WHEN tt.InventoryId IS NOT NULL THEN i.BranchId
+                WHEN tt.balanceId IS NOT NULL THEN b.BranchID
             END as Branch_ID
         FROM transactionTable t
-        LEFT JOIN transactionType tt ON t.transactionTypeId = tt.transactionTypeId
-        LEFT JOIN Inventory i ON tt.InventoryId = i.InventoryId AND t.transactiontype = 'Item'
-        LEFT JOIN Balance b ON tt.BalanceId = b.BalanceId AND t.transactiontype = 'Cash'
+        JOIN transactionType tt ON t.transactionTypeId = tt.transactionTypeId
+        LEFT JOIN Inventory i ON tt.InventoryId = i.InventoryId
+        LEFT JOIN Balance b ON tt.balanceId = b.balanceId
         WHERE 1=1
         """
         
@@ -637,56 +640,76 @@ def T_handledeletetrans(TransactionIDDelete, deleteinputbutton):
 
 def DeleteSQL(ItemToDelete):
     try:
-        # First get the transactionTypeId
-        success, error = execute_safe_query(cur, """SELECT transactionTypeId FROM transactionTable WHERE transactionId = %s""", (ItemToDelete,))
+        # Begin transaction
+        success, error = execute_safe_query(cur, "BEGIN")
         if not success:
             show_error_window(error)
             return
+
+        # Get the transactionTypeId and related IDs
+        success, error = execute_safe_query(cur, """
+            SELECT t.transactionTypeId, tt.balanceId, tt.inventoryId
+            FROM transactionTable t
+            JOIN transactionType tt ON t.transactionTypeId = tt.transactionTypeId
+            WHERE t.transactionId = %s
+        """, (ItemToDelete,))
+        if not success:
+            show_error_window(error)
+            return
+
         result = cur.fetchone()
         if not result:
-            print("No transaction found")
+            show_error_window("Transaction not found")
             return
-        transactionTypeId = result[0]
-        
-        # Then get balance and inventory IDs
-        success, error = execute_safe_query(cur, """SELECT balanceid, inventoryid FROM transactionType WHERE transactionTypeId = %s""", (transactionTypeId,))
+
+        transactionTypeId, balanceId, inventoryId = result
+
+        # Delete in reverse order of dependencies
+        success, error = execute_safe_query(cur,
+            "DELETE FROM transactionTable WHERE transactionId = %s",
+            (ItemToDelete,))
         if not success:
             show_error_window(error)
+            cur.execute("ROLLBACK")
             return
-        result = cur.fetchone()
-        if not result:
-            print("No transaction type found")
-            return
-            
-        balanceid = result[0] if result[0] else None
-        inventoryid = result[1] if result[1] else None
-        
-        # Perform deletions in correct order
-        success, error = execute_safe_query(cur, "DELETE FROM transactionTable WHERE transactionId = %s", (ItemToDelete,))
+
+        success, error = execute_safe_query(cur,
+            "DELETE FROM transactionType WHERE transactionTypeId = %s",
+            (transactionTypeId,))
         if not success:
             show_error_window(error)
+            cur.execute("ROLLBACK")
             return
-        success, error = execute_safe_query(cur, "DELETE FROM transactionType WHERE transactionTypeId = %s", (transactionTypeId,))
-        if not success:
-            show_error_window(error)
-            return
-        
-        if balanceid:
-            success, error = execute_safe_query(cur, "DELETE FROM balance WHERE balanceid = %s", (balanceid,))
+
+        # Handle balance and inventory deletion if they exist
+        if balanceId:
+            success, error = execute_safe_query(cur,
+                "DELETE FROM balance WHERE balanceId = %s",
+                (balanceId,))
             if not success:
                 show_error_window(error)
+                cur.execute("ROLLBACK")
                 return
-        if inventoryid:
-            success, error = execute_safe_query(cur, "DELETE FROM inventory WHERE inventoryid = %s", (inventoryid,))
+
+        if inventoryId:
+            success, error = execute_safe_query(cur,
+                "DELETE FROM inventory WHERE inventoryId = %s",
+                (inventoryId,))
             if not success:
                 show_error_window(error)
+                cur.execute("ROLLBACK")
                 return
-            
-        conn.commit()
-        print("Item has been deleted.")
+
+        # Commit transaction
+        success, error = execute_safe_query(cur, "COMMIT")
+        if not success:
+            show_error_window(error)
+            return
+
+        show_success_message("Transaction deleted successfully", OutputEditContent)
     except Exception as e:
-        print(f"An error occurred: {e}")
-        conn.rollback()
+        cur.execute("ROLLBACK")
+        show_error_window(f"Failed to delete transaction: {str(e)}")
 
 def boolforinvtypcheck(value):
     """Handle inventory type selection"""
@@ -1406,169 +1429,141 @@ def T_handleedittrans():
     global Trans_DateFlag, Trans_GoodsFlag, Trans_TypeFlag, Trans_BranchFlag, Trans_IDFlag, Trans_PartyFlag, amountedit, diffvalue
     global amountedit, ErrorBoolean, Error, viewederror, sucessful_transaction, Transaction_inputbutton, TrueInventoryIDFlag,TransactionNameToFlag, TransactionNameForFlag
     global DateHolder, GoodsIDHolder, TransIDHolder, BranchHolder, TypeHolder, AmountHolder, InvTypHolder, StatusHolder, PartyForHolder, PartyToHolder, GoodsHolder
-    if TransactionIDEdit.get() != "":  # Ensure Transaction ID is provided MAINLY------------------------
-        try: #Try basically checks if the transaction ID exists in the database
-            success, error = execute_safe_query(cur, """SELECT EXISTS(SELECT 1 FROM transactionTable WHERE transactionId = %s)""", (TransactionIDEdit.get(),))
-            if not success:
-                show_error_window(error)
-                return
-            result = cur.fetchone()
-            if result and result[0]:  # Check both result exists and its value
-                Trans_IDFlag = True
-                TransIDHolder = TransactionIDEdit.get()
-            else:
-                Trans_IDFlag = False
-                show_error_window("Transaction ID does not exist.")
-        except Exception as e: #If there is an error, then it'll print the below
-            show_error_window(f"Database error: {str(e)}")
+    global TransactorFromHolder, TransactorToHolder
 
-        if diffvalue == 3: #to check if amount holder is a number
-            if AmountHolder.isnumeric() and Trans_TypeFlag:
-                amountedit = True #NOTE: MAKE SURE TO RUN AN ERROR FUNCTION IF THE AMOUNT IS NOT A NUMBER 111111111111111111e4i21u4u12y4812g
-            else:
+    # Initialize transaction party holders
+    TransactorFromHolder = PartyForHolder
+    TransactorToHolder = PartyToHolder
+
+    # Clear any existing errors
+    if viewederror and 'Error' in globals() and Error.winfo_exists():
+        Error.destroy()
+        viewederror = 0
+        ErrorBoolean = False
+
+    # Verify Transaction ID
+    transaction_id = TransactionIDEdit.get()
+    if not transaction_id:
+        show_error_window("Please enter a transaction ID")
+        return
+
+    try:
+        # Check if transaction exists and get its type
+        success, error = execute_safe_query(cur, """
+            SELECT t.transactionId, tt.balanceId, tt.inventoryId,
+                   CASE
+                       WHEN tt.inventoryId IS NOT NULL THEN 'Item'
+                       WHEN tt.balanceId IS NOT NULL THEN 'Cash'
+                   END as transaction_type
+            FROM transactionTable t
+            JOIN transactionType tt ON t.transactionTypeId = tt.transactionTypeId
+            WHERE t.transactionId = %s
+        """, (transaction_id,))
+        
+        if not success:
+            show_error_window(error)
+            return
+
+        result = cur.fetchone()
+        if not result:
+            show_error_window("Transaction ID does not exist")
+            return
+
+        TransIDHolder = transaction_id
+        Trans_IDFlag = True
+        existing_type = result[3]
+
+        # Validate amount if it's being changed
+        if diffvalue == 3:
+            if not AmountHolder or not str(AmountHolder).isnumeric():
                 show_error_window("Please input a valid amount")
+                return
+            amountedit = True
 
-    elif viewederror == 0: #If there is no error, but the id section is empty, then it'll print the below
-        print("Please Input the id entry.")
-        ErrorBoolean = True
-        Error = CTkLabel(OutputEditContent, text="Please Input the transaction entry.", text_color="red", height=13)
-        Error.place(x=200, y=3)
-        viewederror = 1
-        print(viewederror) #-------------------------------
+        # Validate inventory/balance if being changed
+        if Trans_GoodsFlag and Trans_TypeFlag:
+            if TypeChecker:  # Item transaction
+                success, error = execute_safe_query(cur,
+                    "SELECT EXISTS(SELECT 1 FROM transactionType WHERE inventoryid = %s)",
+                    (GoodsIDHolder,))
+                if not success:
+                    show_error_window(error)
+                    return
+                TrueInventoryIDFlag = cur.fetchone()[0]
+            else:  # Cash transaction
+                success, error = execute_safe_query(cur,
+                    "SELECT EXISTS(SELECT 1 FROM transactionType WHERE balanceid = %s)",
+                    (GoodsIDHolder,))
+                if not success:
+                    show_error_window(error)
+                    return
+                TrueInventoryIDFlag = cur.fetchone()[0]
             
-    if Trans_DateFlag or Trans_GoodsFlag or Trans_TypeFlag or Trans_BranchFlag or TransactionNameToFlag or TransactionNameForFlag:
-        if Trans_GoodsFlag and Trans_TypeFlag: #INVENTORY CHANGER
-            if TypeChecker == True: #If the type checker is true, or if it is an item, then it'll check the inventory id
-                success, error = execute_safe_query(cur, """SELECT EXISTS(SELECT 1 FROM transactionType WHERE inventoryid = %s)""", (GoodsIDHolder,))
-                if not success:
-                    show_error_window(error)
-                    return
-                result = cur.fetchone()
-                if result and result[0]:
-                    TrueInventoryIDFlag = True
-                else:
-                    TrueInventoryIDFlag = False 
-                    if viewederror == 0:
-                        print("Please Input the correct entries.")
-                        ErrorBoolean = True
-                        Error = CTkLabel(OutputEditContent, text="Please fill the correct Inv/Bal ID.", text_color="red", height=13)
-                        Error.place(x=120, y=3)
-                        viewederror = 1
-                        print(viewederror)
-            elif TypeChecker == False: #If the type checker is false, or if it is cash, then it'll check the balance id
-                success, error = execute_safe_query(cur, """SELECT EXISTS(SELECT 1 FROM transactionType WHERE balanceid = %s)""", (GoodsIDHolder,))
-                if not success:
-                    show_error_window(error)
-                    return
-                result = cur.fetchone()
-                if result and result[0]:
-                    TrueInventoryIDFlag = True
-                else:
-                    TrueInventoryIDFlag = False
-                    if viewederror == 0:
-                        print("Please Input the correct entries.")
-                        ErrorBoolean = True
-                        Error = CTkLabel(OutputEditContent, text="Please fill the correct Inv/Bal ID.", text_color="red", height=13)
-                        Error.place(x=120, y=3)
-                        viewederror = 1
-                        print(viewederror)
-        elif Trans_BranchFlag: #If the inventory flag is false, then it'll print the below
-            if viewederror == 0:
-                    print("Please Input the correct entries.")
-                    ErrorBoolean = True
-                    Error = CTkLabel(OutputEditContent, text="Successfully editted", text_color="green", height=13)
-                    Error.place(x=120, y=3)
-                    viewederror = 1
-                    print(viewederror)
-        else:
-            TrueInventoryIDFlag = False
-            if viewederror == 0:
-                    print("Please Input the correct entries.")
-                    ErrorBoolean = True
-                    Error = CTkLabel(OutputEditContent, text="Please fill the correct entries.", text_color="red", height=13)
-                    Error.place(x=120, y=3)
-                    viewederror = 1
-                    print(viewederror)
-
-        if PartyForHolder and PartyToHolder: #make error checker
+            if not TrueInventoryIDFlag:
+                show_error_window("Invalid Inventory/Balance ID")
+                return
+        # Set party flag and update transaction parties if both fields are present
+        if PartyForHolder and PartyToHolder:
             Trans_PartyFlag = True
+            TransactorFromHolder = PartyForHolder
+            TransactorToHolder = PartyToHolder
 
-    print(f"Date= {Trans_DateFlag}, Inventory= {TrueInventoryIDFlag}, Type= {Trans_TypeFlag}, Branch= {Trans_BranchFlag}, Party= {Trans_PartyFlag}")
+        # Validate that at least one field is being modified
+        if not any([Trans_DateFlag, TrueInventoryIDFlag, Trans_BranchFlag, Trans_PartyFlag]):
+            show_error_window("No changes specified")
+            return
 
-    if diffvalue > 0:
-        if Trans_IDFlag and (Trans_DateFlag or TrueInventoryIDFlag or Trans_BranchFlag or Trans_PartyFlag):  # Ensure at least one other flag is set
-            print("Successfully Submitted.")
-            print(f"TransactionID: {TransIDHolder}")
-            if Trans_DateFlag:
-                print(f"Date: {DateHolder}")
-            if TrueInventoryIDFlag:
-                print(f"Goods: {GoodsIDHolder}")
-                print(f"Inventory Type: {InvTypHolder}")
-            if Trans_TypeFlag:
-                print(f"Type: {TypeHolder}")
-                print(f"Amount of type: {AmountHolder}")
-                print(f"Good status: {StatusHolder}")
-            if Trans_BranchFlag:
-                print(f"Branch ID: {BranchHolder}")
-            if Trans_PartyFlag:
-                print(f"Party For: {PartyForHolder}")
-                print(f"Party To: {PartyToHolder}")
-            
+        # Check type compatibility
+        if TrueInventoryIDFlag and TypeHolder != existing_type:
+            show_error_window("Cannot change transaction type (Cash/Item)")
+            return
+
+        # If all validations pass, create the transaction
+        if diffvalue > 0:
+            # Process the transaction
             transactionIDcreator()
-
+            
+            # Clean up UI elements
             if Transaction_inputbutton.winfo_exists():
                 Transaction_inputbutton.destroy()
             try:
                 TransactionIDEdit.place_forget()
                 Transaction_combobox.destroy()
+                
+                # Clean up additional UI elements
+                for widget in [Transaction_inputbutton, EditSearchBoxEnter]:
+                    if widget.winfo_exists():
+                        widget.place_forget()
+                
+                if diffvalue == 1:
+                    EditDateEntryBox.place_forget()
+                elif diffvalue == 2:
+                    EditGoodsEntryBox.place_forget()
+                elif diffvalue == 3:
+                    typebox.place_forget()
+                    amtinputEdit.place_forget()
+                elif diffvalue == 4:
+                    EditBranchEntryBox.place_forget()
+                elif diffvalue == 5:
+                    PartyToEntryBox.place_forget()
+                    PartyForEntryBox.place_forget()
+                
+                # Clean up common widgets
+                for widget_name in ['inventorytypebox', 'statusbox']:
+                    if widget_name in globals() and globals()[widget_name].winfo_exists():
+                        globals()[widget_name].place_forget()
             except Exception as e:
-                print(f"Error destroying Transaction_combobox and TransactionIDEdit: {e}")
+                print(f"Error cleaning up UI elements: {e}")
+        else:
+            show_error_window("Please select what to edit")
+            return
 
-            try:
-                try:
-                    for widget in [Transaction_inputbutton,EditSearchBoxEnter]:
-                        if widget.winfo_exists():
-                            widget.place_forget()
-                    if diffvalue == 1:
-                        EditDateEntryBox.place_forget()
-                    elif diffvalue == 2:
-                        EditGoodsEntryBox.place_forget()
-                    elif diffvalue==3:
-                        typebox.place_forget()
-                        amtinputEdit.place_forget()
-                    elif diffvalue==4:
-                        EditBranchEntryBox.place_forget()
-                    elif diffvalue==5:
-                        PartyToEntryBox.place_forget()
-                        PartyForEntryBox.place_forget()
-                    try:
-                        inventorytypebox.place_forget()
-                    except Exception as e:
-                        print("inventorytypebox does not exist")
-                    statusbox.place_forget()
-                except Exception as e:
-                    print(f"Error destroying widgets: {e}")
-            except Exception as e:
-                print(f"ERROR:{e}")
+        # Mark transaction as successful
+        sucessful_transaction = True
 
-        else:  # Print an error
-            if viewederror == 0:
-                print("Please Input the correct entries.")
-                ErrorBoolean = True
-                Error = CTkLabel(OutputEditContent, text="Please Input the correct entries.", text_color="red", height=13)
-                Error.place(x=200, y=3)
-                viewederror = 1
-                print(viewederror)
-
-    else:  # Print an error
-        if viewederror == 0:
-            print("Please Input an entry.")
-            ErrorBoolean = True
-            Error = CTkLabel(OutputEditContent, text="Please Input an entry.", text_color="red", height=13)
-            Error.place(x=200, y=3)
-            viewederror = 1
-            print(viewederror)
-
+    except Exception as e:
+        show_error_window(f"Error processing edit: {str(e)}")
+        return
 
         
 def transactionIDcreator():
@@ -1595,6 +1590,7 @@ def transactionIDcreator():
                 """, (AmountHolder, BranchHolder))
                 if not success:
                     show_error_window(error)
+                    cur.execute("ROLLBACK")
                     return
                 balanceId = cur.fetchone()[0]
                 inventoryId = None
@@ -1602,6 +1598,7 @@ def transactionIDcreator():
                 # Create inventory record
                 if not GoodsHolder:  # Add validation
                     show_error_window("Object Name is required for Item transactions")
+                    cur.execute("ROLLBACK")
                     return
                 success, error = execute_safe_query(cur, """
                     WITH new_inventory AS (
@@ -1615,11 +1612,12 @@ def transactionIDcreator():
                 """, (GoodsHolder, AmountHolder, InvTypHolder, StatusHolder, BranchHolder))
                 if not success:
                     show_error_window(error)
+                    cur.execute("ROLLBACK")
                     return
                 inventoryId = cur.fetchone()[0]
                 balanceId = None
 
-            # Create transaction type record linking to the appropriate record
+            # Create transaction type record
             success, error = execute_safe_query(cur, """
                 WITH new_transaction_type AS (
                     SELECT COALESCE(MAX(transactionTypeId), 0) + 1 as next_id
@@ -1634,29 +1632,9 @@ def transactionIDcreator():
                 show_error_window(error)
                 cur.execute("ROLLBACK")
                 return
-            result = cur.fetchone()
-            if not result:
-                show_error_window("Failed to create transaction type record")
-                cur.execute("ROLLBACK")
-                return
-            transactionTypeId = result[0]
-            
-            # Verify the transaction type was created with proper links
-            success, error = execute_safe_query(cur, """
-                SELECT balanceId, inventoryId FROM transactionType
-                WHERE transactionTypeId = %s
-            """, (transactionTypeId,))
-            if not success:
-                show_error_window(error)
-                cur.execute("ROLLBACK")
-                return
-            verify = cur.fetchone()
-            if not verify or (TypeHolder == "Item" and not verify[1]) or (TypeHolder == "Cash" and not verify[0]):
-                show_error_window("Failed to properly link transaction type with inventory/balance")
-                cur.execute("ROLLBACK")
-                return
+            transactionTypeId = cur.fetchone()[0]
 
-            # Create main transaction record with generated ID
+            # Create main transaction record
             success, error = execute_safe_query(cur, """
                 WITH new_transaction AS (
                     SELECT COALESCE(MAX(transactionId), 0) + 1 as next_id
@@ -1667,50 +1645,63 @@ def transactionIDcreator():
                     transactionTypeId,
                     transactorFrom,
                     transactionTo,
-                    transactionDate,
-                    transactiontype
+                    transactionDate
                 )
                 SELECT
                     next_id,
-                    %s, %s, %s, %s, %s
+                    %s, %s, %s, %s
                 FROM new_transaction
                 RETURNING transactionId
-            """, (transactionTypeId, TransactorFromHolder, TransactorToHolder, DateHolder, TypeHolder))
+            """, (transactionTypeId, TransactorFromHolder, TransactorToHolder, DateHolder))
             if not success:
                 show_error_window(error)
+                cur.execute("ROLLBACK")
                 return
 
         elif mode == "edit":
-            # Get the transaction type ID for the current transaction
+            # Get existing transaction type and verify the relationship
             success, error = execute_safe_query(cur, """
-                SELECT tt.transactionTypeId, tt.balanceId, tt.inventoryId, t.transactiontype
+                SELECT t.transactionId, t.transactionTypeId, tt.balanceId, tt.inventoryId,
+                       CASE
+                            WHEN tt.inventoryId IS NOT NULL THEN 'Item'
+                            WHEN tt.balanceId IS NOT NULL THEN 'Cash'
+                        END as transaction_type
                 FROM transactionTable t
                 JOIN transactionType tt ON t.transactionTypeId = tt.transactionTypeId
                 WHERE t.transactionId = %s
             """, (TransIDHolder,))
             if not success:
                 show_error_window(error)
+                cur.execute("ROLLBACK")
                 return
             
             result = cur.fetchone()
             if not result:
                 show_error_window("Transaction not found")
+                cur.execute("ROLLBACK")
                 return
                 
-            transactionTypeId, old_balanceId, old_inventoryId, old_type = result
+            transactionId, transactionTypeId, existing_balanceId, existing_inventoryId, current_type = result
 
-            # Update the appropriate record based on type
-            if old_type == "Cash" and old_balanceId:
+            # Verify that we're not trying to change from Cash to Item or vice versa
+            if (TypeHolder == "Cash" and current_type == "Item") or (TypeHolder == "Item" and current_type == "Cash"):
+                show_error_window("Cannot change transaction type from Cash to Item or vice versa")
+                cur.execute("ROLLBACK")
+                return
+
+            # Update Balance/Inventory records as needed
+            if TypeHolder == "Cash" and existing_balanceId:
                 success, error = execute_safe_query(cur, """
                     UPDATE Balance
                     SET balanceAmount = %s,
                         branchId = %s
                     WHERE balanceId = %s
-                """, (AmountHolder, BranchHolder, old_balanceId))
+                """, (AmountHolder, BranchHolder, existing_balanceId))
                 if not success:
                     show_error_window(error)
+                    cur.execute("ROLLBACK")
                     return
-            elif old_type == "Item" and old_inventoryId:
+            elif TypeHolder == "Item" and existing_inventoryId:
                 success, error = execute_safe_query(cur, """
                     UPDATE Inventory
                     SET inventoryName = %s,
@@ -1719,38 +1710,61 @@ def transactionIDcreator():
                         goodsStatus = %s,
                         branchId = %s
                     WHERE inventoryId = %s
-                """, (GoodsHolder, AmountHolder, InvTypHolder, StatusHolder, BranchHolder, old_inventoryId))
+                """, (GoodsHolder, AmountHolder, InvTypHolder, StatusHolder, BranchHolder, existing_inventoryId))
                 if not success:
                     show_error_window(error)
+                    cur.execute("ROLLBACK")
                     return
 
-            # Update main transaction record
-            success, error = execute_safe_query(cur, """`
-                                                
-                UPDATE transactionTable
-                SET transactorFrom = COALESCE(%s, transactorFrom),
-                    transactionTo = COALESCE(%s, transactionTo),
-                    transactionDate = COALESCE(%s, transactionDate)
-                WHERE transactionId = %s
-            """, (TransactorFromHolder, TransactorToHolder, DateHolder, TransIDHolder))
+            # Update transaction record
+            update_fields = []
+            update_values = []
+            
+            if DateHolder:
+                update_fields.append("transactionDate = %s")
+                update_values.append(DateHolder)
+            if TransactorFromHolder:
+                update_fields.append("transactorFrom = %s")
+                update_values.append(TransactorFromHolder)
+            if TransactorToHolder:
+                update_fields.append("transactionTo = %s")
+                update_values.append(TransactorToHolder)
+            
+            if update_fields:  # Only update if there are fields to update
+                update_values.append(TransIDHolder)  # for WHERE clause
+                success, error = execute_safe_query(cur, f"""
+                    UPDATE transactionTable
+                    SET {', '.join(update_fields)}
+                    WHERE transactionId = %s
+                """, tuple(update_values))
+                if not success:
+                    show_error_window(error)
+                    cur.execute("ROLLBACK")
+                    return
+
+        # Commit transaction if we got this far
+        try:
+            success, error = execute_safe_query(cur, "COMMIT")
             if not success:
                 show_error_window(error)
+                cur.execute("ROLLBACK")
                 return
-
-        # Commit the transaction
-        success, error = execute_safe_query(cur, "COMMIT")
-        if not success:
-            show_error_window(error)
+            
+            show_success_message("Transaction completed successfully", OutputEditContent)
+            sucessful_transaction = True
+            
+        except Exception as e:
+            cur.execute("ROLLBACK")
+            show_error_window(f"Failed to commit transaction: {str(e)}")
+            sucessful_transaction = False
             return
-
-        show_success_message("Transaction completed successfully", OutputEditContent)
-        sucessful_transaction = True
 
     except Exception as e:
-        success, error = execute_safe_query(cur, "ROLLBACK")
-        if not success:
-            show_error_window(error)
-            return
+        # Make sure we rollback on any error
+        try:
+            cur.execute("ROLLBACK")
+        except Exception:
+            pass  # If rollback fails, we can't do much about it
         show_error_window(f"Transaction failed: {str(e)}")
         sucessful_transaction = False
 

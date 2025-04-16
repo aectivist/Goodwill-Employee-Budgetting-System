@@ -60,12 +60,17 @@ class BudgetArchive:
             
         # Load data
         self.cur.execute("""
-            SELECT a_BudgetItem, a_BudgetAmount, a_BudgetValue, 
-                   TO_CHAR(a_DateIssued, 'YYYY-MM-DD'), 
-                   TO_CHAR(a_DateDeadline, 'YYYY-MM-DD'),
-                   BranchId, TO_CHAR(DateArchived, 'YYYY-MM-DD'),
-                   MethodOfArchival
-            FROM archived 
+            SELECT
+                a_BudgetItem,
+                a_BudgetAmount,
+                a_BudgetValue,
+                TO_CHAR(a_DateIssued, 'YYYY-MM-DD'),
+                TO_CHAR(a_DateDeadline, 'YYYY-MM-DD'),
+                g.BranchName,
+                TO_CHAR(DateArchived, 'YYYY-MM-DD'),
+                MethodOfArchival
+            FROM archived a
+            LEFT JOIN goodwillbranch g ON a.a_BranchId = g.BranchId
             ORDER BY DateArchived DESC
         """)
         
@@ -79,6 +84,9 @@ class BudgetArchive:
         method: string indicating the method of archival
         """
         try:
+            # Begin transaction
+            self.cur.execute("BEGIN")
+            
             for budget in budgets:
                 budget_id = budget[0]
                 
@@ -86,15 +94,32 @@ class BudgetArchive:
                 self.cur.execute("""
                     INSERT INTO archived (
                         a_BudgetItem, a_BudgetAmount, a_BudgetValue,
-                        a_DateIssued, a_DateDeadline, BranchId,
+                        a_DateIssued, a_DateDeadline, a_BranchId,
                         DateArchived, MethodOfArchival
                     )
-                    SELECT 
-                        BudgetItem, BudgetAmount, BudgetValue,
-                        DateIssued, DateDeadline, BranchId,
-                        CURRENT_DATE, %s
-                    FROM Budget
-                    WHERE BudgetId = %s
+                    WITH budget_data AS (
+                        SELECT
+                            BudgetItem,
+                            BudgetAmount,
+                            BudgetValue,
+                            DateIssued,
+                            DateDeadline,
+                            BranchId
+                        FROM Budget
+                        WHERE BudgetId = %s
+                        FOR UPDATE
+                    )
+                    SELECT
+                        BudgetItem,
+                        BudgetAmount,
+                        BudgetValue,
+                        DateIssued,
+                        DateDeadline,
+                        BranchId,
+                        CURRENT_DATE,
+                        %s
+                    FROM budget_data
+                    RETURNING a_BudgetItem
                 """, (method, budget_id))
                 
                 # Delete from Budget table
@@ -111,19 +136,39 @@ class BudgetArchive:
     def check_deadlines(self):
         """
         Check for budgets that have reached their deadline and archive them
+        Uses transaction to ensure data consistency
         """
         now = datetime.now()
         if now.strftime("%H:%M:%S") == "12:00:00":
             try:
+                # Begin transaction
+                self.cur.execute("BEGIN")
+
+                # Get expired budgets with lock
                 self.cur.execute("""
-                    SELECT BudgetId, BudgetItem, BudgetAmount, BudgetValue, 
-                           DateIssued, DateDeadline, BranchId
+                    SELECT
+                        BudgetId, BudgetItem, BudgetAmount, BudgetValue,
+                        DateIssued, DateDeadline, BranchId
                     FROM Budget
                     WHERE DateDeadline <= CURRENT_DATE
+                    FOR UPDATE SKIP LOCKED
                 """)
                 
                 expired_budgets = self.cur.fetchall()
                 if expired_budgets:
+                    # Archive expired budgets
+                    success = self.archive_budgets(
+                        expired_budgets,
+                        "Automatic Archive - Deadline Reached"
+                    )
+                    if success:
+                        self.conn.commit()
+                        print(f"Successfully archived {len(expired_budgets)} expired budgets")
+                    else:
+                        self.conn.rollback()
+                        print("Failed to archive expired budgets")
+                else:
+                    self.conn.rollback()
                     self.archive_budgets(expired_budgets, "Automatic Archive - Deadline Reached")
                     
             except Exception as e:

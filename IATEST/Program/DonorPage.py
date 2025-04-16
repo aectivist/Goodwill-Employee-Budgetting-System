@@ -23,7 +23,7 @@ TitleFont = CTkFont(family="Oswald", size=15, weight='bold')
 EditFont = CTkFont(family="Oswald", size=15, weight='bold')
 BTNFont = CTkFont(family="Oswald", size=13)
 ErrorFont = CTkFont(size=10)
-DonatorPagePost = 0
+DonorPagePost = 0
 
 # Required datatypes
 vieweditemflag = False
@@ -34,18 +34,18 @@ viewederror = 0
 ErrorBoolean = False
 successful_transaction = False
 currentmode = ""
-DonatorAddExist = False
-DonatorEditExist = False
-DonatorDeleteExist = False
+DonorAddExist = False
+DonorEditExist = False
+DonorDeleteExist = False
 ConfirmedChoiceForSearch = ""
 
 # Add these global variables
 DonAddExist = False
 DonEditExist = False
 DonDeleteExist = False
-DonatorAddExist = False
-DonatorEditExist = False
-DonatorDeleteExist = False
+DonorAddExist = False
+DonorEditExist = False
+DonorDeleteExist = False
 
 # For tracking entry states
 AddAddressEntryBox = None
@@ -55,14 +55,14 @@ AddDonationEntryBox = None
 AddDonationTypeBox = None
 AddSearchBoxEnter = None
 EditSearchBoxEnter = None
-DonatorNameBox = None
-Donator_combobox = None
-Donator_inputbutton = None
-DonatorIDEdit = None
-DonatorIDDelete = None
+DonorNameBox = None
+Donor_combobox = None
+Donor_inputbutton = None
+DonorIDEdit = None
+DonorIDDelete = None
 
 # For tracking holder values
-DonatorIDHolder = ""
+DonorIDHolder = ""
 DonationIDHolder = ""
 AddressHolder = ""
 PhoneHolder = ""
@@ -89,20 +89,20 @@ enteronceforcombo = 0
 mode = ""
 
 def D_show_page(parent, page_frame):
-    """Initialize and show the donator page"""
-    global DonatorPagePost
+    """Initialize and show the Donor page"""
+    global DonorPagePost
     
     # Show the page
     page_frame.pack(fill=BOTH, expand=True)
     parent.update_idletasks()
     
     # Initialize content only once
-    if DonatorPagePost == 0:
-        donatorpage(page_frame)
+    if DonorPagePost == 0:
+        Donorpage(page_frame)
 
-def donatorpage(page):
-    global DonatorPagePost, OutputEditContent, SearchRequestContent
-    if DonatorPagePost == 0:
+def Donorpage(page):
+    global DonorPagePost, OutputEditContent, SearchRequestContent
+    if DonorPagePost == 0:
         # Create page layout
         PageMargin = CTkFrame(page)
         PageMargin.pack(expand=True)
@@ -139,8 +139,8 @@ def donatorpage(page):
         global OutputTableScrollbarContent
         OutputEditContent = CTkFrame(OutputPadding, width=410, height=115, fg_color="#FFFFFF", corner_radius=0, border_color='#000000', border_width=1)
         OutputEditContent.grid(row=0, column=0)
-        LabelDonatorAdd = CTkLabel(OutputEditContent, text="DONATORS", font=EditFont)
-        LabelDonatorAdd.place(x=5, y=1)
+        LabelDonorAdd = CTkLabel(OutputEditContent, text="DONORS", font=EditFont)
+        LabelDonorAdd.place(x=5, y=1)
 
         OutputTableContent = CTkFrame(OutputPadding, width=410, height=215, fg_color="#a6a6a6", corner_radius=0, border_color='#000000', border_width=1)
         OutputTableContent.grid(row=1, column=0)
@@ -172,40 +172,40 @@ def donatorpage(page):
         DeleteButtonRequest.grid(row=3, column=0, padx=10, pady=2, sticky='nsew')
 
         # Setup Search section
-        SearchLabel = CTkLabel(SearchRequestContent, text="DONATORS", font=EditFont)
+        SearchLabel = CTkLabel(SearchRequestContent, text="DONORS", font=EditFont)
         SearchLabel.grid(row=0, column=0, padx=10, pady=0)
 
         SearchEntry = CTkEntry(SearchRequestContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Search")
         SearchEntry.grid(row=1, column=0, padx=10, pady=4)
 
-        SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0,  text_color='#FFFFFF', border_color='#000000',border_width=1, hover_color='#0051ff',command=lambda: DonatorSearch(SearchEntry))
+        SearchButton = CTkButton(SearchRequestContent, text="Search", fg_color='#0053A0', corner_radius=0,  text_color='#FFFFFF', border_color='#000000',border_width=1, hover_color='#0051ff',command=lambda: DonorSearch(SearchEntry))
         SearchButton.grid(row=2, column=0, padx=10, pady=1)
 
-        comboVal = StringVar(value="Donator Name")
+        comboVal = StringVar(value="Donor Name")
         SearchComboChoices = CTkComboBox(SearchRequestContent, 
-            values=["Donator Name", "Donation Name", "Date"],  # Simplified search options
-            command=DonatorSearch_ComboCallback, variable=comboVal, corner_radius=1)
-        SearchComboChoices.set("Donator Name")
+            values=["Donor Name", "Donation Name", "Date"],  # Simplified search options
+            command=DonorSearch_ComboCallback, variable=comboVal, corner_radius=1)
+        SearchComboChoices.set("Donor Name")
         SearchComboChoices.grid(row=3, column=0, padx=10, pady=2)
         SearchComboChoices.configure(state="readonly")
 
-        DonatorPagePost = 1
+        DonorPagePost = 1
     else:
         print("Page has already been outputted!")
 
-def DonatorSearch_ComboCallback(choice):
+def DonorSearch_ComboCallback(choice):
     global ConfirmedChoiceForSearch
     search_types = {
-        "Donator Name": "Donator Name",
+        "Donor Name": "Donor Name",
         "Donation Name": "Donation Name",
         "Date": "Date"
     }
     if choice in search_types:
         ConfirmedChoiceForSearch = search_types[choice]
     else:
-        ConfirmedChoiceForSearch = "Donator Name"
+        ConfirmedChoiceForSearch = "Donor Name"
 
-def DonatorSearch(SearchEntry):
+def DonorSearch(SearchEntry):
     global ConfirmedChoiceForSearch, OutputTableScrollbarContent
     for widget in OutputTableScrollbarContent.winfo_children():
         widget.destroy()
@@ -216,25 +216,25 @@ def DonatorSearch(SearchEntry):
         
         base_query = """
         SELECT 
-            d.DonatorID,
-            d.DonatorName,
-            d.DonatorAddress,
-            d.DonatorPhoneNumber,
-            d.DonatorOrganization,
+            d.DonorID,
+            d.DonorName,
+            d.DonorAddress,
+            d.DonorPhoneNumber,
+            d.DonorOrganization,
             i.InventoryId as DonationID,
             i.InventoryName as DonationName,
             i.InventoryValue as DonationAmount,
             i.InventoryType as DonationType,
             g.BranchId,
             g.BranchName
-        FROM Donator d
+        FROM Donor d
         LEFT JOIN Inventory i ON d.DonationID = i.InventoryId
         LEFT JOIN goodwillbranch g ON i.BranchId = g.BranchId
         WHERE 1=1
         """
         
         search_conditions = {
-            "Donator Name": "LOWER(d.DonatorName) LIKE LOWER(%(like_value)s)",
+            "Donor Name": "LOWER(d.DonorName) LIKE LOWER(%(like_value)s)",
             "Donation Name": "LOWER(i.InventoryName) LIKE LOWER(%(like_value)s)",
             "Date": "DATE(i.DateCreated) = %(search_value)s"  # Assuming you have a date field
         }
@@ -257,8 +257,8 @@ def DonatorSearch(SearchEntry):
         if rows:
             tree = ttk.Treeview(OutputTableScrollbarContent, show="headings", height=10, selectmode="browse")
             columns = [
-                # Donator columns
-                "DonatorID", "DonatorName", "DonatorAddress", "PhoneNumber", "Organization",
+                # Donor columns
+                "DonorID", "DonorName", "DonorAddress", "PhoneNumber", "Organization",
                 # Inventory columns
                 "DonationID", "DonationName", "DonationAmount", "DonationType",
                 # Branch columns
@@ -268,10 +268,10 @@ def DonatorSearch(SearchEntry):
             
             # Adjust column widths and order
             column_widths = {
-                # Donator info
-                "DonatorID": 80,
-                "DonatorName": 250,
-                "DonatorAddress": 350,
+                # Donor info
+                "DonorID": 80,
+                "DonorName": 250,
+                "DonorAddress": 350,
                 "PhoneNumber": 120,
                 "Organization": 150,
                 # Inventory info
@@ -289,7 +289,7 @@ def DonatorSearch(SearchEntry):
             style.configure("Treeview")  # Increase row height
             # Configure columns with sections
             sections = {
-                "Donator Info": ["DonatorID", "DonatorName", "DonatorAddress", "PhoneNumber", "Organization"],
+                "Donor Info": ["DonorID", "DonorName", "DonorAddress", "PhoneNumber", "Organization"],
                 "Donation Info": ["DonationID", "DonationName", "DonationAmount", "DonationType"],
                 "Branch Info": ["BranchID", "BranchName"]
             }
@@ -360,17 +360,17 @@ def D_outputContentGivenButtons(OutputEditContent, value):
 
 def D_clearcurrentmode():
     global DonAddExist, DonEditExist, DonDeleteExist, diffvalue, viewederror, ErrorBoolean
-    global Donator_inputbutton, DonatorNameBox, Donator_combobox
+    global Donor_inputbutton, DonorNameBox, Donor_combobox
     global AddAddressEntryBox, AddPhoneEntryBox, AddOrgEntryBox, AddDonationEntryBox, AddDonationTypeBox
-    global AddSearchBoxEnter, DonatorIDEdit, EditSearchBoxEnter, DonatorIDDelete
+    global AddSearchBoxEnter, DonorIDEdit, EditSearchBoxEnter, DonorIDDelete
 
     # Handle Add mode cleanup
     if DonAddExist:
         try:
-            if 'DonatorNameBox' in globals() and DonatorNameBox is not None:
-                DonatorNameBox.place_forget()
-            if 'Donator_combobox' in globals() and Donator_combobox is not None:
-                Donator_combobox.place_forget()
+            if 'DonorNameBox' in globals() and DonorNameBox is not None:
+                DonorNameBox.place_forget()
+            if 'Donor_combobox' in globals() and Donor_combobox is not None:
+                Donor_combobox.place_forget()
         except Exception as e:
             print(f"Add cleanup error: {e}")
 
@@ -412,10 +412,10 @@ def D_clearcurrentmode():
     # Handle Edit mode cleanup
     if DonEditExist:
         try:
-            if 'DonatorIDEdit' in globals() and DonatorIDEdit is not None:
-                DonatorIDEdit.destroy()
-            if 'Donator_combobox' in globals() and Donator_combobox is not None:
-                Donator_combobox.destroy()
+            if 'DonorIDEdit' in globals() and DonorIDEdit is not None:
+                DonorIDEdit.destroy()
+            if 'Donor_combobox' in globals() and Donor_combobox is not None:
+                Donor_combobox.destroy()
             if 'EditDonationEntryBox' in globals() and EditDonationEntryBox is not None:
                 EditDonationEntryBox.destroy()
             if 'EditDonationTypeBox' in globals() and EditDonationTypeBox is not None:
@@ -461,21 +461,21 @@ def D_clearcurrentmode():
     # Handle Delete mode cleanup
     if DonDeleteExist:
         try:
-            if 'DonatorIDDelete' in globals() and DonatorIDDelete is not None:
-                DonatorIDDelete.destroy()
+            if 'DonorIDDelete' in globals() and DonorIDDelete is not None:
+                DonorIDDelete.destroy()
         except Exception:
             pass
         DonDeleteExist = False
 
     # Clean up common elements
     try:
-        if 'Donator_inputbutton' in globals() and Donator_inputbutton is not None:
-            Donator_inputbutton.destroy()
+        if 'Donor_inputbutton' in globals() and Donor_inputbutton is not None:
+            Donor_inputbutton.destroy()
     except Exception:
         pass
 
 def D_addmodeui():
-    global DonAddExist, DonatorNameBox, Donator_inputbutton, Donator_combobox, successful_transaction
+    global DonAddExist, DonorNameBox, Donor_inputbutton, Donor_combobox, successful_transaction
     global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder
     
     # Initialize holders
@@ -499,28 +499,28 @@ def D_addmodeui():
     enteronceforcombo = 0
 
     # Create Add-specific widgets
-    DonatorNameBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Donator Name", width=390, height=25)
-    DonatorNameBox.place(x=5, y=25)
+    DonorNameBox = CTkEntry(OutputEditContent, corner_radius=0, border_color='#000000', border_width=1, placeholder_text="Donor Name", width=390, height=25)
+    DonorNameBox.place(x=5, y=25)
 
     comboVal = StringVar(value="Select")
-    Donator_combobox = CTkComboBox(OutputEditContent, values=["Address", "Phone Number", "Organization", "Donation", "Date", "Branch ID"], command=D_callback, variable=comboVal, height=25, corner_radius=1, width=110)
-    Donator_combobox.set("Select")
-    Donator_combobox.place(x=5, y=53)
-    Donator_combobox.configure(state="readonly")
+    Donor_combobox = CTkComboBox(OutputEditContent, values=["Address", "Phone Number", "Organization", "Donation", "Date", "Branch ID"], command=D_callback, variable=comboVal, height=25, corner_radius=1, width=110)
+    Donor_combobox.set("Select")
+    Donor_combobox.place(x=5, y=53)
+    Donor_combobox.configure(state="readonly")
 
-    Donator_inputbutton = CTkButton(OutputEditContent, text="Add",  corner_radius=0, command=lambda: D_handleadddonator(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000',border_width=1, hover_color='#e6e6e6',width=100, height=27)
-    Donator_inputbutton.place(x=295, y=82)
+    Donor_inputbutton = CTkButton(OutputEditContent, text="Add",  corner_radius=0, command=lambda: D_handleaddDonor(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000',border_width=1, hover_color='#e6e6e6',width=100, height=27)
+    Donor_inputbutton.place(x=295, y=82)
 
     DonAddExist = True
 
 def D_editmodeui():
-    global DonEditExist, DonatorIDEdit, Donator_combobox, Donator_inputbutton, successful_transaction
-    global DonatorIDHolder, DonatorNameHolder, AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder,DonationIDHolder
+    global DonEditExist, DonorIDEdit, Donor_combobox, Donor_inputbutton, successful_transaction
+    global DonorIDHolder, DonorNameHolder, AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder,DonationIDHolder
     
         # Initialize holders
-    DonatorIDHolder = ""
+    DonorIDHolder = ""
     DonationIDHolder = ""
-    DonatorNameHolder = ""  #Added
+    DonorNameHolder = ""  #Added
     AddressHolder = ""
     PhoneHolder = ""
     OrgHolder = ""
@@ -543,28 +543,28 @@ def D_editmodeui():
     enteronceforcombo = 0
     
     # Similar setup to addmodeui but for editing
-    DonatorIDEdit = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donator ID", width=390, height=25)
-    DonatorIDEdit.place(x=5, y=25)
+    DonorIDEdit = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donor ID", width=390, height=25)
+    DonorIDEdit.place(x=5, y=25)
 
     
     comboVal = StringVar(value="Select")
-    Donator_combobox = CTkComboBox(OutputEditContent,values=["Name", "Address", "Phone Number", "Organization", "Donation ID", "Branch ID"], command=D_callback, variable=comboVal, height=25, corner_radius=1, width=110)
-    Donator_combobox.set("Select")
-    Donator_combobox.place(x=5, y=53)
-    Donator_combobox.configure(state="readonly")
+    Donor_combobox = CTkComboBox(OutputEditContent,values=["Name", "Address", "Phone Number", "Organization", "Donation ID", "Branch ID"], command=D_callback, variable=comboVal, height=25, corner_radius=1, width=110)
+    Donor_combobox.set("Select")
+    Donor_combobox.place(x=5, y=53)
+    Donor_combobox.configure(state="readonly")
 
-    Donator_inputbutton = CTkButton(OutputEditContent, text="Edit",corner_radius=0, command=lambda: D_handleeditdonator(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6',width=100, height=27)
-    Donator_inputbutton.place(x=295, y=82)
+    Donor_inputbutton = CTkButton(OutputEditContent, text="Edit",corner_radius=0, command=lambda: D_handleeditDonor(), font=BTNFont, text_color='#000000', fg_color='#FFFFFF', border_color='#000000', border_width=1, hover_color='#e6e6e6',width=100, height=27)
+    Donor_inputbutton.place(x=295, y=82)
 
     DonEditExist = True
 
 def D_deletemodeui():
-    global DonDeleteExist, DonatorIDDelete, Donator_inputbutton
-    DonatorIDDelete = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Enter Donator ID to delete",width=390, height=25)
-    DonatorIDDelete.place(x=5, y=25)
+    global DonDeleteExist, DonorIDDelete, Donor_inputbutton
+    DonorIDDelete = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Enter Donor ID to delete",width=390, height=25)
+    DonorIDDelete.place(x=5, y=25)
 
-    Donator_inputbutton = CTkButton(OutputEditContent, text="Delete", command=lambda: D_handledeletedonator(DonatorIDDelete, Donator_inputbutton), corner_radius=0, font=BTNFont,text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height=27)
-    Donator_inputbutton.place(x=295, y=82)
+    Donor_inputbutton = CTkButton(OutputEditContent, text="Delete", command=lambda: D_handledeleteDonor(DonorIDDelete, Donor_inputbutton), corner_radius=0, font=BTNFont,text_color='#000000', fg_color='#FFFFFF',border_color='#000000', border_width=1, hover_color='#e6e6e6', width=100, height=27)
+    Donor_inputbutton.place(x=295, y=82)
     DonDeleteExist = True
 
 def D_callback(choice):
@@ -712,21 +712,21 @@ def create_entry_widget(choice):
 
 def EditNameEntry():
     global EditNameEntryBox
-    EditNameEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donator Name",width=275, height=25)
+    EditNameEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donor Name",width=275, height=25)
     EditNameEntryBox.place(x=120, y=53)
-    if DonatorNameHolder == "":
+    if DonorNameHolder == "":
         EditNameEntryBox.delete(0,END)
-        EditNameEntryBox.configure(placeholder_text= "Donator Name")
+        EditNameEntryBox.configure(placeholder_text= "Donor Name")
     else:
-        EditNameEntryBox.insert(0, DonatorNameHolder)
+        EditNameEntryBox.insert(0, DonorNameHolder)
     
 def EditAddressEntry():
     global EditAddressEntryBox
-    EditAddressEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donator Address",width=275, height=25)
+    EditAddressEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donor Address",width=275, height=25)
     EditAddressEntryBox.place(x=120, y=53)
     if AddressHolder == "":
         EditAddressEntryBox.delete(0,END)
-        EditAddressEntryBox.configure(placeholder_text= "Donator Address")
+        EditAddressEntryBox.configure(placeholder_text= "Donor Address")
     else:
         EditAddressEntryBox.insert(0, AddressHolder)
 
@@ -797,11 +797,11 @@ def EditDonationIDEntry():
 
 def CreateAddressEntry():
     global AddAddressEntryBox
-    AddAddressEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donator Address",width=275, height=25)
+    AddAddressEntryBox = CTkEntry(OutputEditContent, corner_radius=0,border_color='#000000', border_width=1,placeholder_text="Donor Address",width=275, height=25)
     AddAddressEntryBox.place(x=120, y=53)
     if AddressHolder == "":
         AddAddressEntryBox.delete(0,END)
-        AddAddressEntryBox.configure(placeholder_text= "Donator Address")
+        AddAddressEntryBox.configure(placeholder_text= "Donor Address")
     else:
         AddAddressEntryBox.insert(0, AddressHolder)
 
@@ -866,7 +866,7 @@ def CreateBranchIDEntry():
         AddBranchIDEntryBox.insert(0, BranchIDHolder)
 
 def D_confirmyourchoice(choice, SearchBoxEnter):
-    global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder, DonatorNameHolder, DateHolder, DonatorIDHolder,DonationIDHolder, BranchIDHolder
+    global AddressHolder, PhoneHolder, OrgHolder, DonationHolder, DonationTypeHolder, DonorNameHolder, DateHolder, DonorIDHolder,DonationIDHolder, BranchIDHolder
     global DonaNameFlag, DonaIDFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaIDFlag, DonaBranchFlag
     
     if mode == "add":
@@ -949,8 +949,8 @@ def D_confirmyourchoice(choice, SearchBoxEnter):
 
     elif mode == "edit":
         if choice == "Name":
-            DonatorNameHolder = EditNameEntryBox.get()
-            if DonatorNameHolder:
+            DonorNameHolder = EditNameEntryBox.get()
+            if DonorNameHolder:
                 DonaNameFlag = True
                 clear_entry_and_button(choice, SearchBoxEnter)
             else:
@@ -1062,16 +1062,31 @@ def safe_destroy(widget):
 
 def clear_entry_and_button(choice, button):
     if choice == "Address":
-        AddAddressEntryBox.place_forget()
+        if mode == "add":
+            AddAddressEntryBox.place_forget()
+        else:
+            EditAddressEntryBox.place_forget()
     elif choice == "Phone Number":
-        AddPhoneEntryBox.place_forget()
+        if mode == "add":
+            AddPhoneEntryBox.place_forget()
+        else:
+            EditPhoneEntryBox.place_forget()
     elif choice == "Organization":
-        AddOrgEntryBox.place_forget()
+        if mode == "add":
+            AddOrgEntryBox.place_forget()
+        else: 
+            EditOrgEntryBox.place_forget()
     elif choice == "Donation":
-        AddDonationEntryBox.place_forget()
-        AddDonationTypeBox.place_forget()
-        if 'DonationNameEntryBox' in globals() and DonationNameEntryBox is not None:
-            DonationNameEntryBox.place_forget()  # Add this line
+        if mode == "add":
+            AddDonationEntryBox.place_forget()
+            AddDonationTypeBox.place_forget()
+            if 'DonationNameEntryBox' in globals() and DonationNameEntryBox is not None:
+                DonationNameEntryBox.place_forget()  # Add this line
+        else:
+            EditDonationEntryBox.place_forget()
+            EditDonationTypeBox.place_forget()
+    elif choice == "Name":
+                EditNameEntryBox.place_forget()  
     elif choice == "Branch ID":
         if mode == "add":
             AddBranchIDEntryBox.place_forget()
@@ -1082,26 +1097,26 @@ def clear_entry_and_button(choice, button):
 # Add these global variables after the existing globals
 keyCreatedChecker = False  # For checking if key creation is successful
 InvBalIDHolder = 0  # For inventory/balance ID
-DonatorIDHolder = 0  # For donator ID
+DonorIDHolder = 0  # For Donor ID
 
 def get_random_integer(min_value, max_value):
     return random.randint(min_value, max_value)
 
-def donatorIDcreator():
-    global keyCreatedChecker, InvBalIDHolder, DonatorIDHolder
+def DonorIDcreator():
+    global keyCreatedChecker, InvBalIDHolder, DonorIDHolder
     
     if mode == "add":
-        ID = []  # donator id
+        ID = []  # Donor id
         RID = []  # inventory id
 
-        # Generate Donator ID
+        # Generate Donor ID
         idCharLimit = 5
         while idCharLimit >= 0:
             I = get_random_integer(0, 9)
             RandInt = str(I)
             idCharLimit = idCharLimit - 1
             ID.append(RandInt)
-        DonatorIDHolder = ''.join(ID)
+        DonorIDHolder = ''.join(ID)
         
         # Generate Inventory ID
         idCharLimit2 = 5
@@ -1113,7 +1128,7 @@ def donatorIDcreator():
         InvBalIDHolder = ''.join(RID)
 
         # Ensure IDs are within the allowed length
-        DonatorIDHolder = DonatorIDHolder[:7]
+        DonorIDHolder = DonorIDHolder[:7]
         InvBalIDHolder = InvBalIDHolder[:7]
 
         # Check if IDs already exist
@@ -1127,7 +1142,7 @@ def donatorIDcreator():
                 if len(row) < 2:
                     print("Invalid row in ALREADYCREATEDKEYS")
                     continue
-                if row[0] == DonatorIDHolder or row[1] == InvBalIDHolder:
+                if row[0] == DonorIDHolder or row[1] == InvBalIDHolder:
                     keyCreatedChecker = False
                     break
             else:
@@ -1135,19 +1150,19 @@ def donatorIDcreator():
         
         if keyCreatedChecker:
             cur.execute("""INSERT INTO ALREADYCREATEDKEYS (keyId_T, keyId_IorB)
-            VALUES (%s, %s)""", (DonatorIDHolder, InvBalIDHolder))
+            VALUES (%s, %s)""", (DonorIDHolder, InvBalIDHolder))
             return True
         else:
-            return donatorIDcreator()  # Try again with new IDs
+            return DonorIDcreator()  # Try again with new IDs
 
-def D_handleadddonator():
+def D_handleaddDonor():
     global ErrorBoolean, Error, viewederror
     global DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaBranchFlag
     
-    donator_name = DonatorNameBox.get().strip()
+    Donor_name = DonorNameBox.get().strip()
     
-    if not donator_name:
-        show_error("Please enter donator name")
+    if not Donor_name:
+        show_error("Please enter Donor name")
         return
         
     if diffvalue > 0:
@@ -1163,7 +1178,7 @@ def D_handleadddonator():
                     return
                 
                 # Generate IDs
-                if not donatorIDcreator():
+                if not DonorIDcreator():
                     execute_safe_query(cur, "ROLLBACK")
                     show_error("Failed to create unique IDs")
                     return
@@ -1206,12 +1221,12 @@ def D_handleadddonator():
 
                     inventory_id = cur.fetchone()[0]
 
-                    # Insert donator with reference to inventory
+                    # Insert Donor with reference to inventory
                     success, error = execute_safe_query(
                         cur,
-                        """INSERT INTO Donator (DonatorID, DonatorName, DonatorAddress, DonatorPhoneNumber, DonatorOrganization, DonationID)
+                        """INSERT INTO Donor (DonorID, DonorName, DonorAddress, DonorPhoneNumber, DonorOrganization, DonationID)
                         VALUES (%s, %s, %s, %s, %s, %s)""",
-                        [DonatorIDHolder, donator_name, AddressHolder, PhoneHolder, OrgHolder, inventory_id]
+                        [DonorIDHolder, Donor_name, AddressHolder, PhoneHolder, OrgHolder, inventory_id]
                     )
                     
                     if not success:
@@ -1222,7 +1237,7 @@ def D_handleadddonator():
                     success, error = execute_safe_query(cur, "COMMIT")
                     if success:
                         D_clear_ui_elements()
-                        show_success_message("Donator and donation added successfully")
+                        show_success_message("Donor and donation added successfully")
                     else:
                         execute_safe_query(cur, "ROLLBACK")
                         show_error_window(error)
@@ -1231,20 +1246,20 @@ def D_handleadddonator():
                     execute_safe_query(cur, "ROLLBACK")
                     show_error(f"Error processing donation: {str(e)}")
             except Exception as e:
-                show_error(f"Error adding donator: {str(e)}")
+                show_error(f"Error adding Donor: {str(e)}")
         else:
             show_error("Please complete all fields")
     else:
         show_error("Please select additional information")
 
-def D_handleeditdonator():
+def D_handleeditDonor(): #Handles edit donor
     global ErrorBoolean, Error, viewederror, successful_transaction
     global DonaIDFlag, DonaNameFlag, DonaAddressFlag, DonaPhoneFlag, DonaOrgFlag, DonaDonationFlag, DonaBranchFlag
     
-    donator_id = DonatorIDEdit.get().strip()
+    Donor_id = DonorIDEdit.get().strip()
     
-    if not donator_id:
-        show_error_message("Please enter a Donator ID")
+    if not Donor_id:
+        show_error_message("Please enter a Donor ID")
         return
 
     if diffvalue == 0:
@@ -1253,30 +1268,30 @@ def D_handleeditdonator():
 
     try:
         def transaction():
-            nonlocal donator_id
-            # Verify donator exists
-            cur.execute("SELECT EXISTS(SELECT 1 FROM Donator WHERE DonatorID = %s)", (donator_id,))
+            nonlocal Donor_id
+            # Verify Donor exists
+            cur.execute("SELECT EXISTS(SELECT 1 FROM Donor WHERE DonorID = %s)", (Donor_id,))
             if not cur.fetchone()[0]:
-                raise ValueError("Donator ID does not exist")
+                raise ValueError("Donor ID does not exist")
 
             updates = []
             params = []
             
             # Build update query dynamically
             if DonaNameFlag:
-                updates.append("DonatorName = %s")
-                params.append(DonatorNameHolder)
+                updates.append("DonorName = %s")
+                params.append(DonorNameHolder)
             
             if DonaAddressFlag:
-                updates.append("DonatorAddress = %s")
+                updates.append("DonorAddress = %s")
                 params.append(AddressHolder)
                 
             if DonaPhoneFlag:
-                updates.append("DonatorPhoneNumber = %s")
+                updates.append("DonorPhoneNumber = %s")
                 params.append(PhoneHolder)
                 
             if DonaOrgFlag:
-                updates.append("DonatorOrganization = %s")
+                updates.append("DonorOrganization = %s")
                 params.append(OrgHolder)
                 
             if DonaDonationFlag:
@@ -1287,68 +1302,93 @@ def D_handleeditdonator():
                 updates.append("DonationID = %s")
                 params.append(DonationIDHolder)
                 
+            # Handle branch ID update separately since it belongs to Inventory table
             if DonaBranchFlag:
                 # Verify branch exists
                 cur.execute("SELECT EXISTS(SELECT 1 FROM goodwillbranch WHERE BranchId = %s)", (BranchIDHolder,))
                 if not cur.fetchone()[0]:
                     raise ValueError("Invalid Branch ID")
-                updates.append("BranchID = %s")
-                params.append(BranchIDHolder)
+                    
+                # Get the donation ID for this donor
+                cur.execute("SELECT DonationID FROM Donor WHERE DonorID = %s", (Donor_id,))
+                donation_result = cur.fetchone()
+                if not donation_result or not donation_result[0]:
+                    raise ValueError("No donation found for this donor")
+                    
+                # Update branch ID in Inventory table
+                cur.execute("""
+                    UPDATE Inventory
+                    SET BranchId = %s
+                    WHERE InventoryId = %s""",
+                    (BranchIDHolder, donation_result[0])
+                )
+            
+            # Handle other donor table updates
+            if updates:
+                query = f"""
+                    UPDATE Donor
+                    SET {', '.join(updates)}
+                    WHERE DonorID = %s
+                """
+                params.append(Donor_id)
+                cur.execute(query, tuple(params))
                 
-            if not updates:
-                return False
-                
-            # Execute update
-            query = f"""
-                UPDATE Donator
-                SET {', '.join(updates)}
-                WHERE DonatorID = %s
-            """
-            params.append(donator_id)
-            cur.execute(query, tuple(params))
+            # Return True if we either updated branch or donor info
+            return bool(updates) or DonaBranchFlag
             
             return True
 
-        if execute_safe_query(transaction):
-            successful_transaction = True
-            clear_ui_elements()
-            show_success_message("Donator updated successfully")
+        success, error = execute_safe_query(cur, "BEGIN")
+        if not success:
+            show_error_message(error)
+            return
+            
+        if transaction():
+            success, error = execute_safe_query(cur, "COMMIT")
+            if success:
+                successful_transaction = True
+                D_clear_ui_elements()
+                show_success_message("Donor updated successfully")
+            else:
+                execute_safe_query(cur, "ROLLBACK")
+                show_error_message(error)
         else:
+            execute_safe_query(cur, "ROLLBACK")
             show_error_message("No changes made")
             
     except ValueError as ve:
         show_error_message(str(ve))
     except Exception as e:
-        show_error_message(f"Error updating donator: {str(e)}")
+        show_error_message(f"Error updating Donor: {str(e)}")
 
-def D_handledeletedonator(DonatorIDDelete, deleteinputbutton):
-    donator_id = DonatorIDDelete.get().strip()
+def D_handledeleteDonor(DonorIDDelete, deleteinputbutton):
+    Donor_id = DonorIDDelete.get().strip()
     
-    if not donator_id:
-        show_error("Please enter donator ID")
+    if not Donor_id:
+        show_error("Please enter Donor ID")
         return
     
     try:
         def transaction():
-            # First verify donator exists and get related IDs
+            # First verify Donor exists and get related IDs
             cur.execute("""
-                SELECT d.DonatorID, d.DonationID
-                FROM Donator d
-                WHERE d.DonatorID = %s
-            """, (donator_id,))
+                SELECT d.DonorID, d.DonationID
+                FROM Donor d
+                WHERE d.DonorID = %s
+            """, (Donor_id,))
             
-            donator = cur.fetchone()
-            if not donator:
-                raise ValueError("Donator ID not found")
+            Donor = cur.fetchone()
+            if not Donor:
+                raise ValueError("Donor ID not found")
                 
-            donation_id = donator[1]
+            donation_id = Donor[1]
             
-            # Delete from Donator table first (child table)
+            # Delete from Donor table first (child table)
             cur.execute("""
-                DELETE FROM Donator
-                WHERE DonatorID = %s
+                DELETE FROM Donor
+                WHERE DonorID = %s
                 RETURNING DonationID
-            """, (donator_id,))
+            """, (Donor_id,))
             
             # Then delete associated donation from Inventory table (parent table) if exists
             if donation_id:
@@ -1362,20 +1402,20 @@ def D_handledeletedonator(DonatorIDDelete, deleteinputbutton):
                 DELETE FROM ALREADYCREATEDKEYS
                 WHERE keyId_T = %s
                 OR (keyId_IorB = %s AND %s IS NOT NULL)
-            """, (donator_id, donation_id, donation_id))
+            """, (Donor_id, donation_id, donation_id))
             
             return True
 
         if execute_safe_query(transaction):
-            clear_ui_elements()
-            show_success_message("Donator and associated records deleted successfully")
+            D_clear_ui_elements()
+            show_success_message("Donor and associated records deleted successfully")
         else:
-            show_error("Failed to delete donator")
+            show_error("Failed to delete Donor")
             
     except ValueError as ve:
         show_error(str(ve))
     except Exception as e:
-        show_error(f"Error deleting donator: {str(e)}")
+        show_error(f"Error deleting Donor: {str(e)}")
 
 def D_clear_ui_elements():
     """Safely clear UI elements based on current mode"""
@@ -1385,18 +1425,18 @@ def D_clear_ui_elements():
         # Define widget groups for each mode
         mode_widgets = {
             "add": [
-                (DonatorNameBox, "place_forget"),
-                (Donator_combobox, "place_forget"),
-                (Donator_inputbutton, "place_forget")
+                (DonorNameBox, "place_forget"),
+                (Donor_combobox, "place_forget"),
+                (Donor_inputbutton, "place_forget")
             ],
             "edit": [
-                (DonatorIDEdit, "destroy"),
-                (Donator_combobox, "destroy"),
-                (Donator_inputbutton, "destroy")
+                (DonorIDEdit, "destroy"),
+                (Donor_combobox, "destroy"),
+                (Donor_inputbutton, "destroy")
             ],
             "delete": [
-                (DonatorIDDelete, "destroy"),
-                (Donator_inputbutton, "destroy")
+                (DonorIDDelete, "destroy"),
+                (Donor_inputbutton, "destroy")
             ]
         }
         

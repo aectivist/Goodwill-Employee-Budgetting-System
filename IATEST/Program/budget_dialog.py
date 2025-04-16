@@ -3,6 +3,8 @@ from tkcalendar import DateEntry
 from tkinter import messagebox
 from datetime import datetime
 
+#Yooo we learning bro
+
 class BudgetDialog:
     def __init__(self, parent, cursor, conn, on_success):
         self.dialog = CTkToplevel(parent)
