@@ -1,12 +1,2 @@
 # Internal-Assessment-Budgetting-System
- Internal-Assessment-Budgetting-System
-import psycopg2
-import threading
-from CTkTable import *
-#https://github.com/Akascape/CTkTable
-
-from math import *
-import re
-import pygame
-import random
-
+No further changes will be made with this program. The system has been phased out and has been passed to the organization for their own management. It contains an admin panel, database system, login system, and more. For more information on how to use this program or if pushes to the repository will be made, contact my discord 43c7 to discuss it's use. Thank you.
