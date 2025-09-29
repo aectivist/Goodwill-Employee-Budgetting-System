@@ -287,7 +287,6 @@ def appendtoentry(value, OutputCalculations, type):
 def clear(OutputCalculations):
     OutputCalculations.configure(state="normal")
     OutputCalculations.delete(0, END)
-    OutputCalculations.configure(state="readonly")
 
 def delete(OutputCalculations):
     current_value = OutputCalculations.get()

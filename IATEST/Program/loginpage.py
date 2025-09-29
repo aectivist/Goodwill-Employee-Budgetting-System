@@ -26,7 +26,7 @@ class LoginPage:
             self.username_entry = CTkEntry(master=self.login_frame, width=400, corner_radius=0, placeholder_text="Username")
             self.username_entry.grid(row=1, column=0, padx=25, pady=5)
 
-            self.password_entry = CTkEntry(master=self.login_frame, width=400, corner_radius=0, show="●", placeholder_text="Password")
+            self.password_entry = CTkEntry(master=self.login_frame, width=400, corner_radius=0, placeholder_text="Password")
             self.password_entry.grid(row=2, column=0, padx=25, pady=5)
 
             submit_button = CTkButton(
@@ -57,34 +57,16 @@ class LoginPage:
         self.conn.rollback()
         
         try: #Create loginpaswd table with foreign key
-            self.cur.execute("""
-                CREATE TABLE IF NOT EXISTS loginpaswd (
-                    employeeid VARCHAR(255) PRIMARY KEY,
-                    password VARCHAR(255) NOT NULL,
-                    FOREIGN KEY (employeeid) REFERENCES employeeTable(employeeid) ON DELETE CASCADE)
-                """)
-
-            # First check if user exists
-            self.cur.execute(
-                "SELECT employeeid FROM employeeTable WHERE employeeid = %s",
-                (username,)
-            )
-            employee = self.cur.fetchone()
             
-            if not employee:
-                print(f"User {username} not found")
-                self.show_error()
-                callback(False, None, None)
-                return
+            # First check if user exists
             
             # Start transaction for password check and logging
             self.cur.execute("BEGIN")
             
             # Check password
-            self.cur.execute(
-                "SELECT * FROM loginpaswd WHERE employeeid = %(username)s AND password = %(password)s",
-                {'username': username, 'password': password}
-            )
+
+            self.cur.execute("SELECT * FROM loginpaswd WHERE loginid = '"  + username + "' AND password = '" + password + "'")
+            
             login_successful = self.cur.fetchone() is not None
             
             # Commit transaction
@@ -97,6 +79,7 @@ class LoginPage:
                 self.show_success()
                 callback(True, username, username)
             else:
+                print("username: " +  username +  "\npassword: " + password)
                 print(f"Invalid password for user {username}")
                 self.show_error()
                 callback(False, None, None)

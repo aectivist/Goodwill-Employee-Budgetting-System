@@ -1,6 +1,8 @@
+
 from customtkinter import *
 import psycopg2
 import threading
+# Imports for pages will be done when needed to avoid circular dependencies
 #https://github.com/Akascape/CTkTable
 
 import math
@@ -18,14 +20,18 @@ def play_sound():
     else:
         print("nah")
 
-conn=psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
+# Database connection - make it accessible to imported modules
+conn = psycopg2.connect(host="localhost", dbname="postgres", user="postgres", password="12345", port=5432)
+conn.autocommit = False  # Ensure transactions are used
+cur = conn.cursor()
+
+# Export database objects for other modules
+def get_db():
+    return conn, cur
 
 loginaccess = False
 LOGIN = None
 EDITFLAG = False #FOR EDITTING
-
-
-cur = conn.cursor()
 window = CTk()
 window.title("BUDGET")
 window.geometry("600x400") #fml
@@ -39,43 +45,86 @@ set_appearance_mode("light")
 TABFRAME = CTkFrame(window, height=51, width=600, fg_color="#1E1E1E", corner_radius=0, bg_color='#231F20')
 TABFRAME.pack(anchor=CENTER, fill=X)
 
-#These are the individual pages, or rather, the frames
+# Initialize page flags
+HomePagePost = 0
+ViewedPost = 0  # For Calculator
+BudgetPagePost = 0
+
+# These are the individual pages, or rather, the frames
 LoadingPage = CTkFrame(window, corner_radius=0) #implement later
 HomePage = CTkFrame(window, corner_radius=0)
+setattr(HomePage, 'post_flag', 0)
 TransactionsPage = CTkFrame(window, corner_radius=0)
-ClientPage = CTkFrame(window, corner_radius=0)
+DonatorPage = CTkFrame(window, corner_radius=0)  # Changed from ClientPage to DonatorPage
 InventoryPage = CTkFrame(window, corner_radius=0)
 BudgetPage = CTkFrame(window, corner_radius=0)
 CalculatorPage = CTkFrame(window, corner_radius=0)
 LoginPage = CTkFrame(window, corner_radius=0, bg_color='#0053A0')
-LoadingPage = CTkFrame(window, corner_radius=0) #implement later
 
 # Create a list to hold all the pages
-pages = [HomePage, TransactionsPage, ClientPage, InventoryPage, BudgetPage, CalculatorPage]
+pages = [HomePage, TransactionsPage, DonatorPage, InventoryPage, BudgetPage, CalculatorPage]  # Updated list with DonatorPage
 
 # Function to show a page
 def show_page(page, loginaccess):
     event = threading.Event()
+    
+    # Page initialization states
+    global ViewedPost  # For Calculator
+    global HomePagePost
+    HomePagePost = getattr(HomePage, 'post_flag', 0)
+    BudgetPagePost = getattr(BudgetPage, 'post_flag', 0)
+    
+    # Store currently visible page if any
+    current_page = None
     for p in pages:
-        p.pack_forget()
-        event.wait(0.1)
-    page.pack(fill=BOTH, expand=True)
+        if str(p.winfo_viewable()) == "1":  # Check if page is visible
+            current_page = p
+            break
     
-    print(page)
+    # Hide current page if exists
+    if current_page:
+        current_page.pack_forget()
+        window.update_idletasks()  # Force update to ensure page is hidden
     
-    window.update_idletasks()  # Update the UI
-
+    # Hide login page if it exists and is visible
+    if LoginPage is not None and str(LoginPage.winfo_viewable()) == "1":
+        LoginPage.pack_forget()
+        window.update_idletasks()
+    
+    # Show the requested page
     if loginaccess == False and page == LoginPage and page != HomePage:
-        loginpage(LoginPage,loginaccess)
+        print('tes')
+        loginpage(LoginPage, loginaccess)
     elif page == HomePage:
-        LoginPage.pack_forget()
-        homepage(HomePage)
+        if not HomePagePost:
+            homepage(HomePage)
+            HomePage.post_flag = 1
+        HomePage.pack(fill=BOTH, expand=True)
     elif page == CalculatorPage:
-        LoginPage.pack_forget()
-        calculatorpage(CalculatorPage)
-   
-        
-
+        if ViewedPost == 0:
+            calculatorpage(CalculatorPage)
+        CalculatorPage.pack(fill=BOTH, expand=True)
+    elif page == BudgetPage:
+        if not BudgetPagePost:
+            from IATEST.Program.BudgetPage import budgetpage
+            budgetpage(BudgetPage)
+            BudgetPage.post_flag = 1
+        BudgetPage.pack(fill=BOTH, expand=True)
+    elif page == InventoryPage:
+        from IATEST.Program.InventoryPage import I_show_page, init_db as init_inventory_db
+        init_inventory_db(conn, cur)  # Initialize database connection
+        I_show_page(window, InventoryPage)  # Pass both window and frame
+    elif page == DonatorPage:
+        from IATEST.Program.DonorPage import D_show_page, init_db as init_donator_db
+        init_donator_db(conn, cur)  # Initialize database connection
+        D_show_page(window, DonatorPage)  # Pass both window and frame
+    elif page == TransactionsPage:
+        from IATEST.Program.TransactionPage import T_show_page, init_db as init_transactions_db
+        init_transactions_db(conn, cur)  # Initialize database connection
+        T_show_page(window, TransactionsPage)  # Pass both window and frame
+    
+    print(f"Showing page: {page}")
+    window.update_idletasks()  # Update the UI
          
 #++++++++++++++++++++++++++++++ {PAGE FUNCTIONS} ++++++++++++++++++++++++++++++++++++++
 #DO NOT EDIT SPACE, WILL USE SPACE FOR THE OTHER PAGES
@@ -702,7 +751,10 @@ def printcannotretrieve():
 
 #submit function
 def RecieveUser(Username, Password, loginaccess, page):
-    cur.execute("SELECT * FROM loginpaswd WHERE loginid = %(username)s AND password = %(password)s", {'username': Username.get(), 'password': Password.get()})
+    print(type(Password.get()))
+    print("""SELECT * FROM loginpaswd WHERE loginid = %s AND password = %s""", (Username.get(), Password.get()))
+    cur.execute("SELECT * FROM loginpaswd WHERE loginid = '"  + Username.get() + "' AND password = '" + Password.get() + "'")
+
     for row in cur.fetchall():
         print(row)
         loginaccess=True
@@ -713,6 +765,7 @@ def RecieveUser(Username, Password, loginaccess, page):
         print("no go, hombre :(") #MAKE SURE TO ADD ERROR SIGN HERE
 
     conn.commit()
+
 
 
 #LOGIN PAGE
@@ -768,29 +821,28 @@ for i in range(6):
 HomeTab = CTkButton(TABFRAME, text="Home", width=20, corner_radius=0 , command=lambda: button_event(HomePage,loginaccess))
 HomeTab.grid(row=0, column=0, pady=10, padx=6, sticky="nsew")
 
-TransactionsTab = CTkButton(TABFRAME, text="Transactions", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
+TransactionsTab = CTkButton(TABFRAME, text="Transactions", width=20, corner_radius=0, command=lambda: button_event(TransactionsPage,loginaccess))
 TransactionsTab.grid(row=0, column=1, pady=10, padx=6, sticky="nsew")
 
-ClientTab = CTkButton(TABFRAME, text="Donator", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
-ClientTab.grid(row=0, column=2, pady=10, padx=6, sticky="nsew")
+DonatorTab = CTkButton(TABFRAME, text="Donator", width=20, corner_radius=0, command=lambda: button_event(DonatorPage,loginaccess))
+DonatorTab.grid(row=0, column=2, pady=10, padx=6, sticky="nsew")
 
-InventoryTab = CTkButton(TABFRAME, text="Inventory", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
+InventoryTab = CTkButton(TABFRAME, text="Inventory", width=20, corner_radius=0, command=lambda: button_event(InventoryPage,loginaccess))
 InventoryTab.grid(row=0, column=3, pady=10, padx=6, sticky="nsew")
 
-BudgetTab = CTkButton(TABFRAME, text="Budget", width=20, corner_radius=0, command=lambda: button_event(LoginPage,loginaccess))
+BudgetTab = CTkButton(TABFRAME, text="Budget", width=20, corner_radius=0, command=lambda: button_event(BudgetPage,loginaccess))
 BudgetTab.grid(row=0, column=4, pady=10, padx=6, sticky="nsew")
 
 Calculatortab = CTkButton(TABFRAME, text="Calculator", width=20, corner_radius=0, command=lambda: button_event(CalculatorPage,loginaccess))
 Calculatortab.grid(row=0, column=5, pady=10, padx=6, sticky="nsew")
-
 def admittedAccess(loginaccess):
     if loginaccess == True:
         destroyloginitems(LOGIN)
         loadedpage(LoginPage)
         TransactionsTab.configure(command=lambda: button_event(TransactionsPage,loginaccess))
-        ClientTab.configure(command=lambda: button_event(ClientPage,loginaccess))
+        DonatorTab.configure(command=lambda: button_event(DonatorPage,loginaccess))
         InventoryTab.configure(command=lambda: button_event(InventoryPage,loginaccess))
-        BudgetTab.configure(command=lambda: button_event(InventoryPage,loginaccess))
+        BudgetTab.configure(command=lambda: button_event(BudgetPage,loginaccess))
         
 
 
